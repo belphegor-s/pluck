@@ -1,0 +1,44 @@
+packages:
+  - apps/*
+  - packages/*
+
+# ---------------------------------------------------------------------------
+# Supply-chain safeguards
+# ---------------------------------------------------------------------------
+# Never install a version published less than 3 days ago. Most malicious
+# releases (e.g. the 2025/2026 npm worm waves) are yanked within hours.
+minimumReleaseAge: 4320
+minimumReleaseAgeStrict: false
+# Fail if a package that used to publish with provenance/trusted publishing
+# suddenly ships a release without it (classic stolen-token signal).
+trustPolicy: no-downgrade
+# Transitive deps may only come from the registry (no git/tarball URLs).
+blockExoticSubdeps: true
+# Lifecycle scripts are denied unless explicitly reviewed and allowed below.
+strictDepBuilds: true
+verifyStoreIntegrity: true
+engineStrict: true
+allowBuilds:
+  esbuild: true
+  sharp: true
+  '@biomejs/biome': false
+  unrs-resolver: true
+
+catalog:
+  '@biomejs/biome': 2.5.12
+  '@types/node': ^24.0.0
+  turbo: ^2.10.0
+  typescript: 6.0.3
+  vitest: ^5.0.0
+  zod: ^4.6.0
+  hono: ^4.13.0
+  '@hono/node-server': ^2.1.0
+  drizzle-orm: ^0.45.2
+  drizzle-kit: ^0.31.10
+  postgres: ^3.4.9
+  bullmq: ^6.3.0
+  ioredis: ^5.8.0
+  undici: ^8.10.0
+  pino: ^10.3.0
+  ai: ^7.0.0
+  playwright-core: ^1.62.0

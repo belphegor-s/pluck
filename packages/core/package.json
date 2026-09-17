@@ -1,0 +1,36 @@
+{
+  "name": "@pluck/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "@pluck/shared": "workspace:*",
+    "diff": "^9.0.0",
+    "fast-xml-parser": "^5.11.0",
+    "linkedom": "^0.18.13",
+    "lru-cache": "^11.5.0",
+    "mammoth": "^1.12.0",
+    "node-html-markdown": "^2.0.0",
+    "picomatch": "^4.0.7",
+    "robots-parser": "^3.0.1",
+    "tldts": "^7.4.0",
+    "undici": "catalog:",
+    "unpdf": "^1.8.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.0"
+  }
+}
