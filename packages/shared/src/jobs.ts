@@ -29,7 +29,9 @@ export const crawlRequest = z
     ignoreQueryParams: z.boolean().default(true),
     useSitemap: z.boolean().default(true),
     concurrency: z.number().int().min(1).max(50).default(10),
-    scrapeOptions: scrapeOptions.omit({ screenshot: true }).default({} as never),
+    // `prefault`, not `default`: the empty object must be parsed so every
+    // nested scrape default (formats, render, timeout…) is filled in.
+    scrapeOptions: scrapeOptions.omit({ screenshot: true }).prefault({}),
     webhook: webhookConfig.optional(),
   })
   .meta({ id: "CrawlRequest" });
