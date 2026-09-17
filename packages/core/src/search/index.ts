@@ -12,11 +12,20 @@ export interface SearchProvider {
 
 const timeRangeMap = { day: "d", week: "w", month: "m", year: "y" } as const;
 
+/** Search is a foreground request: every provider call is kept short. */
+const PROVIDER_TIMEOUT_MS = 9_000;
+
 async function getJson<T>(
   url: string,
-  init: { headers?: Record<string, string>; method?: string; body?: string } = {},
+  init: {
+    headers?: Record<string, string>;
+    method?: string;
+    body?: string;
+    timeoutMs?: number;
+  } = {},
 ): Promise<T> {
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
+  const { timeoutMs = PROVIDER_TIMEOUT_MS, ...rest } = init;
+  const res = await fetch(url, { ...rest, signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok)
     throw new PluckError(
       "target_unreachable",
@@ -42,7 +51,8 @@ export class SearxngProvider implements SearchProvider {
     if (req.timeRange) params.set("time_range", req.timeRange);
 
     const hits: Hit[] = [];
-    for (let page = 1; page <= 3 && hits.length < req.limit; page++) {
+    // Two pages is plenty for the maximum limit of 50 and keeps latency bounded.
+    for (let page = 1; page <= 2 && hits.length < req.limit; page++) {
       params.set("pageno", String(page));
       const data = await getJson<{
         results: {
@@ -180,7 +190,7 @@ export class DuckDuckGoProvider implements SearchProvider {
       try {
         const res = await this.http.fetch(url, {
           proxy,
-          timeout: 15_000,
+          timeout: PROVIDER_TIMEOUT_MS,
           maxBytes: 4 * 1024 * 1024,
           headers: { referer: "https://duckduckgo.com/", "sec-fetch-site": "same-origin" },
         });
@@ -236,15 +246,19 @@ export class FallbackSearch implements SearchProvider {
   async search(req: SearchRequest): Promise<Hit[]> {
     if (!this.providers.length)
       throw new PluckError("internal", "No search provider is configured on this instance.");
+    // Bounded overall: a caller waiting on search would rather have a clear
+    // failure than a request that hangs long enough for a proxy to cut it.
+    const deadline = Date.now() + 45_000;
     let last: unknown;
     for (const p of this.providers) {
+      if (Date.now() > deadline) break;
       try {
         return await p.search(req);
       } catch (err) {
         last = err;
       }
     }
-    throw last;
+    throw last ?? new PluckError("target_blocked", "Search timed out across every provider.");
   }
 }
 
