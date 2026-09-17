@@ -13,6 +13,9 @@ export interface Caller {
 
 export const OWNER_USER_ID = "usr_owner";
 
+/** One-time credit grant for the instance owner, applied idempotently. */
+const OWNER_GRANT = 250_000;
+
 const hashKey = hashApiKey;
 
 /**
@@ -43,6 +46,10 @@ export class KeyAuthenticator {
         role: "admin",
       })
       .onConflictDoNothing();
+    // The operator's own key should work on a metered instance too.
+    if (this.s.credits.enabled) {
+      await this.s.credits.grant(OWNER_USER_ID, OWNER_GRANT, "adjustment", "bootstrap:owner");
+    }
   }
 
   /**
