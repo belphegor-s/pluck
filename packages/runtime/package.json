@@ -1,0 +1,30 @@
+{
+  "name": "@pluck/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@pluck/ai": "workspace:*",
+    "@pluck/core": "workspace:*",
+    "@pluck/db": "workspace:*",
+    "@pluck/shared": "workspace:*",
+    "aws4fetch": "^1.0.20",
+    "bullmq": "catalog:",
+    "drizzle-orm": "catalog:",
+    "ioredis": "^5.11.0",
+    "pino": "catalog:",
+    "undici": "catalog:",
+    "zod": "catalog:"
+  }
+}

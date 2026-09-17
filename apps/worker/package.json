@@ -1,0 +1,28 @@
+{
+  "name": "@pluck/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --watch --env-file-if-exists=../../.env dist/index.js",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@pluck/ai": "workspace:*",
+    "@pluck/core": "workspace:*",
+    "@pluck/db": "workspace:*",
+    "@pluck/runtime": "workspace:*",
+    "@pluck/shared": "workspace:*",
+    "bullmq": "catalog:",
+    "drizzle-orm": "catalog:",
+    "ioredis": "^5.11.0",
+    "lru-cache": "^11.5.0",
+    "playwright-core": "1.63.0",
+    "sharp": "^0.35.0",
+    "undici": "catalog:"
+  }
+}

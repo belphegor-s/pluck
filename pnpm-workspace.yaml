@@ -23,6 +23,7 @@ allowBuilds:
   sharp: true
   '@biomejs/biome': false
   unrs-resolver: true
+  msgpackr-extract: false
 
 catalog:
   '@biomejs/biome': 2.5.12
@@ -37,7 +38,7 @@ catalog:
   drizzle-kit: ^0.31.10
   postgres: ^3.4.9
   bullmq: ^6.3.0
-  ioredis: ^5.8.0
+  ioredis: ^5.11.0
   undici: ^8.10.0
   pino: ^10.3.0
   ai: ^7.0.0

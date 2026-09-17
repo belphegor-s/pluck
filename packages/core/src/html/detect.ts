@@ -36,10 +36,23 @@ const SPA_ROOTS = ["#root", "#app", "#__next", "#__nuxt", "#___gatsby", "#svelte
 export function needsJavaScript(doc: Doc, html: string): boolean {
   const body = doc.body;
   if (!body) return true;
-  const visibleText = (body.textContent ?? "").replace(/\s+/g, " ").trim();
+  // textContent includes inline <script>/<style> bodies (often huge JSON state); exclude them.
+  let hiddenLength = 0;
+  for (const el of body.querySelectorAll("script, style, noscript, template")) hiddenLength += (el.textContent ?? "").length;
+  const rawText = body.textContent ?? "";
+  const visibleText = rawText.length - hiddenLength < 5_000 ? visibleTextOf(body) : rawText;
   const scripts = doc.querySelectorAll("script[src]").length;
 
   if (visibleText.length < 200 && scripts > 0) return true;
+
+  // Interstitials that navigate client-side: meta refresh, auto-submitting forms, JS redirects.
+  if (
+    visibleText.length < 500 &&
+    (doc.querySelector('meta[http-equiv="refresh" i], body[onload]') !== null ||
+      /\b(?:window\.)?location(?:\.href)?\s*=|location\.replace\(|\.submit\(\)/.test(html.slice(0, 20_000)))
+  ) {
+    return true;
+  }
 
   const noscript = doc.querySelector("noscript")?.textContent ?? "";
   if (/enable javascript|javascript is (required|disabled)|requires javascript/i.test(noscript) && visibleText.length < 1500) {
@@ -53,4 +66,16 @@ export function needsJavaScript(doc: Doc, html: string): boolean {
 
   // Ratio of text to markup: a big bundle-heavy document with barely any text.
   return html.length > 50_000 && visibleText.length / html.length < 0.005;
+}
+
+function visibleTextOf(root: Element): string {
+  let out = "";
+  const walk = (node: Node) => {
+    for (const child of node.childNodes) {
+      if (child.nodeType === 3) out += child.textContent;
+      else if (child.nodeType === 1 && !/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test((child as Element).tagName)) walk(child);
+    }
+  };
+  walk(root);
+  return out.replace(/\s+/g, " ").trim();
 }

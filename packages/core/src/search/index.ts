@@ -155,7 +155,8 @@ export class FallbackSearch implements SearchProvider {
   }
 }
 
-export function searchFromEnv(env: Record<string, string | undefined>): FallbackSearch {
+export function searchFromEnv(raw: Readonly<Record<string, unknown>>): FallbackSearch {
+  const env = raw as Record<string, string | undefined>;
   const providers: SearchProvider[] = [];
   const order = (env.SEARCH_PROVIDERS ?? "brave,serper,searxng").split(",").map((s) => s.trim());
   for (const name of order) {

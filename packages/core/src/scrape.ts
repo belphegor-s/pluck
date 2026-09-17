@@ -46,8 +46,20 @@ export class Scraper {
     }
 
     const warnings: string[] = [];
-    const page = await this.load(url, req, warnings);
-    const { result, llm } = await this.format(url, page, req, warnings);
+    let page = await this.load(url, req, warnings);
+    let { result, llm } = await this.format(url, page, req, warnings);
+
+    // Safety net for pages the heuristic misjudged: substantial HTML, almost no content.
+    if (
+      req.render === "auto" &&
+      page.renderedWith === "http" &&
+      page.html &&
+      page.html.length > 20_000 &&
+      (result.markdown ?? htmlToText(page.html)).trim().length < 150
+    ) {
+      page = await this.load(url, { ...req, render: "always" }, warnings);
+      ({ result, llm } = await this.format(url, page, req, warnings));
+    }
     return {
       result,
       usage: {

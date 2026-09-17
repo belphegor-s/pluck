@@ -22,9 +22,9 @@ export class ProxyPool {
 
   constructor(private readonly config: ProxyConfig) {}
 
-  static fromEnv(env: Record<string, string | undefined>): ProxyPool {
-    const list = (v?: string) =>
-      (v ?? "")
+  static fromEnv(env: Readonly<Record<string, unknown>>): ProxyPool {
+    const list = (v: unknown) =>
+      (typeof v === "string" ? v : "")
         .split(/[\s,]+/)
         .map((s) => s.trim())
         .filter(Boolean);
