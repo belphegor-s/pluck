@@ -177,14 +177,19 @@ export class DuckDuckGoProvider implements SearchProvider {
     const url = `https://html.duckduckgo.com/html/?${params}`;
 
     for (const proxy of this.http.proxies.ladder("auto")) {
-      const res = await this.http.fetch(url, {
-        proxy,
-        timeout: 15_000,
-        maxBytes: 4 * 1024 * 1024,
-        headers: { referer: "https://duckduckgo.com/", "sec-fetch-site": "same-origin" },
-      });
-      const hits = parseDuckDuckGo(decodeBody(res.body, res.contentType)).slice(0, req.limit);
-      if (hits.length) return hits;
+      try {
+        const res = await this.http.fetch(url, {
+          proxy,
+          timeout: 15_000,
+          maxBytes: 4 * 1024 * 1024,
+          headers: { referer: "https://duckduckgo.com/", "sec-fetch-site": "same-origin" },
+        });
+        const hits = parseDuckDuckGo(decodeBody(res.body, res.contentType)).slice(0, req.limit);
+        if (hits.length) return hits;
+      } catch {
+        // Engines reset plain HTTP connections from datacentre ranges; the
+        // browser fallback below is the point of this provider.
+      }
     }
 
     if (this.renderHtml) {
