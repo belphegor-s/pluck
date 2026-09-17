@@ -36,31 +36,10 @@ if (!BASE || !env.COOLIFY_API_TOKEN) {
 }
 
 const APPS = [
-  {
-    key: "api",
-    name: "pluck-api",
-    target: "api",
-    port: "8080",
-    domain: DOMAINS.api,
-    health: "/health",
-  },
-  {
-    key: "worker",
-    name: "pluck-worker",
-    target: "worker",
-    port: "8080",
-    domain: null,
-    health: null,
-  },
-  {
-    key: "mcp",
-    name: "pluck-mcp",
-    target: "mcp",
-    port: "8081",
-    domain: DOMAINS.mcp,
-    health: "/health",
-  },
-  { key: "web", name: "pluck-web", target: "web", port: "3000", domain: DOMAINS.web, health: null },
+  { key: "api", name: "pluck-api", target: "api", port: "8080", domain: DOMAINS.api },
+  { key: "worker", name: "pluck-worker", target: "worker", port: "8080", domain: null },
+  { key: "mcp", name: "pluck-mcp", target: "mcp", port: "8081", domain: DOMAINS.mcp },
+  { key: "web", name: "pluck-web", target: "web", port: "3000", domain: DOMAINS.web },
 ];
 
 const DATABASES = [
@@ -219,23 +198,19 @@ async function ensureApps(ctx) {
       console.log(`found app ${spec.name} (${app.uuid})`);
     }
 
-    // The build target and health check cannot be set at creation time.
+    // The build target cannot be set at creation time.
+    //
+    // Coolify's own health check shells out to curl or wget, which the slim
+    // Node images deliberately do not ship. Every image declares its own
+    // HEALTHCHECK instead (see the Dockerfile), so Coolify's is left off and it
+    // reads the container's reported health during a rolling update.
     await api(`/applications/${app.uuid}`, {
       method: "PATCH",
       body: {
         dockerfile_target_build: spec.target,
         ports_exposes: spec.port,
         ...(spec.domain ? { domains: spec.domain } : {}),
-        ...(spec.health
-          ? {
-              health_check_enabled: true,
-              health_check_path: spec.health,
-              health_check_port: spec.port,
-              health_check_start_period: 40,
-              health_check_interval: 15,
-              health_check_retries: 8,
-            }
-          : { health_check_enabled: false }),
+        health_check_enabled: false,
       },
     });
     result[spec.key] = app;
