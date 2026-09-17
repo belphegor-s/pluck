@@ -1,6 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import { NodeHtmlMarkdown } from "node-html-markdown";
-import { type Doc, absolute, parseDocument } from "./document.js";
+import { absolute, type Doc, parseDocument } from "./document.js";
 
 const ALWAYS_REMOVE = [
   "script",
@@ -73,7 +73,8 @@ export function cleanHtml(doc: Doc, opts: ContentOptions): string {
   let body: Element | null = root.body;
   if (opts.includeTags?.length) {
     const container = root.createElement("div");
-    for (const el of root.querySelectorAll(opts.includeTags.join(","))) container.appendChild(el.cloneNode(true));
+    for (const el of root.querySelectorAll(opts.includeTags.join(",")))
+      container.appendChild(el.cloneNode(true));
     body = container;
   }
   if (!body) return "";
@@ -103,11 +104,15 @@ function pickMain(root: Doc, body: Element): Element | null {
   try {
     const clone = root.cloneNode(true) as Doc;
     const article = new Readability(clone, { charThreshold: 300, keepClasses: true }).parse();
-    if (article?.content && (article.textContent ?? "").trim().length > Math.min(500, bodyTextLength * 0.4)) {
+    if (
+      article?.content &&
+      (article.textContent ?? "").trim().length > Math.min(500, bodyTextLength * 0.4)
+    ) {
       const container = parseDocument(`<div>${article.content}</div>`).querySelector("div");
       if (container) {
         // Readability lifts the headline into `title`; put it back.
-        const heading = body.querySelector("main h1, article h1, h1")?.textContent?.trim() || article.title;
+        const heading =
+          body.querySelector("main h1, article h1, h1")?.textContent?.trim() || article.title;
         if (heading && !container.querySelector("h1")) {
           const h1 = container.ownerDocument.createElement("h1");
           h1.textContent = heading;
@@ -177,25 +182,37 @@ const nhm = new NodeHtmlMarkdown(
       const lang = /(?:language|lang)-([\w+#-]+)/.exec(cls)?.[1] ?? "";
       const content = (code ?? node).textContent ?? "";
       const fence = content.includes("```") ? "````" : "```";
-      return { content: `\n${fence}${lang}\n${content.replace(/\n$/, "")}\n${fence}\n`, noEscape: true, preserveWhitespace: true, ignore: false, recurse: false } as never;
+      return {
+        content: `\n${fence}${lang}\n${content.replace(/\n$/, "")}\n${fence}\n`,
+        noEscape: true,
+        preserveWhitespace: true,
+        ignore: false,
+        recurse: false,
+      } as never;
     },
   },
 );
 
 export function htmlToMarkdown(html: string): string {
-  return nhm
-    .translate(html)
-    // node-html-markdown percent-encodes "_" and "*" in URLs; they are valid inside (...).
-    .replace(/\]\(([^)\s]+)/g, (_m, url: string) => `](${url.replace(/%5F/g, "_").replace(/%2A/g, "*")}`)
-    .replace(/\[\s*\]\([^)]*\)/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return (
+    nhm
+      .translate(html)
+      // node-html-markdown percent-encodes "_" and "*" in URLs; they are valid inside (...).
+      .replace(
+        /\]\(([^)\s]+)/g,
+        (_m, url: string) => `](${url.replace(/%5F/g, "_").replace(/%2A/g, "*")}`,
+      )
+      .replace(/\[\s*\]\([^)]*\)/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
 }
 
 export function htmlToText(html: string): string {
   const doc = parseDocument(`<div>${html}</div>`);
   for (const el of doc.querySelectorAll("br")) el.replaceWith("\n");
-  for (const el of doc.querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr,section,article")) el.append("\n");
+  for (const el of doc.querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr,section,article"))
+    el.append("\n");
   return (doc.textContent ?? "")
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n\n")
@@ -212,7 +229,10 @@ export function extractLinks(doc: Doc, base: string): string[] {
 }
 
 export function extractImages(doc: Doc, base: string) {
-  const seen = new Map<string, { src: string; alt: string | null; width: number | null; height: number | null }>();
+  const seen = new Map<
+    string,
+    { src: string; alt: string | null; width: number | null; height: number | null }
+  >();
   const num = (v: string | null) => (v && /^\d+$/.test(v) ? Number(v) : null);
   for (const img of doc.querySelectorAll("img")) {
     const src = pickImageSrc(img, base);
@@ -224,7 +244,10 @@ export function extractImages(doc: Doc, base: string) {
       height: num(img.getAttribute("height")),
     });
   }
-  const og = absolute(doc.querySelector('meta[property="og:image"]')?.getAttribute("content"), base);
+  const og = absolute(
+    doc.querySelector('meta[property="og:image"]')?.getAttribute("content"),
+    base,
+  );
   if (og && !seen.has(og)) seen.set(og, { src: og, alt: null, width: null, height: null });
   return [...seen.values()];
 }

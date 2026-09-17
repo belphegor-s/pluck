@@ -10,7 +10,8 @@ export interface SitemapEntry {
 }
 
 const xml = new XMLParser({ ignoreAttributes: true, processEntities: true, htmlEntities: true });
-const asArray = <T>(v: T | T[] | undefined): T[] => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
+const asArray = <T>(v: T | T[] | undefined): T[] =>
+  v === undefined ? [] : Array.isArray(v) ? v : [v];
 
 /**
  * Collects URLs from robots.txt sitemaps and conventional locations,
@@ -20,20 +21,34 @@ export async function readSitemaps(
   http: HttpClient,
   robots: RobotsCache,
   origin: string,
-  { limit, proxy = "none", maxSitemaps = 50 }: { limit: number; proxy?: ProxyUsed; maxSitemaps?: number },
+  {
+    limit,
+    proxy = "none",
+    maxSitemaps = 50,
+  }: { limit: number; proxy?: ProxyUsed; maxSitemaps?: number },
 ): Promise<{ entries: SitemapEntry[]; sources: string[] }> {
-  const queue = [...new Set([...(await robots.sitemaps(origin)), `${origin}/sitemap.xml`, `${origin}/sitemap_index.xml`])];
+  const queue = [
+    ...new Set([
+      ...(await robots.sitemaps(origin)),
+      `${origin}/sitemap.xml`,
+      `${origin}/sitemap_index.xml`,
+    ]),
+  ];
   const visited = new Set<string>();
   const entries = new Map<string, SitemapEntry>();
   const sources: string[] = [];
 
   while (queue.length && visited.size < maxSitemaps && entries.size < limit) {
     const batch = queue.splice(0, 8).filter((u) => !visited.has(u));
-    batch.forEach((u) => visited.add(u));
+    for (const u of batch) visited.add(u);
     await Promise.all(
       batch.map(async (sitemapUrl) => {
         try {
-          const res = await http.fetch(sitemapUrl, { timeout: 15_000, proxy, maxBytes: 50 * 1024 * 1024 });
+          const res = await http.fetch(sitemapUrl, {
+            timeout: 15_000,
+            proxy,
+            maxBytes: 50 * 1024 * 1024,
+          });
           if (res.status !== 200) return;
           let body = res.body;
           if (body[0] === 0x1f && body[1] === 0x8b) body = gunzipSync(body);

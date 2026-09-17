@@ -1,0 +1,24 @@
+{
+  "name": "@pluck/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript client for the Pluck web context API",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@pluck/shared": "workspace:*"
+  }
+}

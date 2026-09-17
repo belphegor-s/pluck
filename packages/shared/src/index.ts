@@ -3,6 +3,7 @@ export * from "./common.js";
 export * from "./credits.js";
 export * from "./endpoints.js";
 export * from "./errors.js";
+export * from "./identity.js";
 export * from "./jobs.js";
 export * from "./openapi.js";
 export * from "./scrape.js";

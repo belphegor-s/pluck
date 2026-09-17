@@ -2,7 +2,10 @@ import picomatch from "picomatch";
 import { getDomain, getHostname } from "tldts";
 
 /** Canonical form used for de-duplication during crawls and maps. */
-export function normaliseUrl(raw: string, { dropQuery = false }: { dropQuery?: boolean } = {}): string | null {
+export function normaliseUrl(
+  raw: string,
+  { dropQuery = false }: { dropQuery?: boolean } = {},
+): string | null {
   try {
     const url = new URL(raw);
     url.hash = "";
@@ -14,7 +17,8 @@ export function normaliseUrl(raw: string, { dropQuery = false }: { dropQuery?: b
       }
       url.searchParams.sort();
     }
-    if (url.pathname !== "/" && url.pathname.endsWith("/")) url.pathname = url.pathname.slice(0, -1);
+    if (url.pathname !== "/" && url.pathname.endsWith("/"))
+      url.pathname = url.pathname.slice(0, -1);
     return url.href;
   } catch {
     return null;
@@ -30,7 +34,8 @@ export function sameSite(a: string, b: string, allowSubdomains: boolean): boolea
   return ha === hb || (allowSubdomains && registrableDomain(a) === registrableDomain(b));
 }
 
-const ASSET_EXT = /\.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|mp4|webm|mov|avi|mkv|mp3|wav|ogg|flac|zip|gz|tgz|rar|7z|exe|dmg|pkg|deb|rpm|iso|woff2?|ttf|otf|eot|css|js|mjs|map)$/i;
+const ASSET_EXT =
+  /\.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|mp4|webm|mov|avi|mkv|mp3|wav|ogg|flac|zip|gz|tgz|rar|7z|exe|dmg|pkg|deb|rpm|iso|woff2?|ttf|otf|eot|css|js|mjs|map)$/i;
 
 export const isLikelyPage = (url: string) => !ASSET_EXT.test(new URL(url).pathname);
 
@@ -39,7 +44,7 @@ export function pathMatcher(include?: string[], exclude?: string[]) {
   const exc = exclude?.length ? picomatch(exclude, { dot: true }) : null;
   return (url: string) => {
     const path = new URL(url).pathname;
-    return (!inc || inc(path)) && !(exc?.(path));
+    return (!inc || inc(path)) && !exc?.(path);
   };
 }
 

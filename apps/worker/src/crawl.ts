@@ -1,7 +1,15 @@
-import type { LlmResolver } from "@pluck/runtime";
-import { type HttpClient, type RobotsCache, Scraper, isLikelyPage, normaliseUrl, pathMatcher, readSitemaps, sameSite } from "@pluck/core";
-import { type Database, crawlPages, crawls, users } from "@pluck/db";
-import type { Credits, Logger, Queues, UsageRecorder } from "@pluck/runtime";
+import {
+  type HttpClient,
+  isLikelyPage,
+  normaliseUrl,
+  pathMatcher,
+  type RobotsCache,
+  readSitemaps,
+  Scraper,
+  sameSite,
+} from "@pluck/core";
+import { crawlPages, crawls, type Database, users } from "@pluck/db";
+import type { Credits, LlmResolver, Logger, Queues, UsageRecorder } from "@pluck/runtime";
 import { type CrawlRequest, isPluckError, scrapeCost } from "@pluck/shared";
 import { eq, sql } from "drizzle-orm";
 import type { BrowserPool } from "./browser.js";
@@ -32,7 +40,10 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
 
   const req = crawl.options as CrawlRequest;
   const started = Date.now();
-  await db.update(crawls).set({ status: "running", startedAt: crawl.startedAt ?? new Date() }).where(eq(crawls.id, crawlId));
+  await db
+    .update(crawls)
+    .set({ status: "running", startedAt: crawl.startedAt ?? new Date() })
+    .where(eq(crawls.id, crawlId));
   await emit(deps, crawl.userId, req, "started", { id: crawlId, url: req.url });
 
   const scraper = new Scraper({
@@ -45,11 +56,16 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
   const matches = pathMatcher(req.includePaths, req.excludePaths);
   const wantsLinks = req.scrapeOptions.formats.includes("links");
   const inScope = (url: string) =>
-    isLikelyPage(url) && (req.allowExternal || sameSite(url, req.url, req.allowSubdomains)) && matches(url);
+    isLikelyPage(url) &&
+    (req.allowExternal || sameSite(url, req.url, req.allowSubdomains)) &&
+    matches(url);
 
   // Resume support: pages stored by a previous attempt of this job are skipped.
   const seen = new Set<string>();
-  const done = await db.select({ url: crawlPages.url }).from(crawlPages).where(eq(crawlPages.crawlId, crawlId));
+  const done = await db
+    .select({ url: crawlPages.url })
+    .from(crawlPages)
+    .where(eq(crawlPages.crawlId, crawlId));
   for (const p of done) seen.add(p.url);
 
   const queue: Frontier[] = [];
@@ -67,7 +83,9 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
     queue.push({ url: root, depth: 0 });
   }
   if (req.useSitemap) {
-    const { entries } = await readSitemaps(deps.http, deps.robots, new URL(req.url).origin, { limit: req.limit * 2 }).catch(() => ({ entries: [] }));
+    const { entries } = await readSitemaps(deps.http, deps.robots, new URL(req.url).origin, {
+      limit: req.limit * 2,
+    }).catch(() => ({ entries: [] }));
     for (const e of entries) enqueue(e.url, 1);
   }
 
@@ -81,7 +99,10 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
   const flush = async (force = false) => {
     if (!force && Date.now() - lastFlush < 1_000) return;
     lastFlush = Date.now();
-    await db.update(crawls).set({ completed, failed, creditsUsed, total: Math.max(seen.size, completed + failed) }).where(eq(crawls.id, crawlId));
+    await db
+      .update(crawls)
+      .set({ completed, failed, creditsUsed, total: Math.max(seen.size, completed + failed) })
+      .where(eq(crawls.id, crawlId));
   };
 
   const worker = async () => {
@@ -91,7 +112,10 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
 
       if (Date.now() - lastCancelCheck > 3_000) {
         lastCancelCheck = Date.now();
-        const [row] = await db.select({ status: crawls.status }).from(crawls).where(eq(crawls.id, crawlId));
+        const [row] = await db
+          .select({ status: crawls.status })
+          .from(crawls)
+          .where(eq(crawls.id, crawlId));
         if (row?.status === "cancelled") {
           stopReason = "cancelled";
           return;
@@ -119,12 +143,19 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
         await db.insert(crawlPages).values({ crawlId, url: next.url, depth: next.depth, result });
         if (next.depth < req.maxDepth) for (const link of links) enqueue(link, next.depth + 1);
         if (req.webhook?.events.includes("page")) {
-          await emit(deps, crawl.userId, req, "page", { id: crawlId, url: next.url, depth: next.depth, data: result });
+          await emit(deps, crawl.userId, req, "page", {
+            id: crawlId,
+            url: next.url,
+            depth: next.depth,
+            data: result,
+          });
         }
       } catch (err) {
         failed++;
         const message = isPluckError(err) ? err.message : "Failed to scrape page.";
-        await db.insert(crawlPages).values({ crawlId, url: next.url, depth: next.depth, error: message });
+        await db
+          .insert(crawlPages)
+          .values({ crawlId, url: next.url, depth: next.depth, error: message });
       }
       await flush();
     }
@@ -136,11 +167,20 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
   }
   await flush(true);
 
-  const status = stopReason === "cancelled" ? "cancelled" : stopReason === "insufficient_credits" ? "failed" : "completed";
+  const status =
+    stopReason === "cancelled"
+      ? "cancelled"
+      : stopReason === "insufficient_credits"
+        ? "failed"
+        : "completed";
   const error = stopReason === "insufficient_credits" ? "Stopped: out of credits." : null;
   await db
     .update(crawls)
-    .set({ status: sql`CASE WHEN ${crawls.status} = 'cancelled' THEN 'cancelled'::job_status ELSE ${status}::job_status END`, error, finishedAt: new Date() })
+    .set({
+      status: sql`CASE WHEN ${crawls.status} = 'cancelled' THEN 'cancelled'::job_status ELSE ${status}::job_status END`,
+      error,
+      finishedAt: new Date(),
+    })
     .where(eq(crawls.id, crawlId));
 
   deps.usage.record({
@@ -165,9 +205,23 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
   });
 }
 
-async function emit(deps: CrawlDeps, userId: string, req: CrawlRequest, event: "started" | "page" | "completed" | "failed", payload: unknown) {
+async function emit(
+  deps: CrawlDeps,
+  userId: string,
+  req: CrawlRequest,
+  event: "started" | "page" | "completed" | "failed",
+  payload: unknown,
+) {
   if (!req.webhook || !req.webhook.events.includes(event)) return;
-  const [user] = await deps.db.select({ secret: users.webhookSecret }).from(users).where(eq(users.id, userId));
+  const [user] = await deps.db
+    .select({ secret: users.webhookSecret })
+    .from(users)
+    .where(eq(users.id, userId));
   if (!user) return;
-  await deps.queues.webhook.add(`crawl.${event}`, { url: req.webhook.url, secret: user.secret, event: `crawl.${event}`, payload });
+  await deps.queues.webhook.add(`crawl.${event}`, {
+    url: req.webhook.url,
+    secret: user.secret,
+    event: `crawl.${event}`,
+    payload,
+  });
 }

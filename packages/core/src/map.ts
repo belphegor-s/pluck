@@ -1,12 +1,16 @@
 import type { MapRequest, MapResult } from "@pluck/shared";
 import { extractLinks } from "./html/content.js";
 import { parseDocument } from "./html/document.js";
-import { type HttpClient, decodeBody } from "./net/fetch.js";
+import { decodeBody, type HttpClient } from "./net/fetch.js";
 import type { RobotsCache } from "./robots.js";
 import { readSitemaps } from "./sitemap.js";
 import { isLikelyPage, normaliseUrl, relevance, sameSite } from "./urls.js";
 
-export async function mapSite(http: HttpClient, robots: RobotsCache, req: MapRequest): Promise<MapResult> {
+export async function mapSite(
+  http: HttpClient,
+  robots: RobotsCache,
+  req: MapRequest,
+): Promise<MapResult> {
   const origin = new URL(req.url).origin;
   const proxy = http.proxies.ladder(req.proxy)[0] ?? "none";
   const found = new Map<string, string | null>();
@@ -30,7 +34,10 @@ export async function mapSite(http: HttpClient, robots: RobotsCache, req: MapReq
   if (homepage && homepage.status < 400) {
     sources.push(homepage.finalUrl);
     add(homepage.finalUrl, null);
-    for (const link of extractLinks(parseDocument(decodeBody(homepage.body, homepage.contentType)), homepage.finalUrl)) {
+    for (const link of extractLinks(
+      parseDocument(decodeBody(homepage.body, homepage.contentType)),
+      homepage.finalUrl,
+    )) {
       add(link, null);
     }
   }

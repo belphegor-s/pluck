@@ -1,4 +1,12 @@
-import { type HttpClient, type RobotsCache, Scraper, diffSets, diffText, readSitemaps, sha256 } from "@pluck/core";
+import {
+  diffSets,
+  diffText,
+  type HttpClient,
+  type RobotsCache,
+  readSitemaps,
+  Scraper,
+  sha256,
+} from "@pluck/core";
 import { type Database, monitorChanges, monitors, newId, users } from "@pluck/db";
 import type { Credits, LlmResolver, Logger, Queues, UsageRecorder } from "@pluck/runtime";
 import { credits as creditPrices, isPluckError, scrapeCost } from "@pluck/shared";
@@ -34,7 +42,13 @@ export async function scheduleDueMonitors(deps: MonitorDeps): Promise<number> {
     RETURNING id`);
   const bucket = Math.floor(Date.now() / 60_000);
   if (due.length) {
-    await deps.queues.monitor.addBulk(due.map((r) => ({ name: "check", data: { monitorId: r.id }, opts: { jobId: `mon-${r.id}-${bucket}` } })));
+    await deps.queues.monitor.addBulk(
+      due.map((r) => ({
+        name: "check",
+        data: { monitorId: r.id },
+        opts: { jobId: `mon-${r.id}-${bucket}` },
+      })),
+    );
   }
   return due.length;
 }
@@ -51,7 +65,9 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
     let cost = creditPrices.monitorCheck;
 
     if (m.type === "sitemap") {
-      const { entries } = await readSitemaps(deps.http, deps.robots, new URL(m.url).origin, { limit: 50_000 });
+      const { entries } = await readSitemaps(deps.http, deps.robots, new URL(m.url).origin, {
+        limit: 50_000,
+      });
       snapshot = JSON.stringify(entries.map((e) => e.url).sort());
       cost += creditPrices.map;
     } else {
@@ -66,7 +82,13 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
         url: m.url,
         formats: m.type === "extract" ? ["json"] : ["markdown"],
         includeTags: m.selector ? [m.selector] : undefined,
-        jsonOptions: m.type === "extract" ? { schema: (m.schema as Record<string, unknown>) ?? undefined, prompt: m.prompt ?? undefined } : undefined,
+        jsonOptions:
+          m.type === "extract"
+            ? {
+                schema: (m.schema as Record<string, unknown>) ?? undefined,
+                prompt: m.prompt ?? undefined,
+              }
+            : undefined,
         onlyMainContent: !m.selector,
         render: "auto",
         proxy,
@@ -83,7 +105,10 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
     try {
       await deps.credits.reserve(m.userId, cost);
     } catch {
-      await db.update(monitors).set({ active: false, lastError: "Paused: out of credits." }).where(eq(monitors.id, m.id));
+      await db
+        .update(monitors)
+        .set({ active: false, lastError: "Paused: out of credits." })
+        .where(eq(monitors.id, m.id));
       return;
     }
 
@@ -95,24 +120,51 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
       const change =
         m.type === "sitemap"
           ? (() => {
-              const d = diffSets(JSON.parse(m.snapshot ?? "[]") as string[], JSON.parse(snapshot) as string[]);
-              return { summary: `${d.added.length} URL(s) added, ${d.removed.length} removed`, diff: null, added: d.added, removed: d.removed };
+              const d = diffSets(
+                JSON.parse(m.snapshot ?? "[]") as string[],
+                JSON.parse(snapshot) as string[],
+              );
+              return {
+                summary: `${d.added.length} URL(s) added, ${d.removed.length} removed`,
+                diff: null,
+                added: d.added,
+                removed: d.removed,
+              };
             })()
           : (() => {
-              const d = diffText(m.snapshot ?? "", snapshot, m.type === "extract" ? "data.json" : "page.md");
-              return { summary: d?.summary ?? "Content changed", diff: d?.diff ?? null, added: null, removed: null };
+              const d = diffText(
+                m.snapshot ?? "",
+                snapshot,
+                m.type === "extract" ? "data.json" : "page.md",
+              );
+              return {
+                summary: d?.summary ?? "Content changed",
+                diff: d?.diff ?? null,
+                added: null,
+                removed: null,
+              };
             })();
 
       const id = newId("chg");
       await db.insert(monitorChanges).values({ id, monitorId: m.id, ...change, detectedAt: now });
       if (m.webhook) {
-        const [user] = await db.select({ secret: users.webhookSecret }).from(users).where(eq(users.id, m.userId));
+        const [user] = await db
+          .select({ secret: users.webhookSecret })
+          .from(users)
+          .where(eq(users.id, m.userId));
         if (user) {
           await deps.queues.webhook.add("monitor.changed", {
             url: m.webhook,
             secret: user.secret,
             event: "monitor.changed",
-            payload: { monitorId: m.id, changeId: id, url: m.url, type: m.type, detectedAt: now.toISOString(), ...change },
+            payload: {
+              monitorId: m.id,
+              changeId: id,
+              url: m.url,
+              type: m.type,
+              detectedAt: now.toISOString(),
+              ...change,
+            },
           });
         }
       }
@@ -153,7 +205,10 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
         active: failures < MAX_FAILURES,
       })
       .where(eq(monitors.id, m.id));
-    deps.log.warn({ monitorId: m.id, failures, err: isPluckError(err) ? err.message : err }, "monitor check failed");
+    deps.log.warn(
+      { monitorId: m.id, failures, err: isPluckError(err) ? err.message : err },
+      "monitor check failed",
+    );
   }
 }
 
@@ -162,7 +217,11 @@ function stableJson(value: unknown): string {
     Array.isArray(v)
       ? v.map(sort)
       : v && typeof v === "object"
-        ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, sort(x)]))
+        ? Object.fromEntries(
+            Object.entries(v)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([k, x]) => [k, sort(x)]),
+          )
         : v;
   return JSON.stringify(sort(value), null, 2);
 }

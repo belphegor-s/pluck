@@ -1,4 +1,4 @@
-import { newId, crawlPages, crawls, monitorChanges, monitors, usageEvents } from "@pluck/db";
+import { crawlPages, crawls, monitorChanges, monitors, newId, usageEvents } from "@pluck/db";
 import { type CrawlJob, type Monitor, PluckError, scrapeCost } from "@pluck/shared";
 import { and, desc, eq, gt, gte, lt, sql } from "drizzle-orm";
 import { handler } from "../handler.js";
@@ -36,8 +36,15 @@ export const crawlStart = handler("crawlStart", {
   },
 });
 
-async function ownCrawl(s: Parameters<(typeof crawlStart)["run"]>[0]["s"], userId: string, id: string) {
-  const [row] = await s.db.select().from(crawls).where(and(eq(crawls.id, id), eq(crawls.userId, userId)));
+async function ownCrawl(
+  s: Parameters<(typeof crawlStart)["run"]>[0]["s"],
+  userId: string,
+  id: string,
+) {
+  const [row] = await s.db
+    .select()
+    .from(crawls)
+    .where(and(eq(crawls.id, id), eq(crawls.userId, userId)));
   if (!row) throw new PluckError("not_found", "Crawl not found.");
   return row;
 }
@@ -78,7 +85,10 @@ export const crawlCancel = handler("crawlCancel", {
     await ownCrawl(s, caller.userId, id);
     const [row] = await s.db
       .update(crawls)
-      .set({ status: sql`CASE WHEN ${crawls.status} IN ('queued','running') THEN 'cancelled'::job_status ELSE ${crawls.status} END`, finishedAt: sql`COALESCE(${crawls.finishedAt}, now())` })
+      .set({
+        status: sql`CASE WHEN ${crawls.status} IN ('queued','running') THEN 'cancelled'::job_status ELSE ${crawls.status} END`,
+        finishedAt: sql`COALESCE(${crawls.finishedAt}, now())`,
+      })
       .where(eq(crawls.id, id))
       .returning();
     return { data: toCrawlJob(row!), credits: 0 };
@@ -113,13 +123,17 @@ export const monitorCreate = handler("monitorCreate", {
     }
     const minInterval = s.config.BILLING_ENABLED ? 60 : 5;
     if (req.intervalMinutes < minInterval) {
-      throw new PluckError("bad_request", `The minimum interval on this instance is ${minInterval} minutes.`);
+      throw new PluckError(
+        "bad_request",
+        `The minimum interval on this instance is ${minInterval} minutes.`,
+      );
     }
     const [{ count } = { count: 0 }] = await s.db
       .select({ count: sql<number>`count(*)::int` })
       .from(monitors)
       .where(eq(monitors.userId, caller.userId));
-    if (count >= MAX_MONITORS) throw new PluckError("forbidden", `Accounts are limited to ${MAX_MONITORS} monitors.`);
+    if (count >= MAX_MONITORS)
+      throw new PluckError("forbidden", `Accounts are limited to ${MAX_MONITORS} monitors.`);
 
     const [row] = await s.db
       .insert(monitors)
@@ -144,8 +158,15 @@ export const monitorCreate = handler("monitorCreate", {
   },
 });
 
-async function ownMonitor(s: Parameters<(typeof monitorCreate)["run"]>[0]["s"], userId: string, id: string) {
-  const [row] = await s.db.select().from(monitors).where(and(eq(monitors.id, id), eq(monitors.userId, userId)));
+async function ownMonitor(
+  s: Parameters<(typeof monitorCreate)["run"]>[0]["s"],
+  userId: string,
+  id: string,
+) {
+  const [row] = await s.db
+    .select()
+    .from(monitors)
+    .where(and(eq(monitors.id, id), eq(monitors.userId, userId)));
   if (!row) throw new PluckError("not_found", "Monitor not found.");
   return row;
 }
@@ -160,7 +181,13 @@ export const monitorList = handler("monitorList", {
       .orderBy(desc(monitors.id))
       .limit(limit + 1);
     const slice = rows.slice(0, limit);
-    return { data: { monitors: slice.map(toMonitor), nextCursor: rows.length > limit ? slice.at(-1)!.id : null }, credits: 0 };
+    return {
+      data: {
+        monitors: slice.map(toMonitor),
+        nextCursor: rows.length > limit ? slice.at(-1)!.id : null,
+      },
+      credits: 0,
+    };
   },
 });
 
@@ -200,7 +227,9 @@ export const monitorChangesList = handler("monitorChanges", {
     const rows = await s.db
       .select()
       .from(monitorChanges)
-      .where(and(eq(monitorChanges.monitorId, id), cursor ? lt(monitorChanges.id, cursor) : undefined))
+      .where(
+        and(eq(monitorChanges.monitorId, id), cursor ? lt(monitorChanges.id, cursor) : undefined),
+      )
       .orderBy(desc(monitorChanges.id))
       .limit(limit + 1);
     const slice = rows.slice(0, limit);
@@ -232,7 +261,11 @@ export const usage = handler("usage", {
     const [balance, byEndpoint, daily] = await Promise.all([
       s.credits.balance(caller.userId),
       s.db
-        .select({ endpoint: usageEvents.endpoint, requests: sql<number>`count(*)::int`, credits: sql<number>`coalesce(sum(${usageEvents.credits}),0)::int` })
+        .select({
+          endpoint: usageEvents.endpoint,
+          requests: sql<number>`count(*)::int`,
+          credits: sql<number>`coalesce(sum(${usageEvents.credits}),0)::int`,
+        })
         .from(usageEvents)
         .where(where)
         .groupBy(usageEvents.endpoint)
@@ -261,4 +294,3 @@ export const usage = handler("usage", {
     };
   },
 });
-

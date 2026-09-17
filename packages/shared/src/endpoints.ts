@@ -1,6 +1,14 @@
 import { z } from "zod";
-import { brand, brandQuery, classifyRequest, classifyResult, transactionRequest, transactionResult } from "./brand.js";
+import {
+  brand,
+  brandQuery,
+  classifyRequest,
+  classifyResult,
+  transactionRequest,
+  transactionResult,
+} from "./brand.js";
 import { cursorQuery, pageInfo } from "./common.js";
+import { BRAND } from "./identity.js";
 import {
   crawlJob,
   crawlPagesQuery,
@@ -39,8 +47,12 @@ export const usage = z.object({
   period: z.object({ from: z.string(), to: z.string() }),
   totalCredits: z.number().int(),
   totalRequests: z.number().int(),
-  byEndpoint: z.array(z.object({ endpoint: z.string(), requests: z.number().int(), credits: z.number().int() })),
-  daily: z.array(z.object({ date: z.string(), requests: z.number().int(), credits: z.number().int() })),
+  byEndpoint: z.array(
+    z.object({ endpoint: z.string(), requests: z.number().int(), credits: z.number().int() }),
+  ),
+  daily: z.array(
+    z.object({ date: z.string(), requests: z.number().int(), credits: z.number().int() }),
+  ),
 });
 
 export const usageQuery = z.object({ days: z.coerce.number().int().min(1).max(90).default(30) });
@@ -77,7 +89,7 @@ export const endpoints = {
     cost: "1 credit. +2 browser render, +5 residential proxy, +2 screenshot, +8 JSON (1 with your own LLM key).",
     body: scrapeRequest,
     response: scrapeResult,
-    mcp: { name: "pluck_scrape", readOnly: true },
+    mcp: { name: BRAND.tool("scrape"), readOnly: true },
   }),
   parse: ep({
     id: "parse",
@@ -89,7 +101,7 @@ export const endpoints = {
     cost: "2 credits, +1 per 10 PDF pages.",
     body: parseRequest,
     response: parseResult,
-    mcp: { name: "pluck_parse", readOnly: true },
+    mcp: { name: BRAND.tool("parse"), readOnly: true },
   }),
   map: ep({
     id: "map",
@@ -97,11 +109,12 @@ export const endpoints = {
     path: "/v1/map",
     tag: "Scrape",
     summary: "Map a website",
-    description: "Discover every URL on a site from sitemaps, robots.txt and on-page links in seconds.",
+    description:
+      "Discover every URL on a site from sitemaps, robots.txt and on-page links in seconds.",
     cost: "1 credit.",
     body: mapRequest,
     response: mapResult,
-    mcp: { name: "pluck_map", readOnly: true },
+    mcp: { name: BRAND.tool("map"), readOnly: true },
   }),
   screenshot: ep({
     id: "screenshot",
@@ -120,11 +133,12 @@ export const endpoints = {
     path: "/v1/crawl",
     tag: "Crawl",
     summary: "Start a crawl",
-    description: "Crawl a website breadth-first and scrape every matching page. Returns immediately with a job id.",
+    description:
+      "Crawl a website breadth-first and scrape every matching page. Returns immediately with a job id.",
     cost: "Scrape cost per page.",
     body: crawlRequest,
     response: crawlJob,
-    mcp: { name: "pluck_crawl", readOnly: true },
+    mcp: { name: BRAND.tool("crawl"), readOnly: true },
   }),
   crawlGet: ep({
     id: "crawlGet",
@@ -137,7 +151,7 @@ export const endpoints = {
     params: idParam,
     query: crawlPagesQuery,
     response: crawlStatus,
-    mcp: { name: "pluck_crawl_status", readOnly: true },
+    mcp: { name: BRAND.tool("crawl_status"), readOnly: true },
   }),
   crawlCancel: ep({
     id: "crawlCancel",
@@ -156,11 +170,12 @@ export const endpoints = {
     path: "/v1/search",
     tag: "Search",
     summary: "Search the web",
-    description: "Ranked web, news or image results, optionally with every result scraped to markdown.",
+    description:
+      "Ranked web, news or image results, optionally with every result scraped to markdown.",
     cost: "2 credits, plus scrape cost per result when `scrape` is set.",
     body: searchRequest,
     response: searchResult,
-    mcp: { name: "pluck_search", readOnly: true },
+    mcp: { name: BRAND.tool("search"), readOnly: true },
   }),
   extract: ep({
     id: "extract",
@@ -172,7 +187,7 @@ export const endpoints = {
     cost: "1 credit + 8 (1 with your own LLM key).",
     body: extractRequest,
     response: extractResult,
-    mcp: { name: "pluck_extract", readOnly: true },
+    mcp: { name: BRAND.tool("extract"), readOnly: true },
   }),
   product: ep({
     id: "product",
@@ -180,7 +195,8 @@ export const endpoints = {
     path: "/v1/extract/product",
     tag: "Extract",
     summary: "Extract a product",
-    description: "Normalised product data from a product page. Uses structured data first, the LLM only as a fallback.",
+    description:
+      "Normalised product data from a product page. Uses structured data first, the LLM only as a fallback.",
     cost: "3 credits (+8 if the LLM fallback runs).",
     body: productRequest,
     response: productResult,
@@ -202,11 +218,12 @@ export const endpoints = {
     path: "/v1/styleguide",
     tag: "Extract",
     summary: "Extract a styleguide",
-    description: "Design tokens from a live site: palette, fonts, type scale, radii, shadows and component styles.",
+    description:
+      "Design tokens from a live site: palette, fonts, type scale, radii, shadows and component styles.",
     cost: "5 credits.",
     body: styleguideRequest,
     response: styleguide,
-    mcp: { name: "pluck_styleguide", readOnly: true },
+    mcp: { name: BRAND.tool("styleguide"), readOnly: true },
   }),
   brand: ep({
     id: "brand",
@@ -214,11 +231,12 @@ export const endpoints = {
     path: "/v1/brand",
     tag: "Brand",
     summary: "Retrieve a brand",
-    description: "Resolve a domain, work email, company name or stock ticker into a brand profile: logos, colors, fonts, socials, address and industry.",
+    description:
+      "Resolve a domain, work email, company name or stock ticker into a brand profile: logos, colors, fonts, socials, address and industry.",
     cost: "10 credits. Cached profiles cost 2.",
     query: brandQuery,
     response: brand,
-    mcp: { name: "pluck_brand", readOnly: true },
+    mcp: { name: BRAND.tool("brand"), readOnly: true },
   }),
   classify: ep({
     id: "classify",
@@ -248,7 +266,8 @@ export const endpoints = {
     path: "/v1/monitors",
     tag: "Monitors",
     summary: "Create a monitor",
-    description: "Watch a page, a sitemap or extracted data for changes and get a webhook when they happen.",
+    description:
+      "Watch a page, a sitemap or extracted data for changes and get a webhook when they happen.",
     cost: "1 credit per check, plus the underlying scrape/extract cost.",
     body: monitorCreate,
     response: monitor,
@@ -330,7 +349,9 @@ type Infer<T> = T extends z.ZodType ? z.input<T> : never;
 type Out<T> = T extends z.ZodType ? z.output<T> : never;
 
 /** Input type for an endpoint: body, query and path params merged. */
-export type EndpointInput<K extends EndpointId> = (Endpoints[K] extends { body: infer B } ? Infer<B> : unknown) &
+export type EndpointInput<K extends EndpointId> = (Endpoints[K] extends { body: infer B }
+  ? Infer<B>
+  : unknown) &
   (Endpoints[K] extends { query: infer Q } ? Infer<Q> : unknown) &
   (Endpoints[K] extends { params: infer P } ? Infer<P> : unknown);
 

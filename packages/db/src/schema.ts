@@ -142,7 +142,12 @@ export const llmCredentials = pgTable(
 
 /* -------------------------------------------------------------------- billing */
 
-export const ledgerReasonEnum = pgEnum("ledger_reason", ["signup", "purchase", "refund", "adjustment"]);
+export const ledgerReasonEnum = pgEnum("ledger_reason", [
+  "signup",
+  "purchase",
+  "refund",
+  "adjustment",
+]);
 
 /** Append-only record of every credit grant. Usage is tracked in `usage_event`. */
 export const creditLedger = pgTable(
@@ -184,7 +189,13 @@ export const usageEvents = pgTable(
 
 /* ---------------------------------------------------------------------- crawl */
 
-export const jobStatusEnum = pgEnum("job_status", ["queued", "running", "completed", "failed", "cancelled"]);
+export const jobStatusEnum = pgEnum("job_status", [
+  "queued",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+]);
 
 export const crawls = pgTable(
   "crawl",

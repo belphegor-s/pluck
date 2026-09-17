@@ -1,13 +1,20 @@
 import { randomUUID } from "node:crypto";
 import { rateLimit } from "@pluck/runtime";
-import { type Endpoint, type EndpointId, PluckError, endpoints, isPluckError } from "@pluck/shared";
+import {
+  BRAND,
+  type Endpoint,
+  type EndpointId,
+  endpoints,
+  isPluckError,
+  PluckError,
+} from "@pluck/shared";
 import { type Context, Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import { type Caller, KeyAuthenticator } from "./auth.js";
 import type { HandlerMap } from "./handler.js";
-import * as jobs from "./handlers/jobs.js";
 import * as intel from "./handlers/intel.js";
+import * as jobs from "./handlers/jobs.js";
 import * as scrape from "./handlers/scrape.js";
 import type { Services } from "./services.js";
 
@@ -38,6 +45,10 @@ const handlers: HandlerMap = {
 
 export type AppEnv = { Variables: { requestId: string; caller?: Caller } };
 
+/** Dashboard-to-API trust headers, e.g. `x-pluck-internal` / `x-pluck-user`. */
+export const INTERNAL_SECRET_HEADER = `x-${BRAND.header("internal")}`;
+export const INTERNAL_USER_HEADER = `x-${BRAND.header("user")}`;
+
 export function errorResponse(c: Context, err: unknown, requestId: string, log: Services["log"]) {
   if (err instanceof z.ZodError) {
     return c.json(
@@ -53,17 +64,25 @@ export function errorResponse(c: Context, err: unknown, requestId: string, log: 
     );
   }
   if (isPluckError(err)) {
-    return c.json({ error: { code: err.code, message: err.message, requestId, details: err.details } }, err.status as ContentfulStatusCode);
+    return c.json(
+      { error: { code: err.code, message: err.message, requestId, details: err.details } },
+      err.status as ContentfulStatusCode,
+    );
   }
   log.error({ err, requestId }, "unhandled error");
-  return c.json({ error: { code: "internal", message: "Something went wrong on our side.", requestId } }, 500);
+  return c.json(
+    { error: { code: "internal", message: "Something went wrong on our side.", requestId } },
+    500,
+  );
 }
 
 /** Builds `/v1/*` routes from the shared endpoint registry. */
 export function v1Router(s: Services) {
   const app = new Hono<AppEnv>();
   const auth = new KeyAuthenticator(s);
-  void auth.ensureOwner().catch((err: unknown) => s.log.error({ err }, "failed to create owner account"));
+  void auth
+    .ensureOwner()
+    .catch((err: unknown) => s.log.error({ err }, "failed to create owner account"));
 
   for (const [id, endpoint] of Object.entries(endpoints) as [EndpointId, Endpoint][]) {
     const h = handlers[id] as unknown as HandlerMap["scrape"];
@@ -80,21 +99,32 @@ export function v1Router(s: Services) {
       let target: string | undefined;
 
       try {
-        caller = await auth.authenticate(c.req.header("authorization") ?? c.req.header("x-api-key"));
+        caller =
+          auth.internal(c.req.header(INTERNAL_SECRET_HEADER), c.req.header(INTERNAL_USER_HEADER)) ??
+          (await auth.authenticate(c.req.header("authorization") ?? c.req.header("x-api-key")));
         c.set("caller", caller);
 
-        const limit = await rateLimit(s.cacheRedis, caller.apiKeyId ?? caller.userId, s.config.RATE_LIMIT_PER_MINUTE);
+        const limit = await rateLimit(
+          s.cacheRedis,
+          caller.apiKeyId ?? caller.userId,
+          s.config.RATE_LIMIT_PER_MINUTE,
+        );
         if (Number.isFinite(limit.remaining)) {
           c.header("x-ratelimit-limit", String(s.config.RATE_LIMIT_PER_MINUTE));
           c.header("x-ratelimit-remaining", String(limit.remaining));
           c.header("x-ratelimit-reset", String(limit.reset));
         }
-        if (!limit.allowed) throw new PluckError("rate_limited", "Rate limit exceeded. Slow down or contact us for higher limits.");
+        if (!limit.allowed)
+          throw new PluckError(
+            "rate_limited",
+            "Rate limit exceeded. Slow down or contact us for higher limits.",
+          );
 
         let raw: Record<string, unknown> = {};
         if (endpoint.body) {
           const text = await c.req.text();
-          if (text.length > 45_000_000) throw new PluckError("bad_request", "Request body too large.");
+          if (text.length > 45_000_000)
+            throw new PluckError("bad_request", "Request body too large.");
           try {
             raw = text ? (JSON.parse(text) as Record<string, unknown>) : {};
           } catch {
@@ -131,7 +161,8 @@ export function v1Router(s: Services) {
           status as ContentfulStatusCode,
         );
       } catch (err) {
-        if (caller && reserved > 0) await s.credits.settle(caller.userId, reserved, 0).catch(() => {});
+        if (caller && reserved > 0)
+          await s.credits.settle(caller.userId, reserved, 0).catch(() => {});
         spent = 0;
         const res = errorResponse(c, err, requestId, s.log);
         status = res.status;

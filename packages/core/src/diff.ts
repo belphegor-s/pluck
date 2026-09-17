@@ -20,8 +20,15 @@ export function diffText(before: string, after: string, label = "content"): Text
     if (part.removed) removed += part.count ?? 0;
   }
   if (added === 0 && removed === 0) return null;
-  const diff = createTwoFilesPatch(`a/${label}`, `b/${label}`, before, after, "", "", { context: 2 });
-  return { diff: diff.length > 200_000 ? `${diff.slice(0, 200_000)}\n... (truncated)` : diff, added, removed, summary: `${added} line(s) added, ${removed} removed` };
+  const diff = createTwoFilesPatch(`a/${label}`, `b/${label}`, before, after, "", "", {
+    context: 2,
+  });
+  return {
+    diff: diff.length > 200_000 ? `${diff.slice(0, 200_000)}\n... (truncated)` : diff,
+    added,
+    removed,
+    summary: `${added} line(s) added, ${removed} removed`,
+  };
 }
 
 export function diffSets(before: string[], after: string[]) {

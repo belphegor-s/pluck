@@ -2,6 +2,7 @@ import { z } from "zod";
 import { credits } from "./credits.js";
 import { type Endpoint, endpoints } from "./endpoints.js";
 import { errorBody, errorCodes } from "./errors.js";
+import { BRAND } from "./identity.js";
 
 type Json = Record<string, unknown>;
 
@@ -31,7 +32,8 @@ export function buildOpenApi({ serverUrl, version, billing }: OpenApiOptions) {
     const renames = new Map<string, string>();
     for (const [name, def] of Object.entries(defs)) {
       let key = name;
-      if (components[key] && JSON.stringify(components[key]) !== JSON.stringify(def)) key = `${name}Output`;
+      if (components[key] && JSON.stringify(components[key]) !== JSON.stringify(def))
+        key = `${name}Output`;
       components[key] = def;
       renames.set(name, key);
     }
@@ -40,7 +42,8 @@ export function buildOpenApi({ serverUrl, version, billing }: OpenApiOptions) {
     if (id) {
       delete rewritten.id;
       let key = io === "output" && components[id] ? `${id}Output` : id;
-      if (components[key] && JSON.stringify(components[key]) === JSON.stringify(rewritten)) key = id;
+      if (components[key] && JSON.stringify(components[key]) === JSON.stringify(rewritten))
+        key = id;
       components[key] = rewritten;
       return { $ref: `#/components/schemas/${key}` };
     }
@@ -55,7 +58,12 @@ export function buildOpenApi({ serverUrl, version, billing }: OpenApiOptions) {
       ["query", e.query],
     ] as const) {
       if (!schema) continue;
-      type ObjectSchema = { properties?: Record<string, Json>; required?: string[]; $ref?: string; $defs?: Record<string, ObjectSchema> };
+      type ObjectSchema = {
+        properties?: Record<string, Json>;
+        required?: string[];
+        $ref?: string;
+        $defs?: Record<string, ObjectSchema>;
+      };
       let json = z.toJSONSchema(schema, { io: "input", unrepresentable: "any" }) as ObjectSchema;
       if (json.$ref?.startsWith("#/$defs/")) json = json.$defs?.[json.$ref.slice(8)] ?? json;
       for (const [name, prop] of Object.entries(json.properties ?? {})) {
@@ -87,7 +95,10 @@ export function buildOpenApi({ serverUrl, version, billing }: OpenApiOptions) {
               schema: {
                 type: "object",
                 required: ["data", "meta"],
-                properties: { data: toSchema(e.response, "output"), meta: { $ref: "#/components/schemas/Meta" } },
+                properties: {
+                  data: toSchema(e.response, "output"),
+                  meta: { $ref: "#/components/schemas/Meta" },
+                },
               },
             },
           },
@@ -123,21 +134,26 @@ export function buildOpenApi({ serverUrl, version, billing }: OpenApiOptions) {
   return {
     openapi: "3.1.1",
     info: {
-      title: "Pluck API",
+      title: `${BRAND.name} API`,
       version,
-      description:
-        "The web, as context for AI. Scrape, crawl, search, extract and monitor any website as clean, LLM-ready data.",
+      description: BRAND.description,
       license: { name: "AGPL-3.0-only", identifier: "AGPL-3.0-only" },
       "x-credits": billing ? credits : undefined,
     },
     servers: [{ url: serverUrl }],
     security: [{ bearer: [] }],
-    tags: ["Scrape", "Crawl", "Search", "Extract", "Brand", "Monitors", "Account"].map((name) => ({ name })),
+    tags: ["Scrape", "Crawl", "Search", "Extract", "Brand", "Monitors", "Account"].map((name) => ({
+      name,
+    })),
     paths,
     components: {
       schemas: components,
       securitySchemes: {
-        bearer: { type: "http", scheme: "bearer", description: "API key, e.g. `pk_live_...`" },
+        bearer: {
+          type: "http",
+          scheme: "bearer",
+          description: `API key, e.g. \`${BRAND.apiKeyLive}...\``,
+        },
       },
       responses: {
         Error: {

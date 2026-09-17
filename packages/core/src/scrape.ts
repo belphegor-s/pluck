@@ -1,15 +1,27 @@
 import { createHash } from "node:crypto";
 import { PluckError, type ScrapeRequest, type ScrapeResult } from "@pluck/shared";
-import { cleanHtml, extractImages, extractLinks, htmlToMarkdown, htmlToText } from "./html/content.js";
-import { needsJavaScript, isBlocked } from "./html/detect.js";
+import {
+  cleanHtml,
+  extractImages,
+  extractLinks,
+  htmlToMarkdown,
+  htmlToText,
+} from "./html/content.js";
+import { isBlocked, needsJavaScript } from "./html/detect.js";
 import { parseDocument } from "./html/document.js";
 import { extractMetadata } from "./html/metadata.js";
-import { type HttpClient, decodeBody } from "./net/fetch.js";
+import { decodeBody, type HttpClient } from "./net/fetch.js";
 import type { ProxyUsed } from "./net/proxy.js";
 import { assertPublicUrl } from "./net/ssrf.js";
 import { detectKind, parseDocumentBytes } from "./parse/index.js";
 import type { RobotsCache } from "./robots.js";
-import type { AssetStore, LlmBilling, RenderResult, Renderer, StructuredExtractor } from "./types.js";
+import type {
+  AssetStore,
+  LlmBilling,
+  Renderer,
+  RenderResult,
+  StructuredExtractor,
+} from "./types.js";
 
 export interface ScraperDeps {
   http: HttpClient;
@@ -42,7 +54,10 @@ export class Scraper {
   async scrape(req: ScrapeRequest): Promise<ScrapeOutcome> {
     const url = assertPublicUrl(req.url, this.deps.allowPrivateNetwork).href;
     if (req.respectRobots && !(await this.deps.robots.isAllowed(url))) {
-      throw new PluckError("blocked_by_robots", "This URL is disallowed by the site's robots.txt. Set respectRobots to false if you have permission.");
+      throw new PluckError(
+        "blocked_by_robots",
+        "This URL is disallowed by the site's robots.txt. Set respectRobots to false if you have permission.",
+      );
     }
 
     const warnings: string[] = [];
@@ -98,27 +113,47 @@ export class Scraper {
           const kind = detectKind(res.body, res.contentType);
           if (kind && kind !== "html") {
             const parsed = await parseDocumentBytes(res.body, { contentType: res.contentType });
-            return { finalUrl: res.finalUrl, status: res.status, contentType: parsed.contentType, html: null, markdown: parsed.markdown, renderedWith: "http", proxyUsed: proxy };
+            return {
+              finalUrl: res.finalUrl,
+              status: res.status,
+              contentType: parsed.contentType,
+              html: null,
+              markdown: parsed.markdown,
+              renderedWith: "http",
+              proxyUsed: proxy,
+            };
           }
 
           const html = decodeBody(res.body, res.contentType);
           if (isBlocked(res.status, html)) {
             startTier = i + 1;
-            lastError = new PluckError("target_blocked", `Blocked by the target site (HTTP ${res.status}).`);
+            lastError = new PluckError(
+              "target_blocked",
+              `Blocked by the target site (HTTP ${res.status}).`,
+            );
             continue;
           }
           if (req.render === "never" || !needsJavaScript(parseDocument(html), html)) {
-            return { finalUrl: res.finalUrl, status: res.status, contentType: res.contentType, html, renderedWith: "http", proxyUsed: proxy };
+            return {
+              finalUrl: res.finalUrl,
+              status: res.status,
+              contentType: res.contentType,
+              html,
+              renderedWith: "http",
+              proxyUsed: proxy,
+            };
           }
           startTier = i;
           break;
         } catch (err) {
           lastError = err;
-          if (err instanceof PluckError && (err.code === "forbidden" || err.code === "bad_request")) throw err;
+          if (err instanceof PluckError && (err.code === "forbidden" || err.code === "bad_request"))
+            throw err;
           startTier = i + 1;
         }
       }
-      if (req.render === "never") throw lastError ?? new PluckError("target_unreachable", "Could not fetch the page.");
+      if (req.render === "never")
+        throw lastError ?? new PluckError("target_unreachable", "Could not fetch the page.");
     }
 
     // Browser path. When HTTP was blocked on every tier, still give the browser
@@ -141,13 +176,17 @@ export class Scraper {
             : undefined,
         });
         if (isBlocked(rendered.status, rendered.html) && proxy !== browserLadder.at(-1)) {
-          lastError = new PluckError("target_blocked", `Blocked by the target site (HTTP ${rendered.status}).`);
+          lastError = new PluckError(
+            "target_blocked",
+            `Blocked by the target site (HTTP ${rendered.status}).`,
+          );
           continue;
         }
         return { ...rendered, renderedWith: "browser", proxyUsed: proxy };
       } catch (err) {
         lastError = err;
-        if (err instanceof PluckError && (err.code === "forbidden" || err.code === "bad_request")) throw err;
+        if (err instanceof PluckError && (err.code === "forbidden" || err.code === "bad_request"))
+          throw err;
       }
     }
     throw lastError ?? new PluckError("target_unreachable", "Could not load the page.");
@@ -161,7 +200,12 @@ export class Scraper {
   ): Promise<{ result: ScrapeResult; llm: LlmBilling | null }> {
     const f = new Set(req.formats);
     const doc = parseDocument(page.html ?? "<html><body></body></html>");
-    const metadata = extractMetadata(doc, { url, finalUrl: page.finalUrl, statusCode: page.status, contentType: page.contentType });
+    const metadata = extractMetadata(doc, {
+      url,
+      finalUrl: page.finalUrl,
+      statusCode: page.status,
+      contentType: page.contentType,
+    });
     if (page.status >= 400) warnings.push(`Target responded with HTTP ${page.status}.`);
 
     let llm: LlmBilling | null = null;
@@ -207,9 +251,14 @@ export class Scraper {
     }
 
     if (f.has("json")) {
-      if (!this.deps.extractor) throw new PluckError("llm_not_configured", "No LLM is configured for JSON extraction.");
+      if (!this.deps.extractor)
+        throw new PluckError("llm_not_configured", "No LLM is configured for JSON extraction.");
       const opts = req.jsonOptions ?? {};
-      if (!opts.schema && !opts.prompt) throw new PluckError("bad_request", "The `json` format needs `jsonOptions.schema` or `jsonOptions.prompt`.");
+      if (!opts.schema && !opts.prompt)
+        throw new PluckError(
+          "bad_request",
+          "The `json` format needs `jsonOptions.schema` or `jsonOptions.prompt`.",
+        );
       const { data, billing } = await this.deps.extractor.extract({
         url: page.finalUrl,
         markdown: getMarkdown(),

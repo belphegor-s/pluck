@@ -1,4 +1,4 @@
-import { type Database, creditLedger, usageEvents, users } from "@pluck/db";
+import { creditLedger, type Database, usageEvents, users } from "@pluck/db";
 import { PluckError } from "@pluck/shared";
 import { and, eq, gte, sql } from "drizzle-orm";
 import type { Logger } from "./infra.js";
@@ -25,9 +25,13 @@ export class Credits {
       .where(and(eq(users.id, userId), gte(users.credits, amount)))
       .returning({ credits: users.credits });
     if (rows.length === 0) {
-      throw new PluckError("insufficient_credits", `This request needs ${amount} credit(s). Top up in the dashboard under Billing.`, {
-        required: amount,
-      });
+      throw new PluckError(
+        "insufficient_credits",
+        `This request needs ${amount} credit(s). Top up in the dashboard under Billing.`,
+        {
+          required: amount,
+        },
+      );
     }
   }
 
@@ -41,12 +45,21 @@ export class Credits {
 
   async balance(userId: string): Promise<number | null> {
     if (!this.enabled) return null;
-    const [row] = await this.db.select({ credits: users.credits }).from(users).where(eq(users.id, userId));
+    const [row] = await this.db
+      .select({ credits: users.credits })
+      .from(users)
+      .where(eq(users.id, userId));
     return row?.credits ?? 0;
   }
 
   /** Idempotent grant keyed by `reference` (e.g. Polar order id). Returns false if already applied. */
-  async grant(userId: string, amount: number, reason: "signup" | "purchase" | "refund" | "adjustment", reference?: string, amountUsdCents?: number) {
+  async grant(
+    userId: string,
+    amount: number,
+    reason: "signup" | "purchase" | "refund" | "adjustment",
+    reference?: string,
+    amountUsdCents?: number,
+  ) {
     return this.db.transaction(async (tx) => {
       const inserted = await tx
         .insert(creditLedger)
@@ -99,7 +112,9 @@ export class UsageRecorder {
     const rows = this.buffer;
     this.buffer = [];
     try {
-      await this.db.insert(usageEvents).values(rows.map((r) => ({ ...r, target: r.target?.slice(0, 2048) ?? null })));
+      await this.db
+        .insert(usageEvents)
+        .values(rows.map((r) => ({ ...r, target: r.target?.slice(0, 2048) ?? null })));
     } catch (err) {
       this.log.error({ err, count: rows.length }, "failed to write usage events");
     }

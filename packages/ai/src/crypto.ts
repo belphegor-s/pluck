@@ -8,7 +8,8 @@ export class SecretBox {
   private readonly key: Buffer;
 
   constructor(secret: string) {
-    if (!secret || secret.length < 32) throw new Error("PLUCK_ENCRYPTION_KEY must be at least 32 characters");
+    if (!secret || secret.length < 32)
+      throw new Error("PLUCK_ENCRYPTION_KEY must be at least 32 characters");
     this.key = createHash("sha256").update(secret).digest();
   }
 
@@ -24,8 +25,11 @@ export class SecretBox {
     if (version !== "v1" || !iv || !tag || !data) throw new Error("Unsupported ciphertext");
     const decipher = createDecipheriv("aes-256-gcm", this.key, Buffer.from(iv, "base64"));
     decipher.setAuthTag(Buffer.from(tag, "base64"));
-    return Buffer.concat([decipher.update(Buffer.from(data, "base64")), decipher.final()]).toString("utf8");
+    return Buffer.concat([decipher.update(Buffer.from(data, "base64")), decipher.final()]).toString(
+      "utf8",
+    );
   }
 }
 
-export const keyHint = (key: string) => (key.length <= 8 ? "••••" : `${key.slice(0, 4)}…${key.slice(-4)}`);
+export const keyHint = (key: string) =>
+  key.length <= 8 ? "••••" : `${key.slice(0, 4)}…${key.slice(-4)}`;

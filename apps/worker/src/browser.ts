@@ -2,18 +2,18 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import {
   DESKTOP_UA,
+  isPrivateAddress,
   MOBILE_UA,
   type ProxyPool,
+  type Renderer,
   type RenderRequest,
   type RenderResult,
-  type Renderer,
-  isPrivateAddress,
   styleguideProbe,
 } from "@pluck/core";
 import type { Logger } from "@pluck/runtime";
 import { PluckError } from "@pluck/shared";
 import { LRUCache } from "lru-cache";
-import { type Browser, type BrowserContext, type Page, chromium } from "playwright-core";
+import { type Browser, type BrowserContext, chromium, type Page } from "playwright-core";
 import sharp from "sharp";
 
 const AD_HOSTS =
@@ -117,8 +117,11 @@ export class BrowserPool implements Renderer {
     let context: BrowserContext | null = null;
     try {
       const browser = await this.launch();
-      const proxy = req.proxy === "none" ? null : this.opts.proxies.pick(req.proxy, { country: req.country });
-      const viewport = req.screenshot?.viewport ?? (req.mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+      const proxy =
+        req.proxy === "none" ? null : this.opts.proxies.pick(req.proxy, { country: req.country });
+      const viewport =
+        req.screenshot?.viewport ??
+        (req.mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
 
       context = await browser.newContext({
         userAgent: req.mobile ? MOBILE_UA : DESKTOP_UA,
@@ -145,7 +148,8 @@ export class BrowserPool implements Renderer {
         if (url.protocol === "data:" || url.protocol === "blob:") return route.continue();
         if (url.protocol !== "http:" && url.protocol !== "https:") return route.abort();
         if (req.blockAds && AD_HOSTS.test(url.hostname)) return route.abort("blockedbyclient");
-        if (!keepHeavy && HEAVY_TYPES.has(request.resourceType())) return route.abort("blockedbyclient");
+        if (!keepHeavy && HEAVY_TYPES.has(request.resourceType()))
+          return route.abort("blockedbyclient");
         if (!(await this.isAllowedHost(url.hostname))) return route.abort("accessdenied");
         return route.continue();
       });
@@ -154,15 +158,28 @@ export class BrowserPool implements Renderer {
       const deadline = Date.now() + req.timeout;
       const remaining = () => Math.max(1_000, deadline - Date.now());
 
-      const response = await page.goto(req.url, { waitUntil: "domcontentloaded", timeout: req.timeout }).catch((err: Error) => {
-        if (/timeout/i.test(err.message)) throw new PluckError("target_timeout", `Timed out loading ${req.url}`);
-        if (/ERR_NAME_NOT_RESOLVED/.test(err.message)) throw new PluckError("target_unreachable", `Could not resolve ${new URL(req.url).hostname}`);
-        if (/ERR_ACCESS_DENIED|ERR_BLOCKED_BY_CLIENT/.test(err.message)) throw new PluckError("forbidden", "Private network addresses cannot be scraped.");
-        throw new PluckError("target_unreachable", err.message.split("\n")[0] ?? "Navigation failed.");
-      });
+      const response = await page
+        .goto(req.url, { waitUntil: "domcontentloaded", timeout: req.timeout })
+        .catch((err: Error) => {
+          if (/timeout/i.test(err.message))
+            throw new PluckError("target_timeout", `Timed out loading ${req.url}`);
+          if (/ERR_NAME_NOT_RESOLVED/.test(err.message))
+            throw new PluckError(
+              "target_unreachable",
+              `Could not resolve ${new URL(req.url).hostname}`,
+            );
+          if (/ERR_ACCESS_DENIED|ERR_BLOCKED_BY_CLIENT/.test(err.message))
+            throw new PluckError("forbidden", "Private network addresses cannot be scraped.");
+          throw new PluckError(
+            "target_unreachable",
+            err.message.split("\n")[0] ?? "Navigation failed.",
+          );
+        });
 
       // Bounded settle: full load, then a short quiet-network window for late XHR content.
-      await page.waitForLoadState("load", { timeout: Math.min(5_000, remaining()) }).catch(() => {});
+      await page
+        .waitForLoadState("load", { timeout: Math.min(5_000, remaining()) })
+        .catch(() => {});
       // Nudge IntersectionObserver-driven lazy content (feeds, listings) without a full scroll.
       await page
         .evaluate(async () => {
@@ -173,7 +190,9 @@ export class BrowserPool implements Renderer {
           window.scrollTo(0, 0);
         })
         .catch(() => {});
-      await page.waitForLoadState("networkidle", { timeout: Math.min(2_000, remaining()) }).catch(() => {});
+      await page
+        .waitForLoadState("networkidle", { timeout: Math.min(2_000, remaining()) })
+        .catch(() => {});
       if (req.waitFor) await page.waitForTimeout(Math.min(req.waitFor, remaining()));
       if (req.actions?.length) await runActions(page, req, remaining);
       if (req.screenshot?.fullPage) await autoScroll(page, remaining());
@@ -196,11 +215,22 @@ export class BrowserPool implements Renderer {
           animations: "disabled",
         });
         const size = req.screenshot.fullPage
-          ? await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }))
+          ? await page.evaluate(() => ({
+              width: document.documentElement.scrollWidth,
+              height: document.documentElement.scrollHeight,
+            }))
           : viewport;
         // Chromium only emits png/jpeg; WebP is transcoded (typically ~30% smaller than jpeg).
-        const bytes = format === "webp" ? await sharp(raw).webp({ quality: req.screenshot.quality }).toBuffer() : raw;
-        result.screenshot = { base64: bytes.toString("base64"), width: size.width, height: size.height, format };
+        const bytes =
+          format === "webp"
+            ? await sharp(raw).webp({ quality: req.screenshot.quality }).toBuffer()
+            : raw;
+        result.screenshot = {
+          base64: bytes.toString("base64"),
+          width: size.width,
+          height: size.height,
+          format,
+        };
       }
 
       if (req.evaluate === "styleguide") {

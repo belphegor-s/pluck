@@ -25,7 +25,11 @@ export const logoAsset = z.object({
   theme: z.enum(["light", "dark"]).nullable(),
 });
 
-export const industryCode = z.object({ code: z.string(), title: z.string(), confidence: z.number().min(0).max(1) });
+export const industryCode = z.object({
+  code: z.string(),
+  title: z.string(),
+  confidence: z.number().min(0).max(1),
+});
 
 export const brand = z
   .object({
@@ -77,7 +81,10 @@ export const transactionRequest = z
   .object({
     descriptor: z.string().min(2).max(300).meta({ example: "SQ *BLUE BOTTLE COFFE OAKLAND CA" }),
     country: z.string().length(2).toLowerCase().optional(),
-    mcc: z.string().regex(/^\d{4}$/).optional(),
+    mcc: z
+      .string()
+      .regex(/^\d{4}$/)
+      .optional(),
     amount: z.number().optional(),
     llm: llmOverride,
   })

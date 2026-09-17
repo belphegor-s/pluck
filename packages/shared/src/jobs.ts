@@ -18,7 +18,11 @@ export const crawlRequest = z
     url: httpUrl,
     limit: z.number().int().min(1).max(10_000).default(100),
     maxDepth: z.number().int().min(0).max(20).default(3),
-    includePaths: z.array(z.string().max(300)).max(50).optional().meta({ description: "Glob patterns, e.g. `/blog/**`." }),
+    includePaths: z
+      .array(z.string().max(300))
+      .max(50)
+      .optional()
+      .meta({ description: "Glob patterns, e.g. `/blog/**`." }),
     excludePaths: z.array(z.string().max(300)).max(50).optional(),
     allowSubdomains: z.boolean().default(false),
     allowExternal: z.boolean().default(false),
@@ -70,7 +74,14 @@ export const searchRequest = z
     timeRange: z.enum(["day", "week", "month", "year"]).optional(),
     category: z.enum(["web", "news", "images"]).default("web"),
     scrape: scrapeOptions
-      .pick({ formats: true, onlyMainContent: true, render: true, proxy: true, maxAge: true, timeout: true })
+      .pick({
+        formats: true,
+        onlyMainContent: true,
+        render: true,
+        proxy: true,
+        maxAge: true,
+        timeout: true,
+      })
       .optional()
       .meta({ description: "Also scrape every result. Scrape credits apply per result." }),
   })
@@ -136,8 +147,14 @@ export const productRequest = z
 export const productsRequest = productRequest
   .extend({ limit: z.number().int().min(1).max(500).default(50) })
   .meta({ id: "ProductsRequest" });
-export const productResult = z.object({ product: product.nullable(), source: z.enum(["structured-data", "llm"]) });
-export const productsResult = z.object({ products: z.array(product), source: z.enum(["structured-data", "llm"]) });
+export const productResult = z.object({
+  product: product.nullable(),
+  source: z.enum(["structured-data", "llm"]),
+});
+export const productsResult = z.object({
+  products: z.array(product),
+  source: z.enum(["structured-data", "llm"]),
+});
 
 export const styleguideRequest = z
   .object({ url: httpUrl, proxy: proxyMode, maxAge: scrapeOptions.shape.maxAge })
@@ -155,9 +172,21 @@ export const styleguide = z
       palette: z.array(z.object({ hex: z.string(), usage: z.number() })),
     }),
     typography: z.object({
-      fonts: z.array(z.object({ family: z.string(), usage: z.array(z.string()), source: z.string().nullable() })),
-      headings: z.record(z.string(), z.object({ fontFamily: z.string(), fontSize: z.string(), fontWeight: z.string(), lineHeight: z.string() })),
-      body: z.object({ fontFamily: z.string(), fontSize: z.string(), lineHeight: z.string() }).nullable(),
+      fonts: z.array(
+        z.object({ family: z.string(), usage: z.array(z.string()), source: z.string().nullable() }),
+      ),
+      headings: z.record(
+        z.string(),
+        z.object({
+          fontFamily: z.string(),
+          fontSize: z.string(),
+          fontWeight: z.string(),
+          lineHeight: z.string(),
+        }),
+      ),
+      body: z
+        .object({ fontFamily: z.string(), fontSize: z.string(), lineHeight: z.string() })
+        .nullable(),
     }),
     components: z.object({
       button: z.record(z.string(), z.string()).nullable(),
@@ -183,7 +212,11 @@ export const monitorCreate = z
     url: httpUrl,
     intervalMinutes: z.number().int().min(5).max(43_200).default(1_440),
     webhook: httpUrl.optional(),
-    selector: z.string().max(500).optional().meta({ description: "`page` only: watch a single CSS selector." }),
+    selector: z
+      .string()
+      .max(500)
+      .optional()
+      .meta({ description: "`page` only: watch a single CSS selector." }),
     schema: z.record(z.string(), z.unknown()).optional().meta({ description: "`extract` only." }),
     prompt: z.string().max(4000).optional(),
     proxy: proxyMode,
@@ -191,7 +224,10 @@ export const monitorCreate = z
   })
   .meta({ id: "MonitorCreate" });
 export type MonitorCreate = z.infer<typeof monitorCreate>;
-export const monitorUpdate = monitorCreate.omit({ type: true }).partial().meta({ id: "MonitorUpdate" });
+export const monitorUpdate = monitorCreate
+  .omit({ type: true })
+  .partial()
+  .meta({ id: "MonitorUpdate" });
 
 export const monitor = z
   .object({

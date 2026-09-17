@@ -1,8 +1,15 @@
 import type { LlmBilling, LlmSelection, StructuredExtractor } from "@pluck/core";
 import { type ClassifyResult, PluckError, type Product, product } from "@pluck/shared";
-import { APICallError, type FlexibleSchema, NoObjectGeneratedError, Output, generateText, jsonSchema } from "ai";
+import {
+  APICallError,
+  type FlexibleSchema,
+  generateText,
+  jsonSchema,
+  NoObjectGeneratedError,
+  Output,
+} from "ai";
 import { z } from "zod";
-import { type LlmCredential, createModel } from "./providers.js";
+import { createModel, type LlmCredential } from "./providers.js";
 
 export interface ResolvedLlm {
   credential: LlmCredential;
@@ -49,7 +56,8 @@ export class LlmTasks implements StructuredExtractor {
         maxRetries: 2,
         abortSignal: AbortSignal.timeout(this.opts.timeoutMs),
       });
-      if (result.output === undefined) throw new PluckError("llm_failed", "The model did not return structured output.");
+      if (result.output === undefined)
+        throw new PluckError("llm_failed", "The model did not return structured output.");
       return { data: result.output as T, billing };
     } catch (err) {
       throw toPluckError(err);
@@ -57,7 +65,10 @@ export class LlmTasks implements StructuredExtractor {
   }
 
   private page(url: string, markdown: string): string {
-    const body = markdown.length > this.opts.maxInputChars ? `${markdown.slice(0, this.opts.maxInputChars)}\n\n[content truncated]` : markdown;
+    const body =
+      markdown.length > this.opts.maxInputChars
+        ? `${markdown.slice(0, this.opts.maxInputChars)}\n\n[content truncated]`
+        : markdown;
     return `<page url="${url}">\n${body}\n</page>`;
   }
 
@@ -71,8 +82,15 @@ export class LlmTasks implements StructuredExtractor {
     const schema = input.schema
       ? jsonSchema(input.schema as Parameters<typeof jsonSchema>[0])
       : jsonSchema({ type: "object", additionalProperties: true });
-    const task = input.prompt ? `Task: ${input.prompt}` : "Task: extract the data described by the schema.";
-    return this.object(schema, `${task}\n\n${this.page(input.url, input.markdown)}`, input.llm, "extraction");
+    const task = input.prompt
+      ? `Task: ${input.prompt}`
+      : "Task: extract the data described by the schema.";
+    return this.object(
+      schema,
+      `${task}\n\n${this.page(input.url, input.markdown)}`,
+      input.llm,
+      "extraction",
+    );
   }
 
   async products(url: string, markdown: string, limit: number, llm?: LlmSelection) {
@@ -86,10 +104,29 @@ export class LlmTasks implements StructuredExtractor {
     return { products: data.products.map(fromLlmProduct), billing };
   }
 
-  async classify(input: { domain?: string; name?: string | null; description?: string | null; content?: string }, llm?: LlmSelection) {
+  async classify(
+    input: { domain?: string; name?: string | null; description?: string | null; content?: string },
+    llm?: LlmSelection,
+  ) {
     const schema = z.object({
-      naics: z.array(z.object({ code: z.string().regex(/^\d{2,6}$/), title: z.string(), confidence: z.number().min(0).max(1) })).max(3),
-      sic: z.array(z.object({ code: z.string().regex(/^\d{2,4}$/), title: z.string(), confidence: z.number().min(0).max(1) })).max(3),
+      naics: z
+        .array(
+          z.object({
+            code: z.string().regex(/^\d{2,6}$/),
+            title: z.string(),
+            confidence: z.number().min(0).max(1),
+          }),
+        )
+        .max(3),
+      sic: z
+        .array(
+          z.object({
+            code: z.string().regex(/^\d{2,4}$/),
+            title: z.string(),
+            confidence: z.number().min(0).max(1),
+          }),
+        )
+        .max(3),
     });
     const facts = [
       input.domain && `Domain: ${input.domain}`,
@@ -106,11 +143,20 @@ export class LlmTasks implements StructuredExtractor {
     );
   }
 
-  async transaction(input: { descriptor: string; country?: string; mcc?: string; amount?: number }, llm?: LlmSelection) {
+  async transaction(
+    input: { descriptor: string; country?: string; mcc?: string; amount?: number },
+    llm?: LlmSelection,
+  ) {
     const schema = z.object({
       merchant: z.string().nullable(),
-      domain: z.string().nullable().describe("The merchant's primary website domain, e.g. bluebottlecoffee.com"),
-      processor: z.string().nullable().describe("Payment facilitator prefix, e.g. Square, PayPal, Stripe"),
+      domain: z
+        .string()
+        .nullable()
+        .describe("The merchant's primary website domain, e.g. bluebottlecoffee.com"),
+      processor: z
+        .string()
+        .nullable()
+        .describe("Payment facilitator prefix, e.g. Square, PayPal, Stripe"),
       location: z.string().nullable(),
       confidence: z.number().min(0).max(1),
     });
@@ -152,14 +198,23 @@ const fromLlmProduct = (p: z.infer<typeof productForLlm>): Product =>
 function toPluckError(err: unknown): PluckError {
   if (err instanceof PluckError) return err;
   if (NoObjectGeneratedError.isInstance(err)) {
-    return new PluckError("llm_failed", "The model could not produce data matching the schema. Try a clearer prompt or a stronger model.");
+    return new PluckError(
+      "llm_failed",
+      "The model could not produce data matching the schema. Try a clearer prompt or a stronger model.",
+    );
   }
   if (APICallError.isInstance(err)) {
-    if (err.statusCode === 401 || err.statusCode === 403) return new PluckError("llm_failed", "The LLM provider rejected the API key.");
-    if (err.statusCode === 429) return new PluckError("llm_failed", "The LLM provider rate-limited the request. Retry shortly.");
+    if (err.statusCode === 401 || err.statusCode === 403)
+      return new PluckError("llm_failed", "The LLM provider rejected the API key.");
+    if (err.statusCode === 429)
+      return new PluckError(
+        "llm_failed",
+        "The LLM provider rate-limited the request. Retry shortly.",
+      );
     return new PluckError("llm_failed", `LLM provider error (HTTP ${err.statusCode ?? "?"}).`);
   }
   const e = err as { name?: string };
-  if (e.name === "TimeoutError" || e.name === "AbortError") return new PluckError("llm_failed", "The LLM request timed out.");
+  if (e.name === "TimeoutError" || e.name === "AbortError")
+    return new PluckError("llm_failed", "The LLM request timed out.");
   return new PluckError("llm_failed", "The LLM request failed.");
 }

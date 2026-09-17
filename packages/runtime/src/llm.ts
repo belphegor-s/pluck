@@ -1,4 +1,11 @@
-import { type LlmCredential, LlmTasks, type ProviderId, type ResolvedLlm, SecretBox, isProviderId } from "@pluck/ai";
+import {
+  isProviderId,
+  type LlmCredential,
+  LlmTasks,
+  type ProviderId,
+  type ResolvedLlm,
+  SecretBox,
+} from "@pluck/ai";
 import { assertPublicUrl, type LlmSelection } from "@pluck/core";
 import { type Database, llmCredentials } from "@pluck/db";
 import { PluckError } from "@pluck/shared";
@@ -44,16 +51,24 @@ export class LlmResolver {
     const resolve = async (selection?: LlmSelection): Promise<ResolvedLlm> => {
       if (headers.key) {
         const provider = headers.provider ?? selection?.provider ?? "openrouter";
-        if (!isProviderId(provider)) throw new PluckError("bad_request", `Unknown LLM provider "${provider}".`);
+        if (!isProviderId(provider))
+          throw new PluckError("bad_request", `Unknown LLM provider "${provider}".`);
         return {
-          credential: this.checked({ provider, apiKey: headers.key, model: headers.model ?? selection?.model, baseUrl: headers.baseUrl }),
+          credential: this.checked({
+            provider,
+            apiKey: headers.key,
+            model: headers.model ?? selection?.model,
+            baseUrl: headers.baseUrl,
+          }),
           billing: "byok",
         };
       }
 
       const rows = await loadSaved();
       const wanted = selection?.provider;
-      const row = wanted ? rows.find((r) => r.provider === wanted) : (rows.find((r) => r.isDefault) ?? rows[0]);
+      const row = wanted
+        ? rows.find((r) => r.provider === wanted)
+        : (rows.find((r) => r.isDefault) ?? rows[0]);
       if (row) {
         return {
           credential: this.checked({
@@ -66,8 +81,14 @@ export class LlmResolver {
         };
       }
 
-      if (this.instance && (!wanted || wanted === this.instance.provider || this.instance.provider === "openrouter")) {
-        return { credential: { ...this.instance, model: selection?.model ?? this.instance.model }, billing: "instance" };
+      if (
+        this.instance &&
+        (!wanted || wanted === this.instance.provider || this.instance.provider === "openrouter")
+      ) {
+        return {
+          credential: { ...this.instance, model: selection?.model ?? this.instance.model },
+          billing: "instance",
+        };
       }
 
       throw new PluckError(
@@ -78,7 +99,10 @@ export class LlmResolver {
       );
     };
 
-    return new LlmTasks(resolve, { maxInputChars: this.config.LLM_MAX_INPUT_CHARS, timeoutMs: this.config.LLM_TIMEOUT_MS });
+    return new LlmTasks(resolve, {
+      maxInputChars: this.config.LLM_MAX_INPUT_CHARS,
+      timeoutMs: this.config.LLM_TIMEOUT_MS,
+    });
   }
 
   /** User-supplied base URLs must not point into our private network. */

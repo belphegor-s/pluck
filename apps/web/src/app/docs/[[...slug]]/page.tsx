@@ -1,0 +1,102 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { docsNav, listDocSlugs, readDoc } from "@/lib/docs";
+import { SITE } from "@/lib/site";
+
+type Params = { slug?: string[] };
+
+export async function generateStaticParams() {
+  const slugs = await listDocSlugs();
+  return slugs.map((slug) => ({ slug: slug ? [slug] : [] }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
+  const { slug } = await params;
+  const doc = await readDoc(slug?.[0] ?? "");
+  if (!doc) return { title: "Not found" };
+  const path = slug?.[0] ? `/docs/${slug[0]}` : "/docs";
+  return {
+    title: doc.title,
+    description: `${doc.title} — ${SITE.name} documentation.`,
+    alternates: { canonical: path },
+    openGraph: { title: `${doc.title} — ${SITE.name}`, url: path },
+  };
+}
+
+export default async function DocsPage({ params }: { params: Promise<Params> }) {
+  const { slug } = await params;
+  const current = slug?.[0] ?? "";
+  const doc = await readDoc(current);
+  if (!doc) notFound();
+
+  const index = docsNav.findIndex((d) => d.slug === current);
+  const previous = index > 0 ? docsNav[index - 1] : null;
+  const next = index >= 0 && index < docsNav.length - 1 ? docsNav[index + 1] : null;
+
+  return (
+    <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
+      <nav aria-label="Documentation" className="lg:sticky lg:top-20 lg:self-start">
+        <p className="text-sm font-semibold">Documentation</p>
+        <ul className="mt-3 space-y-1.5 text-sm">
+          {docsNav.map((item) => {
+            const href = item.slug ? `/docs/${item.slug}` : "/docs";
+            const active = item.slug === current;
+            return (
+              <li key={item.slug}>
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={
+                    active
+                      ? "text-[var(--accent)]"
+                      : "text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
+                  }
+                >
+                  {item.title}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-6 text-sm">
+          <Link
+            href={`${SITE.apiUrl}/docs`}
+            className="text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
+            target="_blank"
+            rel="noreferrer"
+          >
+            API reference
+          </Link>
+        </p>
+      </nav>
+
+      <article>
+        <h1 className="text-3xl">{doc.title}</h1>
+        {/* Content is our own markdown, compiled at build time. */}
+        <div className="prose-pluck mt-6" dangerouslySetInnerHTML={{ __html: doc.html }} />
+
+        <div className="mt-14 flex justify-between gap-4 border-t border-[var(--line)] pt-5 text-sm">
+          {previous ? (
+            <Link
+              href={previous.slug ? `/docs/${previous.slug}` : "/docs"}
+              className="text-[var(--ink-soft)] hover:text-[var(--ink)]"
+            >
+              ← {previous.title}
+            </Link>
+          ) : (
+            <span />
+          )}
+          {next && (
+            <Link
+              href={`/docs/${next.slug}`}
+              className="text-[var(--ink-soft)] hover:text-[var(--ink)]"
+            >
+              {next.title} →
+            </Link>
+          )}
+        </div>
+      </article>
+    </div>
+  );
+}

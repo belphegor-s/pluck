@@ -40,10 +40,18 @@ describe("ssrf", () => {
 });
 
 describe("proxy ladder", () => {
-  const pool = new ProxyPool({ datacenter: ["http://dc:1"], residential: ["http://u-{country}:p@res:2"] });
-  it("escalates in auto mode", () => expect(pool.ladder("auto")).toEqual(["none", "datacenter", "residential"]));
-  it("degrades gracefully", () => expect(new ProxyPool({ datacenter: [], residential: [] }).ladder("residential")).toEqual(["none"]));
-  it("fills placeholders", () => expect(pool.pick("residential", { country: "de" })?.url).toBe("http://u-de:p@res:2"));
+  const pool = new ProxyPool({
+    datacenter: ["http://dc:1"],
+    residential: ["http://u-{country}:p@res:2"],
+  });
+  it("escalates in auto mode", () =>
+    expect(pool.ladder("auto")).toEqual(["none", "datacenter", "residential"]));
+  it("degrades gracefully", () =>
+    expect(new ProxyPool({ datacenter: [], residential: [] }).ladder("residential")).toEqual([
+      "none",
+    ]));
+  it("fills placeholders", () =>
+    expect(pool.pick("residential", { country: "de" })?.url).toBe("http://u-de:p@res:2"));
 });
 
 describe("html", () => {
@@ -65,12 +73,27 @@ describe("html", () => {
   const doc = parseDocument(page);
 
   it("extracts metadata", () => {
-    const m = extractMetadata(doc, { url: "https://acme.test", finalUrl: "https://acme.test/", statusCode: 200, contentType: "text/html" });
-    expect(m).toMatchObject({ title: "Acme | Rockets for everyone", description: "We build rockets.", language: "en", image: "https://acme.test/og.png", favicon: "https://acme.test/favicon.svg" });
+    const m = extractMetadata(doc, {
+      url: "https://acme.test",
+      finalUrl: "https://acme.test/",
+      statusCode: 200,
+      contentType: "text/html",
+    });
+    expect(m).toMatchObject({
+      title: "Acme | Rockets for everyone",
+      description: "We build rockets.",
+      language: "en",
+      image: "https://acme.test/og.png",
+      favicon: "https://acme.test/favicon.svg",
+    });
   });
 
   it("cleans boilerplate and converts to markdown with code fences", () => {
-    const html = cleanHtml(doc, { baseUrl: "https://acme.test/", onlyMainContent: true, blockAds: true });
+    const html = cleanHtml(doc, {
+      baseUrl: "https://acme.test/",
+      onlyMainContent: true,
+      blockAds: true,
+    });
     const md = htmlToMarkdown(html);
     expect(md).toContain("# Rockets");
     expect(md).toContain("```ts\nconst x = 1;\n```");
@@ -98,7 +121,9 @@ describe("html", () => {
     expect(needsJavaScript(parseDocument(shell), shell)).toBe(true);
     expect(needsJavaScript(doc, page)).toBe(false);
     expect(isBlocked(403, "")).toBe(true);
-    expect(isBlocked(200, "<title>Just a moment...</title><script>window._cf_chl_opt={}</script>")).toBe(true);
+    expect(
+      isBlocked(200, "<title>Just a moment...</title><script>window._cf_chl_opt={}</script>"),
+    ).toBe(true);
     expect(isBlocked(200, page)).toBe(false);
   });
 });
@@ -109,13 +134,25 @@ describe("products", () => {
       "offers":{"@type":"Offer","price":"129.00","priceCurrency":"EUR","availability":"https://schema.org/InStock"},
       "aggregateRating":{"ratingValue":4.6,"reviewCount":88}}</script>`;
     const [p] = productsFromStructuredData(parseDocument(html), "https://shop.test/p/boot");
-    expect(p).toMatchObject({ name: "Boot", sku: "B1", brand: "Acme", price: 129, currency: "EUR", availability: "in_stock", rating: 4.6, reviewCount: 88, images: ["https://shop.test/b.jpg"] });
+    expect(p).toMatchObject({
+      name: "Boot",
+      sku: "B1",
+      brand: "Acme",
+      price: 129,
+      currency: "EUR",
+      availability: "in_stock",
+      rating: 4.6,
+      reviewCount: 88,
+      images: ["https://shop.test/b.jpg"],
+    });
   });
 });
 
 describe("urls", () => {
   it("normalises tracking params and trailing slashes", () => {
-    expect(normaliseUrl("https://A.com/x/?utm_source=1&b=2&a=1#frag")).toBe("https://a.com/x?a=1&b=2");
+    expect(normaliseUrl("https://A.com/x/?utm_source=1&b=2&a=1#frag")).toBe(
+      "https://a.com/x?a=1&b=2",
+    );
   });
   it("matches paths", () => {
     const m = pathMatcher(["/blog/**"], ["/blog/drafts/**"]);
@@ -132,10 +169,13 @@ describe("urls", () => {
 
 describe("parse & diff", () => {
   it("parses csv into a table", async () => {
-    const r = await parseDocumentBytes(Buffer.from('name,note\nA,"x, y"\nB,"say ""hi"""\n'), { contentType: "text/csv" });
+    const r = await parseDocumentBytes(Buffer.from('name,note\nA,"x, y"\nB,"say ""hi"""\n'), {
+      contentType: "text/csv",
+    });
     expect(r.markdown).toBe('| name | note |\n| --- | --- |\n| A | x, y |\n| B | say "hi" |');
   });
-  it("sniffs pdf magic bytes", () => expect(detectKind(Buffer.from("%PDF-1.7"), "application/octet-stream")).toBe("pdf"));
+  it("sniffs pdf magic bytes", () =>
+    expect(detectKind(Buffer.from("%PDF-1.7"), "application/octet-stream")).toBe("pdf"));
   it("diffs text and sets", () => {
     expect(diffText("a\nb\n", "a\nb\n")).toBeNull();
     expect(diffText("a\nb\n", "a\nc\n")).toMatchObject({ added: 1, removed: 1 });

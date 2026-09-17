@@ -1,8 +1,15 @@
-import { logoQuery, PluckError, buildOpenApi, creditPacks, domain as domainSchema } from "@pluck/shared";
-import { rateLimit } from "@pluck/runtime";
 import { users } from "@pluck/db";
-import { Scalar } from "@scalar/hono-api-reference";
+import { rateLimit } from "@pluck/runtime";
+import {
+  BRAND,
+  buildOpenApi,
+  creditPacks,
+  domain as domainSchema,
+  logoQuery,
+  PluckError,
+} from "@pluck/shared";
 import { validateEvent, WebhookVerificationError } from "@polar-sh/sdk/webhooks";
+import { Scalar } from "@scalar/hono-api-reference";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import sharp from "sharp";
@@ -24,7 +31,11 @@ export function publicRouter(s: Services) {
 
   let spec: unknown;
   app.get("/openapi.json", (c) => {
-    spec ??= buildOpenApi({ serverUrl: s.config.PUBLIC_API_URL, version: VERSION, billing: s.config.BILLING_ENABLED });
+    spec ??= buildOpenApi({
+      serverUrl: s.config.PUBLIC_API_URL,
+      version: VERSION,
+      billing: s.config.BILLING_ENABLED,
+    });
     c.header("cache-control", "public, max-age=300");
     return c.json(spec as object);
   });
@@ -33,7 +44,7 @@ export function publicRouter(s: Services) {
     "/docs",
     Scalar({
       url: "/openapi.json",
-      pageTitle: "Pluck API Reference",
+      pageTitle: `${BRAND.name} API Reference`,
       theme: "none",
       hideModels: false,
       defaultHttpClient: { targetKey: "js", clientKey: "fetch" },
@@ -48,7 +59,10 @@ export function publicRouter(s: Services) {
   app.get("/v1/logo/:domain", async (c) => {
     const requestId = c.get("requestId");
     try {
-      const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon";
+      const ip =
+        c.req.header("cf-connecting-ip") ??
+        c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
+        "anon";
       const limit = await rateLimit(s.cacheRedis, `logo:${ip}`, 600);
       if (!limit.allowed) throw new PluckError("rate_limited", "Too many logo requests.");
 
@@ -83,16 +97,23 @@ export function publicRouter(s: Services) {
     const body = await c.req.text();
     let event: ReturnType<typeof validateEvent>;
     try {
-      event = validateEvent(body, Object.fromEntries(c.req.raw.headers), s.config.POLAR_WEBHOOK_SECRET);
+      event = validateEvent(
+        body,
+        Object.fromEntries(c.req.raw.headers),
+        s.config.POLAR_WEBHOOK_SECRET,
+      );
     } catch (err) {
-      if (err instanceof WebhookVerificationError) return c.json({ error: "invalid signature" }, 403);
+      if (err instanceof WebhookVerificationError)
+        return c.json({ error: "invalid signature" }, 403);
       throw err;
     }
 
     if (event.type === "order.paid") {
       const order = event.data;
       const userId = order.customer.externalId ?? (order.metadata?.userId as string | undefined);
-      const packId = (order.product?.metadata?.pack as string | undefined) ?? (order.metadata?.pack as string | undefined);
+      const packId =
+        (order.product?.metadata?.pack as string | undefined) ??
+        (order.metadata?.pack as string | undefined);
       const pack = creditPacks.find((p) => p.id === packId);
       if (!userId || !pack) {
         s.log.error({ orderId: order.id, userId, packId }, "polar order without user or pack");
@@ -100,8 +121,17 @@ export function publicRouter(s: Services) {
       }
       const [user] = await s.db.select({ id: users.id }).from(users).where(eq(users.id, userId));
       if (!user) return c.json({ ok: false, reason: "unknown user" }, 202);
-      const granted = await s.credits.grant(userId, pack.credits, "purchase", `polar:${order.id}`, order.totalAmount);
-      s.log.info({ orderId: order.id, userId, credits: pack.credits, granted }, "credits purchased");
+      const granted = await s.credits.grant(
+        userId,
+        pack.credits,
+        "purchase",
+        `polar:${order.id}`,
+        order.totalAmount,
+      );
+      s.log.info(
+        { orderId: order.id, userId, credits: pack.credits, granted },
+        "credits purchased",
+      );
     }
     return c.json({ ok: true });
   });
@@ -110,13 +140,20 @@ export function publicRouter(s: Services) {
 }
 
 async function renderLogo(s: Services, domain: string, size: number, format: "png" | "webp") {
-  const { brand } = await new BrandService(s).get(domain, { maxAge: 2_592_000, proxy: "auto", llm: null });
+  const { brand } = await new BrandService(s).get(domain, {
+    maxAge: 2_592_000,
+    proxy: "auto",
+    llm: null,
+  });
   const ranked = [...brand.logos].sort((a, b) => score(b) - score(a));
   for (const logo of ranked.slice(0, 4)) {
     try {
       const res = await s.http.fetch(logo.url, { timeout: 8_000, maxBytes: 5 * 1024 * 1024 });
       if (res.status >= 400 || res.body.length < 64) continue;
-      const img = sharp(res.body, { density: 300, failOn: "none" }).resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } });
+      const img = sharp(res.body, { density: 300, failOn: "none" }).resize(size, size, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      });
       return await (format === "png" ? img.png() : img.webp({ quality: 90 })).toBuffer();
     } catch {
       // Try the next candidate.
@@ -128,7 +165,12 @@ async function renderLogo(s: Services, domain: string, size: number, format: "pn
 /** Square icons first (apple-touch, large favicons, manifest icons), wide header logos last. */
 function score(l: { type: string; format: string | null; width: number | null }) {
   const typeScore = { "apple-touch-icon": 50, icon: 30, symbol: 45, logo: 10, og: 0 }[l.type] ?? 0;
-  return typeScore + (l.format === "svg" ? 25 : 0) + Math.min(l.width ?? 32, 512) / 20 - (l.format === "ico" ? 15 : 0);
+  return (
+    typeScore +
+    (l.format === "svg" ? 25 : 0) +
+    Math.min(l.width ?? 32, 512) / 20 -
+    (l.format === "ico" ? 15 : 0)
+  );
 }
 
 async function monogram(domain: string, size: number, format: "png" | "webp") {

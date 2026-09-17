@@ -64,13 +64,9 @@ export const scrapeOptions = z.object({
   mobile: z.boolean().default(false),
   blockAds: z.boolean().default(true),
   respectRobots: z.boolean().default(true),
-  maxAge: z
-    .number()
-    .int()
-    .min(0)
-    .max(604_800)
-    .default(3_600)
-    .meta({ description: "Serve a cached copy younger than this many seconds. 0 forces a fresh fetch." }),
+  maxAge: z.number().int().min(0).max(604_800).default(3_600).meta({
+    description: "Serve a cached copy younger than this many seconds. 0 forces a fresh fetch.",
+  }),
   screenshot: screenshotOptions.optional(),
   jsonOptions: z
     .object({
@@ -122,7 +118,10 @@ export const scrapeResult = z
     links: z.array(z.string()).optional(),
     images: z.array(imageRef).optional(),
     metadata: pageMetadata,
-    screenshot: z.string().optional().meta({ description: "Public URL, or a data URI when storage is not configured." }),
+    screenshot: z
+      .string()
+      .optional()
+      .meta({ description: "Public URL, or a data URI when storage is not configured." }),
     json: z.unknown().optional(),
     renderedWith: z.enum(["http", "browser"]),
     proxyUsed: z.enum(["none", "datacenter", "residential"]),
@@ -154,7 +153,11 @@ export const screenshotResult = z.object({
 export const parseRequest = z
   .object({
     url: httpUrl.optional(),
-    base64: z.string().max(40_000_000).optional().meta({ description: "File bytes, base64-encoded (max ~30MB)." }),
+    base64: z
+      .string()
+      .max(40_000_000)
+      .optional()
+      .meta({ description: "File bytes, base64-encoded (max ~30MB)." }),
     filename: z.string().max(255).optional(),
     contentType: z.string().max(200).optional(),
   })
@@ -175,7 +178,11 @@ export type ParseResult = z.infer<typeof parseResult>;
 export const mapRequest = z
   .object({
     url: httpUrl,
-    search: z.string().max(200).optional().meta({ description: "Rank URLs by relevance to this text." }),
+    search: z
+      .string()
+      .max(200)
+      .optional()
+      .meta({ description: "Rank URLs by relevance to this text." }),
     limit: z.number().int().min(1).max(50_000).default(5_000),
     includeSubdomains: z.boolean().default(false),
     useSitemap: z.boolean().default(true),

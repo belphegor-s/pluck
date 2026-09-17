@@ -1,0 +1,140 @@
+# Pluck, fully self-hosted. No external services required.
+#
+#   cp .env.example .env   # set PLUCK_ENCRYPTION_KEY and BOOTSTRAP_API_KEY at minimum
+#   docker compose up -d
+#
+# API:  http://localhost:8080  (docs at /docs)
+# Web:  http://localhost:3000
+# MCP:  http://localhost:8081/mcp
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://pluck:${POSTGRES_PASSWORD:-pluck}@postgres:5432/pluck
+  REDIS_URL: redis://redis:6379
+  CACHE_REDIS_URL: redis://redis-cache:6379
+  SEARXNG_URL: http://searxng:8080
+  S3_ENDPOINT: http://minio:9000
+  S3_REGION: us-east-1
+  S3_BUCKET: pluck
+  S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-pluck}
+  S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-pluck-minio-secret}
+  STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-http://localhost:9000/pluck}
+  PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+  PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:3000}
+  PLUCK_ENCRYPTION_KEY: ${PLUCK_ENCRYPTION_KEY:?set PLUCK_ENCRYPTION_KEY (32+ chars)}
+  BOOTSTRAP_API_KEY: ${BOOTSTRAP_API_KEY:-}
+  BILLING_ENABLED: "false"
+  ALLOW_PRIVATE_NETWORK: ${ALLOW_PRIVATE_NETWORK:-false}
+  RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-0}
+  PLUCK_LLM_PROVIDER: ${PLUCK_LLM_PROVIDER:-}
+  PLUCK_LLM_API_KEY: ${PLUCK_LLM_API_KEY:-}
+  PLUCK_LLM_MODEL: ${PLUCK_LLM_MODEL:-}
+  PLUCK_LLM_BASE_URL: ${PLUCK_LLM_BASE_URL:-}
+  PROXY_DATACENTER_URLS: ${PROXY_DATACENTER_URLS:-}
+  PROXY_RESIDENTIAL_URLS: ${PROXY_RESIDENTIAL_URLS:-}
+  BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+  SERPER_API_KEY: ${SERPER_API_KEY:-}
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pluck
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pluck}
+      POSTGRES_DB: pluck
+    volumes: [postgres:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pluck"]
+      interval: 5s
+      retries: 20
+
+  # Queue store: must never evict.
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: [redis:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+
+  # Cache + rate limits: bounded, evicts least-recently-used keys.
+  redis-cache:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-change-me-searxng-secret}
+    volumes: ["./docker/searxng/settings.yml:/etc/searxng/settings.yml:ro"]
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-pluck}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-pluck-minio-secret}
+    ports: ["9000:9000"]
+    volumes: [minio:/data]
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on: [minio]
+    restart: "no"
+    entrypoint: >
+      sh -c "until mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-pluck} $${MINIO_ROOT_PASSWORD:-pluck-minio-secret}; do sleep 1; done &&
+             mc mb -p local/pluck && mc anonymous set download local/pluck"
+
+  api:
+    build: { context: ., target: api }
+    restart: unless-stopped
+    environment: *app-env
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    build: { context: ., target: worker }
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      BROWSER_CONCURRENCY: ${BROWSER_CONCURRENCY:-4}
+    shm_size: 1gb
+    depends_on: [api]
+
+  mcp:
+    build: { context: ., target: mcp }
+    restart: unless-stopped
+    environment:
+      PLUCK_API_INTERNAL_URL: http://api:8080
+    ports: ["8081:8081"]
+    depends_on: [api]
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+        NEXT_PUBLIC_SITE_URL: ${PUBLIC_WEB_URL:-http://localhost:3000}
+        NEXT_PUBLIC_MCP_URL: ${PUBLIC_MCP_URL:-http://localhost:8081}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      BETTER_AUTH_URL: ${PUBLIC_WEB_URL:-http://localhost:3000}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  postgres:
+  redis:
+  minio:

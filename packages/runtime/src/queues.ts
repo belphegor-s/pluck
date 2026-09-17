@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
-import type { RenderRequest, RenderResult, Renderer } from "@pluck/core";
-import { PluckError, isPluckError } from "@pluck/shared";
+import type { Renderer, RenderRequest, RenderResult } from "@pluck/core";
+import { BRAND, isPluckError, PluckError } from "@pluck/shared";
 import { type ConnectionOptions, type Job, Queue, QueueEvents } from "bullmq";
 import type { Redis } from "ioredis";
 
@@ -47,17 +47,35 @@ export function createQueues(connection: Redis) {
     }),
     crawl: new Queue<CrawlJobData>(QUEUES.crawl, {
       ...opts,
-      defaultJobOptions: { removeOnComplete: { age: 3600 }, removeOnFail: { age: 86_400 }, attempts: 3, backoff: { type: "exponential", delay: 5_000 } },
+      defaultJobOptions: {
+        removeOnComplete: { age: 3600 },
+        removeOnFail: { age: 86_400 },
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5_000 },
+      },
     }),
     monitor: new Queue<MonitorJobData>(QUEUES.monitor, {
       ...opts,
-      defaultJobOptions: { removeOnComplete: true, removeOnFail: { age: 86_400 }, attempts: 2, backoff: { type: "fixed", delay: 30_000 } },
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { age: 86_400 },
+        attempts: 2,
+        backoff: { type: "fixed", delay: 30_000 },
+      },
     }),
     webhook: new Queue<WebhookJobData>(QUEUES.webhook, {
       ...opts,
-      defaultJobOptions: { removeOnComplete: true, removeOnFail: { age: 7 * 86_400 }, attempts: 8, backoff: { type: "exponential", delay: 10_000 } },
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { age: 7 * 86_400 },
+        attempts: 8,
+        backoff: { type: "exponential", delay: 10_000 },
+      },
     }),
-    maintenance: new Queue(QUEUES.maintenance, { ...opts, defaultJobOptions: { removeOnComplete: true, removeOnFail: 100 } }),
+    maintenance: new Queue(QUEUES.maintenance, {
+      ...opts,
+      defaultJobOptions: { removeOnComplete: true, removeOnFail: 100 },
+    }),
   };
 }
 
@@ -75,7 +93,9 @@ export class QueueRenderer implements Renderer {
     private readonly queue: Queues["render"],
     connection: Redis,
   ) {
-    this.events = new QueueEvents(QUEUES.render, { connection: connection.duplicate() as unknown as ConnectionOptions });
+    this.events = new QueueEvents(QUEUES.render, {
+      connection: connection.duplicate() as unknown as ConnectionOptions,
+    });
   }
 
   async render(req: RenderRequest): Promise<RenderResult> {
@@ -86,7 +106,11 @@ export class QueueRenderer implements Renderer {
       result = await job.waitUntilFinished(this.events, req.timeout + 30_000);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      if (/timed out/i.test(message)) throw new PluckError("target_timeout", "The browser fleet is busy or the page took too long.");
+      if (/timed out/i.test(message))
+        throw new PluckError(
+          "target_timeout",
+          "The browser fleet is busy or the page took too long.",
+        );
       throw new PluckError("target_unreachable", message);
     }
     if ((result as RenderFailure).__pluckError) {
@@ -101,7 +125,14 @@ export class QueueRenderer implements Renderer {
   }
 }
 
-export function signWebhook(secret: string, body: string, timestamp = Math.floor(Date.now() / 1000)) {
+/** Header name carrying the signature, e.g. `pluck-signature`. */
+export const WEBHOOK_SIGNATURE_HEADER = BRAND.header("signature");
+
+export function signWebhook(
+  secret: string,
+  body: string,
+  timestamp = Math.floor(Date.now() / 1000),
+) {
   const signature = createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
   return `t=${timestamp},v1=${signature}`;
 }

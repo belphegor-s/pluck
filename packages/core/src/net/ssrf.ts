@@ -59,9 +59,17 @@ export function createSafeLookup(allowPrivate: boolean): LookupFunction {
     }
     dnsLookup(hostname, { ...options, all: true }, (err, addresses: LookupAddress[]) => {
       if (err) return callback(err, "", 4);
-      const allowed = allowPrivate ? addresses : addresses.filter((a) => !isPrivateAddress(a.address));
+      const allowed = allowPrivate
+        ? addresses
+        : addresses.filter((a) => !isPrivateAddress(a.address));
       if (allowed.length === 0) {
-        callback(Object.assign(new Error(`Blocked private address for ${hostname}`), { code: "EPLUCKSSRF" }), "", 4);
+        callback(
+          Object.assign(new Error(`Blocked private address for ${hostname}`), {
+            code: "EPLUCKSSRF",
+          }),
+          "",
+          4,
+        );
         return;
       }
       if ((options as { all?: boolean }).all) {

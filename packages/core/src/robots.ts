@@ -1,8 +1,9 @@
 import { createRequire } from "node:module";
+import { BRAND } from "@pluck/shared";
 import { LRUCache } from "lru-cache";
 import type { HttpClient } from "./net/fetch.js";
 
-export const PLUCK_BOT = "PluckBot";
+export const PLUCK_BOT = BRAND.userAgent;
 
 interface Robots {
   isAllowed(url: string, ua?: string): boolean | undefined;
@@ -10,11 +11,17 @@ interface Robots {
 }
 
 // robots-parser is CommonJS with `module.exports = fn` but ships ESM-style typings.
-const robotsParser = createRequire(import.meta.url)("robots-parser") as (url: string, body: string) => Robots;
+const robotsParser = createRequire(import.meta.url)("robots-parser") as (
+  url: string,
+  body: string,
+) => Robots;
 
 /** robots.txt per origin, cached for an hour. Missing/failed robots means allow. */
 export class RobotsCache {
-  private readonly cache = new LRUCache<string, Promise<Robots | null>>({ max: 20_000, ttl: 3_600_000 });
+  private readonly cache = new LRUCache<string, Promise<Robots | null>>({
+    max: 20_000,
+    ttl: 3_600_000,
+  });
 
   constructor(private readonly http: HttpClient) {}
 
@@ -24,7 +31,11 @@ export class RobotsCache {
       const url = `${origin}/robots.txt`;
       entry = this.http
         .fetch(url, { timeout: 5_000, maxBytes: 512 * 1024 })
-        .then((res) => (res.status >= 200 && res.status < 300 ? robotsParser(url, res.body.toString("utf8")) : null))
+        .then((res) =>
+          res.status >= 200 && res.status < 300
+            ? robotsParser(url, res.body.toString("utf8"))
+            : null,
+        )
         .catch(() => null);
       this.cache.set(origin, entry);
     }

@@ -27,7 +27,17 @@ export function isBlocked(status: number, html: string): boolean {
   return markers && head.length < 40_000;
 }
 
-const SPA_ROOTS = ["#root", "#app", "#__next", "#__nuxt", "#___gatsby", "#svelte", "[data-reactroot]", "app-root", "#main-app"];
+const SPA_ROOTS = [
+  "#root",
+  "#app",
+  "#__next",
+  "#__nuxt",
+  "#___gatsby",
+  "#svelte",
+  "[data-reactroot]",
+  "app-root",
+  "#main-app",
+];
 
 /**
  * Heuristic: does this server-rendered HTML need a browser to be useful?
@@ -38,7 +48,8 @@ export function needsJavaScript(doc: Doc, html: string): boolean {
   if (!body) return true;
   // textContent includes inline <script>/<style> bodies (often huge JSON state); exclude them.
   let hiddenLength = 0;
-  for (const el of body.querySelectorAll("script, style, noscript, template")) hiddenLength += (el.textContent ?? "").length;
+  for (const el of body.querySelectorAll("script, style, noscript, template"))
+    hiddenLength += (el.textContent ?? "").length;
   const rawText = body.textContent ?? "";
   const visibleText = rawText.length - hiddenLength < 5_000 ? visibleTextOf(body) : rawText;
   const scripts = doc.querySelectorAll("script[src]").length;
@@ -49,19 +60,25 @@ export function needsJavaScript(doc: Doc, html: string): boolean {
   if (
     visibleText.length < 500 &&
     (doc.querySelector('meta[http-equiv="refresh" i], body[onload]') !== null ||
-      /\b(?:window\.)?location(?:\.href)?\s*=|location\.replace\(|\.submit\(\)/.test(html.slice(0, 20_000)))
+      /\b(?:window\.)?location(?:\.href)?\s*=|location\.replace\(|\.submit\(\)/.test(
+        html.slice(0, 20_000),
+      ))
   ) {
     return true;
   }
 
   const noscript = doc.querySelector("noscript")?.textContent ?? "";
-  if (/enable javascript|javascript is (required|disabled)|requires javascript/i.test(noscript) && visibleText.length < 1500) {
+  if (
+    /enable javascript|javascript is (required|disabled)|requires javascript/i.test(noscript) &&
+    visibleText.length < 1500
+  ) {
     return true;
   }
 
   for (const sel of SPA_ROOTS) {
     const root = doc.querySelector(sel);
-    if (root && (root.textContent ?? "").trim().length < 100 && root.children.length <= 2) return true;
+    if (root && (root.textContent ?? "").trim().length < 100 && root.children.length <= 2)
+      return true;
   }
 
   // Ratio of text to markup: a big bundle-heavy document with barely any text.
@@ -73,7 +90,11 @@ function visibleTextOf(root: Element): string {
   const walk = (node: Node) => {
     for (const child of node.childNodes) {
       if (child.nodeType === 3) out += child.textContent;
-      else if (child.nodeType === 1 && !/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test((child as Element).tagName)) walk(child);
+      else if (
+        child.nodeType === 1 &&
+        !/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test((child as Element).tagName)
+      )
+        walk(child);
     }
   };
   walk(root);

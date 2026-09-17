@@ -6,7 +6,9 @@ import type { Services } from "./services.js";
 
 type Parsed<T> = T extends z.ZodType ? z.output<T> : unknown;
 
-export type HandlerInput<K extends EndpointId> = (Endpoints[K] extends { body: infer B } ? Parsed<B> : unknown) &
+export type HandlerInput<K extends EndpointId> = (Endpoints[K] extends { body: infer B }
+  ? Parsed<B>
+  : unknown) &
   (Endpoints[K] extends { query: infer Q } ? Parsed<Q> : unknown) &
   (Endpoints[K] extends { params: infer P } ? Parsed<P> : unknown);
 

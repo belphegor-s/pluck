@@ -46,9 +46,10 @@ export class ProxyPool {
     const urls = this.config[tier];
     if (urls.length === 0) return null;
     const index = this.cursor[tier]++ % urls.length;
-    const url = urls[index]!
-      .replaceAll("{country}", opts.country ?? "us")
-      .replaceAll("{session}", opts.session ?? Math.random().toString(36).slice(2, 10));
+    const url = urls[index]!.replaceAll("{country}", opts.country ?? "us").replaceAll(
+      "{session}",
+      opts.session ?? Math.random().toString(36).slice(2, 10),
+    );
     return { tier, url };
   }
 
@@ -63,7 +64,11 @@ export class ProxyPool {
       case "datacenter":
         return this.has("datacenter") ? ["datacenter"] : ["none"];
       case "residential":
-        return this.has("residential") ? ["residential"] : this.has("datacenter") ? ["datacenter"] : ["none"];
+        return this.has("residential")
+          ? ["residential"]
+          : this.has("datacenter")
+            ? ["datacenter"]
+            : ["none"];
       default:
         return ["none", ...this.tiers];
     }

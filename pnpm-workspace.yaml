@@ -18,6 +18,8 @@ blockExoticSubdeps: true
 strictDepBuilds: true
 verifyStoreIntegrity: true
 engineStrict: true
+# Required by `pnpm deploy` to produce self-contained production bundles.
+injectWorkspacePackages: true
 allowBuilds:
   esbuild: true
   sharp: true

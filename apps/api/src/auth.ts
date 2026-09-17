@@ -1,6 +1,7 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { apiKeys, users } from "@pluck/db";
-import { PluckError } from "@pluck/shared";
+import { hashApiKey } from "@pluck/runtime";
+import { BRAND, PluckError } from "@pluck/shared";
 import { and, eq, isNull } from "drizzle-orm";
 import { LRUCache } from "lru-cache";
 import type { Services } from "./services.js";
@@ -12,17 +13,7 @@ export interface Caller {
 
 export const OWNER_USER_ID = "usr_owner";
 
-const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-export function generateApiKey(): { key: string; prefix: string; hash: string } {
-  const bytes = randomBytes(32);
-  let body = "";
-  for (const b of bytes) body += BASE62[b % 62];
-  const key = `pk_live_${body}`;
-  return { key, prefix: key.slice(0, 12), hash: hashKey(key) };
-}
-
-export const hashKey = (key: string) => createHash("sha256").update(key).digest("hex");
+const hashKey = hashApiKey;
 
 /**
  * Resolves API keys with a short in-process cache so the hot path costs no
@@ -34,7 +25,9 @@ export class KeyAuthenticator {
   private readonly bootstrapHash: Buffer | null;
 
   constructor(private readonly s: Services) {
-    this.bootstrapHash = s.config.BOOTSTRAP_API_KEY ? createHash("sha256").update(s.config.BOOTSTRAP_API_KEY).digest() : null;
+    this.bootstrapHash = s.config.BOOTSTRAP_API_KEY
+      ? createHash("sha256").update(s.config.BOOTSTRAP_API_KEY).digest()
+      : null;
   }
 
   /** Creates the owner account used by BOOTSTRAP_API_KEY on self-hosted instances. */
@@ -42,20 +35,44 @@ export class KeyAuthenticator {
     if (!this.bootstrapHash) return;
     await this.s.db
       .insert(users)
-      .values({ id: OWNER_USER_ID, name: "Owner", email: "owner@localhost", emailVerified: true, role: "admin" })
+      .values({
+        id: OWNER_USER_ID,
+        name: "Owner",
+        email: "owner@localhost",
+        emailVerified: true,
+        role: "admin",
+      })
       .onConflictDoNothing();
+  }
+
+  /**
+   * Trusted internal call from the dashboard playground: the web app has
+   * already authenticated the session, so usage bills to that user.
+   */
+  internal(secret: string | undefined, userId: string | undefined): Caller | null {
+    const expected = this.s.config.INTERNAL_API_SECRET;
+    if (!expected || !secret || !userId) return null;
+    const a = Buffer.from(createHash("sha256").update(secret).digest());
+    const b = Buffer.from(createHash("sha256").update(expected).digest());
+    return timingSafeEqual(a, b) ? { userId, apiKeyId: null } : null;
   }
 
   async authenticate(header: string | undefined): Promise<Caller> {
     const key = header?.replace(/^Bearer\s+/i, "").trim();
-    if (!key) throw new PluckError("invalid_api_key", "Missing API key. Send `Authorization: Bearer pk_live_...`.");
+    if (!key)
+      throw new PluckError(
+        "invalid_api_key",
+        `Missing API key. Send \`Authorization: Bearer ${BRAND.apiKeyLive}...\`.`,
+      );
 
     if (this.bootstrapHash) {
       const candidate = createHash("sha256").update(key).digest();
-      if (timingSafeEqual(candidate, this.bootstrapHash)) return { userId: OWNER_USER_ID, apiKeyId: null };
+      if (timingSafeEqual(candidate, this.bootstrapHash))
+        return { userId: OWNER_USER_ID, apiKeyId: null };
     }
 
-    if (!key.startsWith("pk_") || key.length > 128) throw new PluckError("invalid_api_key", "Invalid API key.");
+    if (!key.startsWith(BRAND.apiKeyFamily) || key.length > 128)
+      throw new PluckError("invalid_api_key", "Invalid API key.");
     const hash = hashKey(key);
     let caller = this.cache.get(hash);
     if (caller === undefined) {

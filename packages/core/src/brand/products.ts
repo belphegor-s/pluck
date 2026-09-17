@@ -1,5 +1,5 @@
 import type { Product } from "@pluck/shared";
-import { type Doc, absolute } from "../html/document.js";
+import { absolute, type Doc } from "../html/document.js";
 import { ldTypes, readJsonLd } from "../html/metadata.js";
 
 type Ld = Record<string, unknown>;
@@ -35,7 +35,8 @@ function toProduct(node: Ld, baseUrl: string): Product {
   const offersRaw = node.offers;
   const offers = (Array.isArray(offersRaw) ? offersRaw[0] : offersRaw) as Ld | undefined;
   const aggregate = offers && ldTypes(offers).includes("AggregateOffer") ? offers : undefined;
-  const priceValue = aggregate?.lowPrice ?? offers?.price ?? (offers?.priceSpecification as Ld | undefined)?.price;
+  const priceValue =
+    aggregate?.lowPrice ?? offers?.price ?? (offers?.priceSpecification as Ld | undefined)?.price;
   const rating = node.aggregateRating as Ld | undefined;
   const images = (Array.isArray(node.image) ? node.image : node.image ? [node.image] : [])
     .map((i) => (typeof i === "string" ? i : str((i as Ld).url)))
@@ -47,8 +48,11 @@ function toProduct(node: Ld, baseUrl: string): Product {
     const v = node[key];
     if (typeof v === "string") attributes[key] = v;
   }
-  for (const prop of (Array.isArray(node.additionalProperty) ? node.additionalProperty : []) as Ld[]) {
-    if (typeof prop.name === "string" && prop.value != null) attributes[prop.name] = String(prop.value);
+  for (const prop of (Array.isArray(node.additionalProperty)
+    ? node.additionalProperty
+    : []) as Ld[]) {
+    if (typeof prop.name === "string" && prop.value != null)
+      attributes[prop.name] = String(prop.value);
   }
 
   return {
@@ -56,14 +60,20 @@ function toProduct(node: Ld, baseUrl: string): Product {
     description: str(node.description),
     brand: str(node.brand) ?? str((node.brand as Ld | undefined)?.name),
     sku: str(node.sku) ?? str(node.productID),
-    gtin: str(node.gtin13) ?? str(node.gtin12) ?? str(node.gtin14) ?? str(node.gtin8) ?? str(node.gtin),
+    gtin:
+      str(node.gtin13) ?? str(node.gtin12) ?? str(node.gtin14) ?? str(node.gtin8) ?? str(node.gtin),
     url: absolute(str(node.url) ?? str(offers?.url), baseUrl),
     images,
     price: priceValue != null && !Number.isNaN(Number(priceValue)) ? Number(priceValue) : null,
     currency: str(offers?.priceCurrency) ?? str(aggregate?.priceCurrency),
     availability: availability(str(offers?.availability)),
     rating: rating?.ratingValue != null ? Number(rating.ratingValue) : null,
-    reviewCount: rating?.reviewCount != null ? Number(rating.reviewCount) : rating?.ratingCount != null ? Number(rating.ratingCount) : null,
+    reviewCount:
+      rating?.reviewCount != null
+        ? Number(rating.reviewCount)
+        : rating?.ratingCount != null
+          ? Number(rating.ratingCount)
+          : null,
     category: str(node.category),
     attributes,
   };

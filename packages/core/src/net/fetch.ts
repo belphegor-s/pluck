@@ -1,6 +1,6 @@
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import { PluckError } from "@pluck/shared";
-import { Agent, type Dispatcher, ProxyAgent, fetch } from "undici";
+import { Agent, type Dispatcher, fetch, ProxyAgent } from "undici";
 import type { ProxyPool, ProxyUsed } from "./proxy.js";
 import { assertPublicUrl, createSafeLookup } from "./ssrf.js";
 
@@ -97,8 +97,13 @@ export class HttpClient {
     const proxy = options.proxy ?? "none";
     const timeout = options.timeout ?? 30_000;
     const maxBytes = options.maxBytes ?? this.maxBytes;
-    const signal = options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(timeout)]) : AbortSignal.timeout(timeout);
-    const headers = { ...browserHeaders(options.mobile ?? false), ...lowerKeys(options.headers ?? {}) };
+    const signal = options.signal
+      ? AbortSignal.any([options.signal, AbortSignal.timeout(timeout)])
+      : AbortSignal.timeout(timeout);
+    const headers = {
+      ...browserHeaders(options.mobile ?? false),
+      ...lowerKeys(options.headers ?? {}),
+    };
     const dispatcher = this.dispatcher(proxy, options.country);
 
     let current = assertPublicUrl(rawUrl, this.opts.allowPrivateNetwork);
@@ -138,7 +143,10 @@ export class HttpClient {
   }
 
   async close(): Promise<void> {
-    await Promise.all([this.direct.close(), ...[...this.proxyAgents.values()].map((a) => a.close())]);
+    await Promise.all([
+      this.direct.close(),
+      ...[...this.proxyAgents.values()].map((a) => a.close()),
+    ]);
   }
 }
 
@@ -169,14 +177,29 @@ const lowerKeys = (h: Record<string, string>) =>
 
 export function normaliseNetworkError(err: unknown, url: string): Error {
   if (err instanceof PluckError) return err;
-  const e = err as { name?: string; code?: string; cause?: { code?: string; message?: string }; message?: string };
+  const e = err as {
+    name?: string;
+    code?: string;
+    cause?: { code?: string; message?: string };
+    message?: string;
+  };
   const code = e.cause?.code ?? e.code;
-  if (code === "EPLUCKSSRF") return new PluckError("forbidden", "Private network addresses cannot be scraped.");
-  if (e.name === "TimeoutError" || e.name === "AbortError" || code === "UND_ERR_CONNECT_TIMEOUT" || code === "UND_ERR_HEADERS_TIMEOUT") {
+  if (code === "EPLUCKSSRF")
+    return new PluckError("forbidden", "Private network addresses cannot be scraped.");
+  if (
+    e.name === "TimeoutError" ||
+    e.name === "AbortError" ||
+    code === "UND_ERR_CONNECT_TIMEOUT" ||
+    code === "UND_ERR_HEADERS_TIMEOUT"
+  ) {
     return new PluckError("target_timeout", `Timed out fetching ${url}`);
   }
-  if (code === "ENOTFOUND" || code === "EAI_AGAIN") return new PluckError("target_unreachable", `Could not resolve ${new URL(url).hostname}`);
-  return new PluckError("target_unreachable", `Failed to fetch ${url}: ${e.cause?.message ?? e.message ?? "network error"}`);
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN")
+    return new PluckError("target_unreachable", `Could not resolve ${new URL(url).hostname}`);
+  return new PluckError(
+    "target_unreachable",
+    `Failed to fetch ${url}: ${e.cause?.message ?? e.message ?? "network error"}`,
+  );
 }
 
 /** Decode a body honouring the HTTP charset, then any <meta charset>. */

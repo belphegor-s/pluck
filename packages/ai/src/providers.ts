@@ -7,7 +7,14 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { PluckError } from "@pluck/shared";
 import type { LanguageModel } from "ai";
 
-export const PROVIDERS = ["openrouter", "openai", "anthropic", "google", "groq", "openai-compatible"] as const;
+export const PROVIDERS = [
+  "openrouter",
+  "openai",
+  "anthropic",
+  "google",
+  "groq",
+  "openai-compatible",
+] as const;
 export type ProviderId = (typeof PROVIDERS)[number];
 
 export const isProviderId = (v: unknown): v is ProviderId => PROVIDERS.includes(v as ProviderId);
@@ -41,10 +48,16 @@ export interface LlmCredential {
   baseUrl?: string | null;
 }
 
-export function createModel(cred: LlmCredential, modelOverride?: string | null): { model: LanguageModel; modelId: string } {
+export function createModel(
+  cred: LlmCredential,
+  modelOverride?: string | null,
+): { model: LanguageModel; modelId: string } {
   const modelId = modelOverride || cred.model || DEFAULT_MODELS[cred.provider];
   if (!modelId) {
-    throw new PluckError("bad_request", `A model name is required for the ${PROVIDER_LABELS[cred.provider]} provider.`);
+    throw new PluckError(
+      "bad_request",
+      `A model name is required for the ${PROVIDER_LABELS[cred.provider]} provider.`,
+    );
   }
   const baseURL = cred.baseUrl || undefined;
 
@@ -52,7 +65,13 @@ export function createModel(cred: LlmCredential, modelOverride?: string | null):
     case "openrouter":
       return {
         modelId,
-        model: createOpenRouter({ apiKey: cred.apiKey, baseURL, appName: "Pluck", appUrl: "https://pluck.procd.cc", compatibility: "strict" })(modelId),
+        model: createOpenRouter({
+          apiKey: cred.apiKey,
+          baseURL,
+          appName: "Pluck",
+          appUrl: "https://pluck.procd.cc",
+          compatibility: "strict",
+        })(modelId),
       };
     case "openai":
       return { modelId, model: createOpenAI({ apiKey: cred.apiKey, baseURL })(modelId) };
@@ -63,10 +82,19 @@ export function createModel(cred: LlmCredential, modelOverride?: string | null):
     case "groq":
       return { modelId, model: createGroq({ apiKey: cred.apiKey, baseURL })(modelId) };
     case "openai-compatible": {
-      if (!baseURL) throw new PluckError("bad_request", "`baseUrl` is required for OpenAI-compatible providers.");
+      if (!baseURL)
+        throw new PluckError(
+          "bad_request",
+          "`baseUrl` is required for OpenAI-compatible providers.",
+        );
       return {
         modelId,
-        model: createOpenAICompatible({ name: "custom", apiKey: cred.apiKey, baseURL, supportsStructuredOutputs: true })(modelId),
+        model: createOpenAICompatible({
+          name: "custom",
+          apiKey: cred.apiKey,
+          baseURL,
+          supportsStructuredOutputs: true,
+        })(modelId),
       };
     }
   }

@@ -1,14 +1,19 @@
-import { PluckError, type ParseResult } from "@pluck/shared";
-import { decodeBody } from "../net/fetch.js";
+import { type ParseResult, PluckError } from "@pluck/shared";
 import { htmlToMarkdown } from "../html/content.js";
 import { parseDocument, text } from "../html/document.js";
+import { decodeBody } from "../net/fetch.js";
 
 export type DocumentKind = "pdf" | "docx" | "html" | "markdown" | "text" | "csv" | "json" | "xml";
 
-export function detectKind(body: Buffer, contentType: string | null, filename?: string): DocumentKind | null {
+export function detectKind(
+  body: Buffer,
+  contentType: string | null,
+  filename?: string,
+): DocumentKind | null {
   const ct = (contentType ?? "").toLowerCase();
   const ext = filename?.toLowerCase().split(".").pop() ?? "";
-  if (body.subarray(0, 5).toString("latin1") === "%PDF-" || ct.includes("pdf") || ext === "pdf") return "pdf";
+  if (body.subarray(0, 5).toString("latin1") === "%PDF-" || ct.includes("pdf") || ext === "pdf")
+    return "pdf";
   if (
     ct.includes("officedocument.wordprocessingml") ||
     ext === "docx" ||
@@ -68,7 +73,12 @@ export async function parseDocumentBytes(
       };
     }
     case "csv":
-      return { markdown: csvToMarkdown(decodeBody(body, contentType)), contentType: "text/csv", pages: null, title: null };
+      return {
+        markdown: csvToMarkdown(decodeBody(body, contentType)),
+        contentType: "text/csv",
+        pages: null,
+        title: null,
+      };
     case "json": {
       const raw = decodeBody(body, contentType);
       let pretty = raw;
@@ -77,15 +87,33 @@ export async function parseDocumentBytes(
       } catch {
         // Keep the raw text when it is not valid JSON.
       }
-      return { markdown: `\`\`\`json\n${pretty}\n\`\`\``, contentType: "application/json", pages: null, title: null };
+      return {
+        markdown: `\`\`\`json\n${pretty}\n\`\`\``,
+        contentType: "application/json",
+        pages: null,
+        title: null,
+      };
     }
     case "xml":
-      return { markdown: `\`\`\`xml\n${decodeBody(body, contentType)}\n\`\`\``, contentType: "application/xml", pages: null, title: null };
+      return {
+        markdown: `\`\`\`xml\n${decodeBody(body, contentType)}\n\`\`\``,
+        contentType: "application/xml",
+        pages: null,
+        title: null,
+      };
     case "markdown":
     case "text":
-      return { markdown: decodeBody(body, contentType), contentType: kind === "text" ? "text/plain" : "text/markdown", pages: null, title: null };
+      return {
+        markdown: decodeBody(body, contentType),
+        contentType: kind === "text" ? "text/plain" : "text/markdown",
+        pages: null,
+        title: null,
+      };
     default:
-      throw new PluckError("unsupported_content", `Unsupported content type: ${contentType ?? filename ?? "unknown"}`);
+      throw new PluckError(
+        "unsupported_content",
+        `Unsupported content type: ${contentType ?? filename ?? "unknown"}`,
+      );
   }
 }
 
@@ -128,5 +156,9 @@ function csvToMarkdown(csv: string): string {
   const width = Math.max(...rows.map((r) => r.length));
   const fmt = (r: string[]) =>
     `| ${Array.from({ length: width }, (_, i) => (r[i] ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ")).join(" | ")} |`;
-  return [fmt(rows[0]!), `| ${Array(width).fill("---").join(" | ")} |`, ...rows.slice(1).map(fmt)].join("\n");
+  return [
+    fmt(rows[0]!),
+    `| ${Array(width).fill("---").join(" | ")} |`,
+    ...rows.slice(1).map(fmt),
+  ].join("\n");
 }

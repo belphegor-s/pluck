@@ -1,5 +1,18 @@
-import { decodeBody, extractBrandFromHtml, parseDocument, productsFromStructuredData, styleguideProbe } from "@pluck/core";
-import { PluckError, type ScrapeResult, type SearchHit, credits, llmCost, scrapeCost } from "@pluck/shared";
+import {
+  decodeBody,
+  extractBrandFromHtml,
+  parseDocument,
+  productsFromStructuredData,
+  type styleguideProbe,
+} from "@pluck/core";
+import {
+  credits,
+  llmCost,
+  PluckError,
+  type ScrapeResult,
+  type SearchHit,
+  scrapeCost,
+} from "@pluck/shared";
 import { handler } from "../handler.js";
 import { BrandService } from "../services/brand.js";
 
@@ -60,11 +73,19 @@ export const extract = handler("extract", {
       mobile: false,
       timeout: 45_000,
     });
-    return { data: { url: result.metadata.finalUrl, data: result.json }, credits: scrapeCost(usage) };
+    return {
+      data: { url: result.metadata.finalUrl, data: result.json },
+      credits: scrapeCost(usage),
+    };
   },
 });
 
-async function loadPage(s: Parameters<(typeof extract)["run"]>[0]["s"], url: string, proxy: "auto" | "none" | "datacenter" | "residential", maxAge: number) {
+async function loadPage(
+  s: Parameters<(typeof extract)["run"]>[0]["s"],
+  url: string,
+  proxy: "auto" | "none" | "datacenter" | "residential",
+  maxAge: number,
+) {
   const { result, usage } = await s.scraper().scrape({
     url,
     formats: ["markdown", "rawHtml"],
@@ -87,10 +108,22 @@ export const product = handler("product", {
     const { result, usage, doc } = await loadPage(s, req.url, req.proxy, req.maxAge);
     const structured = productsFromStructuredData(doc, result.metadata.finalUrl);
     const base = credits.extractProduct + scrapeCost(usage) - credits.scrape;
-    if (structured[0]) return { data: { product: structured[0], source: "structured-data" as const }, credits: base };
+    if (structured[0])
+      return {
+        data: { product: structured[0], source: "structured-data" as const },
+        credits: base,
+      };
 
-    const { products, billing } = await llm.products(result.metadata.finalUrl, result.markdown ?? "", 1, req.llm);
-    return { data: { product: products[0] ?? null, source: "llm" as const }, credits: base + llmCost(billing) };
+    const { products, billing } = await llm.products(
+      result.metadata.finalUrl,
+      result.markdown ?? "",
+      1,
+      req.llm,
+    );
+    return {
+      data: { product: products[0] ?? null, source: "llm" as const },
+      credits: base + llmCost(billing),
+    };
   },
 });
 
@@ -102,9 +135,17 @@ export const products = handler("products", {
     const structured = productsFromStructuredData(doc, result.metadata.finalUrl);
     const base = credits.extractProduct + scrapeCost(usage) - credits.scrape;
     if (structured.length > 1) {
-      return { data: { products: structured.slice(0, req.limit), source: "structured-data" as const }, credits: base };
+      return {
+        data: { products: structured.slice(0, req.limit), source: "structured-data" as const },
+        credits: base,
+      };
     }
-    const { products: found, billing } = await llm.products(result.metadata.finalUrl, result.markdown ?? "", req.limit, req.llm);
+    const { products: found, billing } = await llm.products(
+      result.metadata.finalUrl,
+      result.markdown ?? "",
+      req.limit,
+      req.llm,
+    );
     return { data: { products: found, source: "llm" as const }, credits: base + llmCost(billing) };
   },
 });
@@ -117,7 +158,8 @@ export const styleguide = handler("styleguide", {
     type Guide = ReturnType<typeof styleguideProbe> & { url: string };
     if (req.maxAge > 0) {
       const hit = await s.cache.get<Guide>(key);
-      if (hit && Date.now() - hit.storedAt <= req.maxAge * 1000) return { data: hit.value, credits: credits.scrape, cached: true };
+      if (hit && Date.now() - hit.storedAt <= req.maxAge * 1000)
+        return { data: hit.value, credits: credits.scrape, cached: true };
     }
     const rendered = await s.renderer.render({
       url: req.url,
@@ -126,10 +168,17 @@ export const styleguide = handler("styleguide", {
       blockAds: true,
       evaluate: "styleguide",
     });
-    if (!rendered.evaluated) throw new PluckError("target_unreachable", "Could not compute styles for this page.");
-    const data = { url: rendered.finalUrl, ...(rendered.evaluated as ReturnType<typeof styleguideProbe>) };
+    if (!rendered.evaluated)
+      throw new PluckError("target_unreachable", "Could not compute styles for this page.");
+    const data = {
+      url: rendered.finalUrl,
+      ...(rendered.evaluated as ReturnType<typeof styleguideProbe>),
+    };
     void s.cache.set(key, data, Math.max(req.maxAge, 86_400)).catch(() => {});
-    return { data, credits: credits.styleguide + (req.proxy === "residential" ? credits.residentialProxy : 0) };
+    return {
+      data,
+      credits: credits.styleguide + (req.proxy === "residential" ? credits.residentialProxy : 0),
+    };
   },
 });
 
@@ -141,7 +190,11 @@ export const brand = handler("brand", {
   async run(ctx, req) {
     const svc = new BrandService(ctx.s);
     const domain = await svc.resolveDomain(req);
-    const { brand, cached } = await svc.get(domain, { maxAge: req.maxAge, proxy: req.proxy, llm: ctx.llm });
+    const { brand, cached } = await svc.get(domain, {
+      maxAge: req.maxAge,
+      proxy: req.proxy,
+      llm: ctx.llm,
+    });
     return { data: brand, credits: cached ? 2 : credits.brand, cached };
   },
 });
@@ -153,7 +206,9 @@ export const classify = handler("classify", {
     let content: string | undefined;
     let spent = credits.classify;
     if (req.domain && !req.description) {
-      const res = await s.http.fetch(`https://${req.domain}`, { timeout: 15_000 }).catch(() => null);
+      const res = await s.http
+        .fetch(`https://${req.domain}`, { timeout: 15_000 })
+        .catch(() => null);
       if (res && res.status < 400) {
         const doc = parseDocument(decodeBody(res.body, res.contentType));
         const b = extractBrandFromHtml(doc, res.finalUrl);
@@ -161,7 +216,10 @@ export const classify = handler("classify", {
         spent += credits.scrape;
       }
     }
-    const { data, billing } = await llm.classify({ domain: req.domain, description: req.description, content }, req.llm);
+    const { data, billing } = await llm.classify(
+      { domain: req.domain, description: req.description, content },
+      req.llm,
+    );
     return { data, credits: spent + llmCost(billing) };
   },
 });
@@ -175,10 +233,17 @@ export const transaction = handler("transaction", {
     if (data.domain && data.confidence >= 0.5) {
       const svc = new BrandService(ctx.s);
       brandProfile = await svc
-        .get(data.domain.replace(/^https?:\/\//, "").replace(/\/.*$/, ""), { maxAge: 2_592_000, proxy: "auto", llm: null })
+        .get(data.domain.replace(/^https?:\/\//, "").replace(/\/.*$/, ""), {
+          maxAge: 2_592_000,
+          proxy: "auto",
+          llm: null,
+        })
         .then((r) => r.brand)
         .catch(() => null);
     }
-    return { data: { ...data, brand: brandProfile }, credits: credits.transaction + llmCost(billing) };
+    return {
+      data: { ...data, brand: brandProfile },
+      credits: credits.transaction + llmCost(billing),
+    };
   },
 });

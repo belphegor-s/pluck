@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { serve } from "@hono/node-server";
 import { loadConfig } from "@pluck/runtime";
+import { BRAND } from "@pluck/shared";
 import { Hono } from "hono";
 import { compress } from "hono/compress";
 import { cors } from "hono/cors";
@@ -26,8 +27,24 @@ app.use(
   "*",
   cors({
     origin: "*",
-    allowHeaders: ["authorization", "content-type", "x-api-key", "x-llm-provider", "x-llm-key", "x-llm-model", "x-llm-base-url", "x-request-id"],
-    exposeHeaders: ["x-request-id", "x-credits-used", "x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"],
+    allowHeaders: [
+      "authorization",
+      "content-type",
+      "x-api-key",
+      "x-llm-provider",
+      "x-llm-key",
+      "x-llm-model",
+      "x-llm-base-url",
+      "x-request-id",
+    ],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    exposeHeaders: [
+      "x-request-id",
+      "x-credits-used",
+      "x-ratelimit-limit",
+      "x-ratelimit-remaining",
+      "x-ratelimit-reset",
+    ],
     maxAge: 86_400,
   }),
 );
@@ -35,7 +52,7 @@ app.use("*", compress());
 
 app.get("/", (c) =>
   c.json({
-    name: "Pluck API",
+    name: `${BRAND.name} API`,
     docs: `${config.PUBLIC_API_URL}/docs`,
     openapi: `${config.PUBLIC_API_URL}/openapi.json`,
     website: config.PUBLIC_WEB_URL,
@@ -44,7 +61,12 @@ app.get("/", (c) =>
 app.route("/", publicRouter(s));
 app.route("/v1", v1Router(s));
 
-app.notFound((c) => c.json({ error: { code: "not_found", message: `No route for ${c.req.method} ${c.req.path}` } }, 404));
+app.notFound((c) =>
+  c.json(
+    { error: { code: "not_found", message: `No route for ${c.req.method} ${c.req.path}` } },
+    404,
+  ),
+);
 app.onError((err, c) => errorResponse(c, err, c.get("requestId"), s.log));
 
 const server = serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, (info) => {

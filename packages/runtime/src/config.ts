@@ -33,6 +33,8 @@ const schema = z.object({
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(0).default(0),
   /** Self-host convenience: this key is valid for an auto-created owner account. */
   BOOTSTRAP_API_KEY: optional,
+  /** Shared secret that lets the dashboard call the API as a signed-in user (playground). */
+  INTERNAL_API_SECRET: optional,
 
   S3_ENDPOINT: optional,
   S3_REGION: z.string().default("auto"),

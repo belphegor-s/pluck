@@ -10,9 +10,16 @@ export interface SearchProvider {
 
 const timeRangeMap = { day: "d", week: "w", month: "m", year: "y" } as const;
 
-async function getJson<T>(url: string, init: { headers?: Record<string, string>; method?: string; body?: string } = {}): Promise<T> {
+async function getJson<T>(
+  url: string,
+  init: { headers?: Record<string, string>; method?: string; body?: string } = {},
+): Promise<T> {
   const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
-  if (!res.ok) throw new PluckError("target_unreachable", `Search provider responded with HTTP ${res.status}.`);
+  if (!res.ok)
+    throw new PluckError(
+      "target_unreachable",
+      `Search provider responded with HTTP ${res.status}.`,
+    );
   return (await res.json()) as T;
 }
 
@@ -36,7 +43,15 @@ export class SearxngProvider implements SearchProvider {
     for (let page = 1; page <= 3 && hits.length < req.limit; page++) {
       params.set("pageno", String(page));
       const data = await getJson<{
-        results: { url: string; title: string; content?: string; publishedDate?: string; img_src?: string; thumbnail?: string; engine?: string }[];
+        results: {
+          url: string;
+          title: string;
+          content?: string;
+          publishedDate?: string;
+          img_src?: string;
+          thumbnail?: string;
+          engine?: string;
+        }[];
       }>(`${this.baseUrl.replace(/\/$/, "")}/search?${params}`);
       if (!data.results.length) break;
       for (const r of data.results) {
@@ -142,7 +157,8 @@ export class FallbackSearch implements SearchProvider {
   }
 
   async search(req: SearchRequest): Promise<Hit[]> {
-    if (!this.providers.length) throw new PluckError("internal", "No search provider is configured on this instance.");
+    if (!this.providers.length)
+      throw new PluckError("internal", "No search provider is configured on this instance.");
     let last: unknown;
     for (const p of this.providers) {
       try {
@@ -161,7 +177,8 @@ export function searchFromEnv(raw: Readonly<Record<string, unknown>>): FallbackS
   const order = (env.SEARCH_PROVIDERS ?? "brave,serper,searxng").split(",").map((s) => s.trim());
   for (const name of order) {
     if (name === "brave" && env.BRAVE_API_KEY) providers.push(new BraveProvider(env.BRAVE_API_KEY));
-    if (name === "serper" && env.SERPER_API_KEY) providers.push(new SerperProvider(env.SERPER_API_KEY));
+    if (name === "serper" && env.SERPER_API_KEY)
+      providers.push(new SerperProvider(env.SERPER_API_KEY));
     if (name === "searxng" && env.SEARXNG_URL) providers.push(new SearxngProvider(env.SEARXNG_URL));
   }
   return new FallbackSearch(providers);

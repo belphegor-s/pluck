@@ -12,7 +12,12 @@ export const domain = z
   .toLowerCase()
   .min(3)
   .max(253)
-  .transform((v) => v.replace(/^https?:\/\//, "").replace(/[/?#].*$/, "").replace(/^www\./, ""))
+  .transform((v) =>
+    v
+      .replace(/^https?:\/\//, "")
+      .replace(/[/?#].*$/, "")
+      .replace(/^www\./, ""),
+  )
   .pipe(z.string().regex(z.regexes.domain, "Invalid domain"))
   .meta({ description: "Domain name, e.g. stripe.com", example: "stripe.com" });
 
@@ -24,13 +29,10 @@ export const proxyMode = z
       "Egress strategy. `auto` goes direct and escalates through datacenter then residential proxies when a request is blocked.",
   });
 
-export const renderMode = z
-  .enum(["auto", "always", "never"])
-  .default("auto")
-  .meta({
-    description:
-      "Headless browser usage. `auto` fetches over HTTP first and only renders when the page needs JavaScript.",
-  });
+export const renderMode = z.enum(["auto", "always", "never"]).default("auto").meta({
+  description:
+    "Headless browser usage. `auto` fetches over HTTP first and only renders when the page needs JavaScript.",
+});
 
 export const llmOverride = z
   .object({

@@ -1,9 +1,14 @@
 import type { PageMetadata } from "@pluck/shared";
-import { type Doc, absolute, attr, text } from "./document.js";
+import { absolute, attr, type Doc, text } from "./document.js";
 
 export function extractMetadata(
   doc: Doc,
-  { url, finalUrl, statusCode, contentType }: { url: string; finalUrl: string; statusCode: number; contentType: string | null },
+  {
+    url,
+    finalUrl,
+    statusCode,
+    contentType,
+  }: { url: string; finalUrl: string; statusCode: number; contentType: string | null },
 ): PageMetadata {
   const og: Record<string, string> = {};
   for (const meta of doc.querySelectorAll("meta[property], meta[name]")) {
@@ -32,7 +37,8 @@ export function extractMetadata(
     siteName: og["og:site_name"] ?? null,
     author: meta("author") ?? ldName(ldArticle?.author) ?? null,
     publishedAt:
-      og["article:published_time"] ?? (typeof ldArticle?.datePublished === "string" ? ldArticle.datePublished : null),
+      og["article:published_time"] ??
+      (typeof ldArticle?.datePublished === "string" ? ldArticle.datePublished : null),
     image: absolute(og["og:image"] ?? og["twitter:image"], finalUrl),
     favicon,
     keywords: (meta("keywords") ?? "")
@@ -68,11 +74,14 @@ export function readJsonLd(doc: Doc): LdNode[] {
 }
 
 export const ldTypes = (node: LdNode): string[] =>
-  (Array.isArray(node["@type"]) ? node["@type"] : [node["@type"]]).filter((t): t is string => typeof t === "string");
+  (Array.isArray(node["@type"]) ? node["@type"] : [node["@type"]]).filter(
+    (t): t is string => typeof t === "string",
+  );
 
 const ldName = (v: unknown): string | null => {
   if (typeof v === "string") return v;
   if (Array.isArray(v)) return ldName(v[0]);
-  if (v && typeof v === "object" && typeof (v as LdNode).name === "string") return (v as LdNode).name as string;
+  if (v && typeof v === "object" && typeof (v as LdNode).name === "string")
+    return (v as LdNode).name as string;
   return null;
 };

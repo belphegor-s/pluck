@@ -4,14 +4,14 @@ import { createDb } from "@pluck/db";
 import {
   type Config,
   Credits,
+  createLogger,
+  createQueues,
+  createRedis,
   JsonCache,
   LlmResolver,
   QueueRenderer,
   S3Store,
   UsageRecorder,
-  createLogger,
-  createQueues,
-  createRedis,
 } from "@pluck/runtime";
 
 export type Services = Awaited<ReturnType<typeof createServices>>;
@@ -20,7 +20,9 @@ export async function createServices(config: Config) {
   const log = createLogger(config, "api");
   const db = createDb(config.DATABASE_URL, { max: config.DATABASE_POOL_SIZE });
   const queueRedis = createRedis(config.REDIS_URL, { forQueue: true });
-  const cacheRedis = config.CACHE_REDIS_URL ? createRedis(config.CACHE_REDIS_URL, { forQueue: false }) : queueRedis;
+  const cacheRedis = config.CACHE_REDIS_URL
+    ? createRedis(config.CACHE_REDIS_URL, { forQueue: false })
+    : queueRedis;
 
   const proxies = ProxyPool.fromEnv(config);
   const http = new HttpClient({ proxies, allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK });
@@ -48,7 +50,14 @@ export async function createServices(config: Config) {
     usage: new UsageRecorder(db, log),
     /** Scraper bound to a specific caller's LLM credentials. */
     scraper(extractor: ConstructorParameters<typeof Scraper>[0]["extractor"] = null) {
-      return new Scraper({ http, robots, renderer, store, extractor, allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK });
+      return new Scraper({
+        http,
+        robots,
+        renderer,
+        store,
+        extractor,
+        allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK,
+      });
     },
     async close() {
       await this.usage.close();

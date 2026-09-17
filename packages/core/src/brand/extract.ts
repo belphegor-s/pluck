@@ -1,5 +1,5 @@
 import type { Brand } from "@pluck/shared";
-import { type Doc, absolute, attr, text } from "../html/document.js";
+import { absolute, attr, type Doc, text } from "../html/document.js";
 import { ldTypes, readJsonLd } from "../html/metadata.js";
 
 type Logo = Brand["logos"][number];
@@ -42,30 +42,50 @@ export interface StaticBrand {
 /** Everything that can be learnt about a brand from its homepage HTML alone. */
 export function extractBrandFromHtml(doc: Doc, baseUrl: string): StaticBrand {
   const ld = readJsonLd(doc);
-  const org = ld.find((n) => ldTypes(n).some((t) => /Organization|Corporation|LocalBusiness|Store|Brand/.test(t)));
+  const org = ld.find((n) =>
+    ldTypes(n).some((t) => /Organization|Corporation|LocalBusiness|Store|Brand/.test(t)),
+  );
   const site = ld.find((n) => ldTypes(n).includes("WebSite"));
   const og = (p: string) => attr(doc, `meta[property="${p}"]`, "content");
   const title = text(doc.querySelector("title")) || null;
 
   const name =
-    str(org?.name) ?? og("og:site_name") ?? str(site?.name) ?? attr(doc, 'meta[name="application-name"]', "content") ?? guessNameFromTitle(title);
+    str(org?.name) ??
+    og("og:site_name") ??
+    str(site?.name) ??
+    attr(doc, 'meta[name="application-name"]', "content") ??
+    guessNameFromTitle(title);
 
   const logos: Logo[] = [];
   const pushLogo = (url: string | null, type: Logo["type"], extra: Partial<Logo> = {}) => {
     if (!url || logos.some((l) => l.url === url)) return;
-    const format = /\.(svg|png|jpe?g|webp|ico|gif|avif)(\?|$)/i.exec(url)?.[1]?.toLowerCase().replace("jpeg", "jpg") ?? null;
+    const format =
+      /\.(svg|png|jpe?g|webp|ico|gif|avif)(\?|$)/i
+        .exec(url)?.[1]
+        ?.toLowerCase()
+        .replace("jpeg", "jpg") ?? null;
     logos.push({ url, type, format, width: null, height: null, theme: null, ...extra });
   };
 
   const orgLogo = org?.logo;
-  pushLogo(absolute(typeof orgLogo === "string" ? orgLogo : str((orgLogo as Record<string, unknown> | undefined)?.url), baseUrl), "logo");
+  pushLogo(
+    absolute(
+      typeof orgLogo === "string"
+        ? orgLogo
+        : str((orgLogo as Record<string, unknown> | undefined)?.url),
+      baseUrl,
+    ),
+    "logo",
+  );
 
   // Only look where a site's own logo lives. Broad `[class*=logo]` matches
   // customer-logo walls and partner carousels.
   const origin = new URL(baseUrl).origin;
   const homeLinks = `a[href="/"] img, a[href="${origin}"] img, a[href="${origin}/"] img`;
   const logoImgs = [
-    ...doc.querySelectorAll(`${homeLinks}, header img[alt*="logo" i], header img[class*="logo" i], nav img[alt*="logo" i]`),
+    ...doc.querySelectorAll(
+      `${homeLinks}, header img[alt*="logo" i], header img[class*="logo" i], nav img[alt*="logo" i]`,
+    ),
     ...doc.querySelectorAll("header img, nav img"),
   ].slice(0, 8);
   for (const img of logoImgs) {
@@ -74,19 +94,31 @@ export function extractBrandFromHtml(doc: Doc, baseUrl: string): StaticBrand {
     const w = num(img.getAttribute("width"));
     const h = num(img.getAttribute("height"));
     if (!src || (w && h && (w > 600 || h > 200))) continue;
-    const theme = /dark|white|light-on-dark|inverse/i.test(`${img.getAttribute("class")} ${src}`) ? "dark" : null;
+    const theme = /dark|white|light-on-dark|inverse/i.test(`${img.getAttribute("class")} ${src}`)
+      ? "dark"
+      : null;
     pushLogo(src, "logo", { theme, width: w, height: h });
   }
 
-  for (const link of doc.querySelectorAll('link[rel~="icon" i], link[rel="shortcut icon" i], link[rel="mask-icon" i]')) {
+  for (const link of doc.querySelectorAll(
+    'link[rel~="icon" i], link[rel="shortcut icon" i], link[rel="mask-icon" i]',
+  )) {
     const size = /(\d+)x(\d+)/.exec(link.getAttribute("sizes") ?? "");
-    pushLogo(absolute(link.getAttribute("href"), baseUrl), "icon", size ? { width: Number(size[1]), height: Number(size[2]) } : {});
+    pushLogo(
+      absolute(link.getAttribute("href"), baseUrl),
+      "icon",
+      size ? { width: Number(size[1]), height: Number(size[2]) } : {},
+    );
   }
   for (const link of doc.querySelectorAll('link[rel^="apple-touch-icon" i]')) {
-    pushLogo(absolute(link.getAttribute("href"), baseUrl), "apple-touch-icon", { width: 180, height: 180 });
+    pushLogo(absolute(link.getAttribute("href"), baseUrl), "apple-touch-icon", {
+      width: 180,
+      height: 180,
+    });
   }
   pushLogo(absolute(og("og:image"), baseUrl), "og");
-  if (!logos.some((l) => l.type === "icon")) pushLogo(new URL("/favicon.ico", baseUrl).href, "icon");
+  if (!logos.some((l) => l.type === "icon"))
+    pushLogo(new URL("/favicon.ico", baseUrl).href, "icon");
 
   const colors = new Map<string, number>();
   const bump = (hex: string | null, weight: number) => {
@@ -95,8 +127,14 @@ export function extractBrandFromHtml(doc: Doc, baseUrl: string): StaticBrand {
   };
   bump(attr(doc, 'meta[name="theme-color"]', "content"), 50);
   bump(attr(doc, 'meta[name="msapplication-TileColor"]', "content"), 20);
-  const inlineCss = [...doc.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n").slice(0, 500_000);
-  for (const m of inlineCss.matchAll(/--[\w-]*(?:primary|brand|accent|main)[\w-]*\s*:\s*(#[0-9a-f]{3,8})\b/gi)) bump(m[1]!, 15);
+  const inlineCss = [...doc.querySelectorAll("style")]
+    .map((s) => s.textContent ?? "")
+    .join("\n")
+    .slice(0, 500_000);
+  for (const m of inlineCss.matchAll(
+    /--[\w-]*(?:primary|brand|accent|main)[\w-]*\s*:\s*(#[0-9a-f]{3,8})\b/gi,
+  ))
+    bump(m[1]!, 15);
   for (const m of inlineCss.matchAll(/#[0-9a-f]{6}\b/gi)) bump(m[0], 1);
 
   const fonts = new Set<string>();
@@ -107,11 +145,20 @@ export function extractBrandFromHtml(doc: Doc, baseUrl: string): StaticBrand {
   }
   for (const m of inlineCss.matchAll(/font-family\s*:\s*["']?([^;"',}]+)/gi)) {
     const f = m[1]!.trim();
-    if (!/^(inherit|initial|var\(|-apple-system|system-ui|sans-serif|serif|monospace|arial|helvetica)/i.test(f)) fonts.add(f);
+    if (
+      !/^(inherit|initial|var\(|-apple-system|system-ui|sans-serif|serif|monospace|arial|helvetica)/i.test(
+        f,
+      )
+    )
+      fonts.add(f);
   }
 
   const socials = new Map<string, string>();
-  const sameAs = Array.isArray(org?.sameAs) ? (org.sameAs as unknown[]) : typeof org?.sameAs === "string" ? [org.sameAs] : [];
+  const sameAs = Array.isArray(org?.sameAs)
+    ? (org.sameAs as unknown[])
+    : typeof org?.sameAs === "string"
+      ? [org.sameAs]
+      : [];
   const candidateLinks = [
     ...sameAs.filter((v): v is string => typeof v === "string"),
     ...[...doc.querySelectorAll("a[href]")].map((a) => a.getAttribute("href") ?? ""),
@@ -126,10 +173,14 @@ export function extractBrandFromHtml(doc: Doc, baseUrl: string): StaticBrand {
   }
 
   const addr = (org?.address ?? null) as Record<string, unknown> | null;
-  const mailto = doc.querySelector('a[href^="mailto:" i]')?.getAttribute("href")?.slice(7).split("?")[0] ?? null;
+  const mailto =
+    doc.querySelector('a[href^="mailto:" i]')?.getAttribute("href")?.slice(7).split("?")[0] ?? null;
   const tel = doc.querySelector('a[href^="tel:" i]')?.getAttribute("href")?.slice(4) ?? null;
 
-  const description = attr(doc, 'meta[name="description" i]', "content") ?? og("og:description") ?? str(org?.description);
+  const description =
+    attr(doc, 'meta[name="description" i]', "content") ??
+    og("og:description") ??
+    str(org?.description);
 
   return {
     name,
@@ -151,7 +202,9 @@ export function extractBrandFromHtml(doc: Doc, baseUrl: string): StaticBrand {
             city: str(addr.addressLocality),
             region: str(addr.addressRegion),
             postalCode: str(addr.postalCode),
-            country: str((addr.addressCountry as Record<string, unknown> | undefined)?.name) ?? str(addr.addressCountry),
+            country:
+              str((addr.addressCountry as Record<string, unknown> | undefined)?.name) ??
+              str(addr.addressCountry),
           }
         : null,
     email: str(org?.email) ?? mailto,
@@ -167,7 +220,9 @@ const num = (v: string | null) => (v && /^\d+$/.test(v) ? Number(v) : null);
 function guessNameFromTitle(title: string | null): string | null {
   if (!title) return null;
   const parts = title.split(/\s[|\-–—:·]\s/);
-  return (parts.length > 1 ? parts.sort((a, b) => a.length - b.length)[0] : parts[0])?.trim() ?? null;
+  return (
+    (parts.length > 1 ? parts.sort((a, b) => a.length - b.length)[0] : parts[0])?.trim() ?? null
+  );
 }
 
 function sloganFromTitle(title: string | null, name: string | null): string | null {

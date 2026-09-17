@@ -1,18 +1,51 @@
 import type { LlmTasks } from "@pluck/ai";
-import { absolute, decodeBody, extractBrandFromHtml, normaliseHex, parseDocument, registrableDomain } from "@pluck/core";
+import {
+  absolute,
+  decodeBody,
+  extractBrandFromHtml,
+  normaliseHex,
+  parseDocument,
+  registrableDomain,
+} from "@pluck/core";
 import { brands } from "@pluck/db";
 import { type Brand, type BrandQuery, PluckError } from "@pluck/shared";
 import { eq } from "drizzle-orm";
 import type { Services } from "../services.js";
 
 const FREE_MAIL = new Set([
-  "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "msn.com", "yahoo.com", "ymail.com",
-  "icloud.com", "me.com", "mac.com", "aol.com", "proton.me", "protonmail.com", "pm.me", "gmx.com", "gmx.de",
-  "web.de", "yandex.com", "yandex.ru", "mail.ru", "zoho.com", "fastmail.com", "hey.com", "tutanota.com", "qq.com",
-  "163.com", "126.com", "rediffmail.com",
+  "gmail.com",
+  "googlemail.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "msn.com",
+  "yahoo.com",
+  "ymail.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "aol.com",
+  "proton.me",
+  "protonmail.com",
+  "pm.me",
+  "gmx.com",
+  "gmx.de",
+  "web.de",
+  "yandex.com",
+  "yandex.ru",
+  "mail.ru",
+  "zoho.com",
+  "fastmail.com",
+  "hey.com",
+  "tutanota.com",
+  "qq.com",
+  "163.com",
+  "126.com",
+  "rediffmail.com",
 ]);
 
-const NOT_OFFICIAL = /(^|\.)(wikipedia\.org|linkedin\.com|facebook\.com|x\.com|twitter\.com|instagram\.com|youtube\.com|crunchbase\.com|bloomberg\.com|reuters\.com|yahoo\.com|google\.com|reddit\.com|glassdoor\.com|indeed\.com|marketwatch\.com|cnbc\.com|forbes\.com|nasdaq\.com|nyse\.com)$/;
+const NOT_OFFICIAL =
+  /(^|\.)(wikipedia\.org|linkedin\.com|facebook\.com|x\.com|twitter\.com|instagram\.com|youtube\.com|crunchbase\.com|bloomberg\.com|reuters\.com|yahoo\.com|google\.com|reddit\.com|glassdoor\.com|indeed\.com|marketwatch\.com|cnbc\.com|forbes\.com|nasdaq\.com|nyse\.com)$/;
 
 const NSFW = /\b(porn|xxx|sex|nsfw|adult|escort|camgirl|hentai|onlyfans)\b/i;
 
@@ -23,10 +56,16 @@ export class BrandService {
     if (q.domain) return registrableDomain(`https://${q.domain}`) || q.domain;
     if (q.email) {
       const host = q.email.split("@")[1]!.toLowerCase();
-      if (FREE_MAIL.has(host)) throw new PluckError("bad_request", "That is a personal email provider, not a company domain.");
+      if (FREE_MAIL.has(host))
+        throw new PluckError(
+          "bad_request",
+          "That is a personal email provider, not a company domain.",
+        );
       return registrableDomain(`https://${host}`) || host;
     }
-    const query = q.ticker ? `${q.ticker} stock company official website investor relations` : `${q.name} official website`;
+    const query = q.ticker
+      ? `${q.ticker} stock company official website investor relations`
+      : `${q.name} official website`;
     const hits = await this.s.search.search({ query, limit: 8, category: "web" });
     for (const hit of hits) {
       const host = new URL(hit.url).hostname.replace(/^www\./, "");
@@ -35,7 +74,10 @@ export class BrandService {
     throw new PluckError("not_found", "Could not find an official website for that company.");
   }
 
-  async get(domain: string, opts: { maxAge: number; proxy: BrandQuery["proxy"]; llm: LlmTasks | null }): Promise<{ brand: Brand; cached: boolean }> {
+  async get(
+    domain: string,
+    opts: { maxAge: number; proxy: BrandQuery["proxy"]; llm: LlmTasks | null },
+  ): Promise<{ brand: Brand; cached: boolean }> {
     const [row] = await this.s.db.select().from(brands).where(eq(brands.domain, domain));
     if (row && Date.now() - row.updatedAt.getTime() <= opts.maxAge * 1000) {
       return { brand: row.data as Brand, cached: true };
@@ -71,11 +113,24 @@ export class BrandService {
       const url = absolute(icon.src, stat.manifestUrl ?? base);
       const size = /(\d+)x(\d+)/.exec(icon.sizes ?? "");
       if (url && !logos.some((l) => l.url === url)) {
-        logos.push({ url, type: "icon", format: icon.type?.split("/")[1] ?? null, width: size ? Number(size[1]) : null, height: size ? Number(size[2]) : null, theme: null });
+        logos.push({
+          url,
+          type: "icon",
+          format: icon.type?.split("/")[1] ?? null,
+          width: size ? Number(size[1]) : null,
+          height: size ? Number(size[2]) : null,
+          theme: null,
+        });
       }
     }
 
-    const colors = [...new Set([normaliseHex(manifest?.theme_color), ...stat.colors].filter((c): c is string => Boolean(c)))];
+    const colors = [
+      ...new Set(
+        [normaliseHex(manifest?.theme_color), ...stat.colors].filter((c): c is string =>
+          Boolean(c),
+        ),
+      ),
+    ];
 
     let industries: Brand["industries"] = null;
     if (opts.llm && (stat.description || stat.name)) {
