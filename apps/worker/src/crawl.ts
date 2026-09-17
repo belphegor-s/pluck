@@ -10,7 +10,7 @@ import {
 } from "@pluck/core";
 import { crawlPages, crawls, type Database, users } from "@pluck/db";
 import type { Credits, LlmResolver, Logger, Queues, UsageRecorder } from "@pluck/runtime";
-import { type CrawlRequest, isPluckError, scrapeCost } from "@pluck/shared";
+import { type CrawlRequest, crawlRequest, isPluckError, scrapeCost } from "@pluck/shared";
 import { eq, sql } from "drizzle-orm";
 import type { BrowserPool } from "./browser.js";
 
@@ -38,7 +38,9 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
   const [crawl] = await db.select().from(crawls).where(eq(crawls.id, crawlId));
   if (!crawl || crawl.status === "cancelled" || crawl.status === "completed") return;
 
-  const req = crawl.options as CrawlRequest;
+  // Re-parse rather than trust the stored blob: a row written by an older
+  // release may be missing fields that were added or defaulted since.
+  const req = crawlRequest.parse({ ...(crawl.options as object), url: crawl.url }) as CrawlRequest;
   const started = Date.now();
   await db
     .update(crawls)
