@@ -3,10 +3,14 @@
 #   docker build --target api|worker|mcp|web -t pluck-<target> .
 
 ARG NODE_VERSION=24.15.0
+ARG PNPM_VERSION=11.26.0
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
+ARG PNPM_VERSION
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true NEXT_TELEMETRY_DISABLED=1
-RUN npm install -g --ignore-scripts corepack@0.34.6 && corepack enable
+# Installed straight from the registry: corepack's own downloader is an extra
+# network dependency that fails on some hosts, and the version is pinned anyway.
+RUN npm install -g --ignore-scripts pnpm@${PNPM_VERSION} && pnpm --version
 WORKDIR /repo
 
 # ---------------------------------------------------------------- deps
@@ -23,7 +27,7 @@ COPY packages/runtime/package.json packages/runtime/
 COPY packages/sdk/package.json packages/sdk/
 COPY packages/shared/package.json packages/shared/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    corepack install && pnpm fetch --frozen-lockfile
+    pnpm fetch --frozen-lockfile
 
 # --------------------------------------------------------------- build
 FROM deps AS build
