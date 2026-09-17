@@ -22,9 +22,12 @@
 | `not_found` | 404 | No such crawl, monitor or brand. |
 | `unsupported_content` | 415 | That file type cannot be parsed. |
 | `rate_limited` | 429 | Back off; `x-ratelimit-reset` says when the window turns over. |
-| `target_blocked` / `target_unreachable` | 502 | The site refused or failed. Try `proxy: "residential"`. |
-| `target_timeout` | 504 | Raise `timeout`, or narrow the page with `includeTags`. |
-| `llm_not_configured` / `llm_failed` | 400 / 502 | Add a model key, or retry with a stronger model. |
+| `target_blocked` / `target_unreachable` | 424 | The site refused or failed. Try `proxy: "residential"`. |
+| `target_timeout` | 424 | Raise `timeout`, or narrow the page with `includeTags`. |
+| `llm_not_configured` | 400 | No model is configured. Add a provider key, or send `x-llm-key`. |
+| `llm_failed` | 424 | The model provider refused, ran out of credit, or timed out. The message says which. |
+
+Anything caused by a third party — the page you asked for, or the model provider — answers **424 Failed Dependency** rather than a gateway status, so the `code` and `message` survive any CDN sitting in front of the API.
 
 Every response carries `x-request-id`. Include it when you ask us about a call.
 

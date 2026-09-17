@@ -206,6 +206,11 @@ function toPluckError(err: unknown): PluckError {
   if (APICallError.isInstance(err)) {
     if (err.statusCode === 401 || err.statusCode === 403)
       return new PluckError("llm_failed", "The LLM provider rejected the API key.");
+    if (err.statusCode === 402)
+      return new PluckError(
+        "llm_failed",
+        "The LLM provider reports no credit on the key. Top up with the provider, choose a free model, or send your own key with x-llm-key.",
+      );
     if (err.statusCode === 429)
       return new PluckError(
         "llm_failed",

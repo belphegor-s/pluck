@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+/**
+ * Failures caused by a third party — the page we were asked to read, or the
+ * model provider — answer 424 Failed Dependency rather than 502/504. A CDN in
+ * front of the API replaces gateway statuses with its own error page, which
+ * would hide the `code` and `message` the caller needs.
+ */
 export const errorCodes = {
   bad_request: 400,
   invalid_api_key: 401,
@@ -8,11 +14,11 @@ export const errorCodes = {
   not_found: 404,
   blocked_by_robots: 403,
   unsupported_content: 415,
-  target_unreachable: 502,
-  target_blocked: 502,
-  target_timeout: 504,
+  target_unreachable: 424,
+  target_blocked: 424,
+  target_timeout: 424,
   llm_not_configured: 400,
-  llm_failed: 502,
+  llm_failed: 424,
   rate_limited: 429,
   internal: 500,
 } as const;
