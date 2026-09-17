@@ -102,6 +102,7 @@ export class LlmResolver {
     return new LlmTasks(resolve, {
       maxInputChars: this.config.LLM_MAX_INPUT_CHARS,
       timeoutMs: this.config.LLM_TIMEOUT_MS,
+      maxOutputTokens: this.config.LLM_MAX_OUTPUT_TOKENS,
     });
   }
 

@@ -59,6 +59,7 @@ const schema = z.object({
   OPENROUTER_API_KEY: optional,
   LLM_MAX_INPUT_CHARS: z.coerce.number().int().min(1_000).default(120_000),
   LLM_TIMEOUT_MS: z.coerce.number().int().min(1_000).default(90_000),
+  LLM_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(256).max(200_000).default(4_096),
 
   POLAR_ACCESS_TOKEN: optional,
   POLAR_WEBHOOK_SECRET: optional,

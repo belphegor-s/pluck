@@ -19,6 +19,12 @@ export interface ResolvedLlm {
 export interface LlmOptions {
   maxInputChars: number;
   timeoutMs: number;
+  /**
+   * Hard cap on generated tokens. Always sent: providers that meter by the
+   * model's full output window (OpenRouter, for one) otherwise reserve tens of
+   * thousands of tokens per call and refuse keys with a modest balance.
+   */
+  maxOutputTokens: number;
 }
 
 const SYSTEM = `You are Pluck's extraction engine. You turn web content into precise structured data.
@@ -53,6 +59,7 @@ export class LlmTasks implements StructuredExtractor {
         prompt,
         output: Output.object({ schema, name }),
         temperature: 0,
+        maxOutputTokens: this.opts.maxOutputTokens,
         maxRetries: 2,
         abortSignal: AbortSignal.timeout(this.opts.timeoutMs),
       });
