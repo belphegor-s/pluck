@@ -322,8 +322,9 @@ async function pushEnv(apps, dbs) {
   }
 }
 
-async function deploy(apps) {
-  for (const spec of APPS) {
+async function deploy(apps, only = []) {
+  const targets = only.length ? APPS.filter((a) => only.includes(a.key)) : APPS;
+  for (const spec of targets) {
     const res = await api(`/deploy?uuid=${apps[spec.key].uuid}&force=false`, { method: "POST" });
     const id = res.deployments?.[0]?.deployment_uuid ?? res.message ?? "queued";
     console.log(`deploying ${spec.name}: ${id}`);
@@ -354,8 +355,10 @@ if (command === "provision") {
   const apps = await ensureApps(ctx);
   await pushEnv(apps, dbs);
 } else if (command === "deploy") {
+  // `deploy api worker` redeploys just those; no arguments means all of them.
+  const only = process.argv.slice(3).filter((k) => APPS.some((a) => a.key === k));
   const apps = await ensureApps(ctx);
-  await deploy(apps);
+  await deploy(apps, only);
 } else if (command === "status") {
   await status();
 } else {
