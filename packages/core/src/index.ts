@@ -1,4 +1,5 @@
 export {
+  colorsFromCss,
   extractBrandFromHtml,
   isNeutral,
   normaliseHex,

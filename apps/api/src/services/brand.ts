@@ -1,6 +1,7 @@
 import type { LlmTasks } from "@pluck/ai";
 import {
   absolute,
+  colorsFromCss,
   decodeBody,
   extractBrandFromHtml,
   normaliseHex,
@@ -131,6 +132,11 @@ export class BrandService {
         ),
       ),
     ];
+    // Most sites keep their palette in external CSS rather than inline styles.
+    if (colors.length < 3 && stat.stylesheets.length) {
+      const css = await this.fetchCss(stat.stylesheets);
+      for (const hex of colorsFromCss(css)) if (!colors.includes(hex)) colors.push(hex);
+    }
 
     let industries: Brand["industries"] = null;
     if (opts.llm && (stat.description || stat.name)) {
@@ -164,6 +170,21 @@ export class BrandService {
       .values({ domain, data: brand })
       .onConflictDoUpdate({ target: brands.domain, set: { data: brand, updatedAt: new Date() } });
     return { brand, cached: false };
+  }
+
+  /** Reads a couple of stylesheets, capped in size, ignoring failures. */
+  private async fetchCss(urls: string[]): Promise<string> {
+    const sheets = await Promise.all(
+      urls.slice(0, 3).map(async (url) => {
+        try {
+          const res = await this.s.http.fetch(url, { timeout: 8_000, maxBytes: 2 * 1024 * 1024 });
+          return res.status < 400 ? decodeBody(res.body, res.contentType) : "";
+        } catch {
+          return "";
+        }
+      }),
+    );
+    return sheets.join("\n");
   }
 
   private async manifest(url: string) {

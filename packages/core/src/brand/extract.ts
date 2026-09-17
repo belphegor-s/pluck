@@ -37,6 +37,8 @@ export interface StaticBrand {
   phone: string | null;
   stock: Brand["stock"];
   manifestUrl: string | null;
+  /** Same-origin stylesheets, so callers can mine colors and fonts from them. */
+  stylesheets: string[];
 }
 
 /** Everything that can be learnt about a brand from its homepage HTML alone. */
@@ -211,6 +213,10 @@ export function extractBrandFromHtml(doc: Doc, baseUrl: string): StaticBrand {
     phone: str(org?.telephone) ?? tel,
     stock: str(org?.tickerSymbol) ? { ticker: str(org?.tickerSymbol)!, exchange: null } : null,
     manifestUrl: absolute(attr(doc, 'link[rel="manifest" i]', "href"), baseUrl),
+    stylesheets: [...doc.querySelectorAll('link[rel="stylesheet" i][href]')]
+      .map((l) => absolute(l.getAttribute("href"), baseUrl))
+      .filter((href): href is string => Boolean(href))
+      .slice(0, 4),
   };
 }
 
@@ -232,6 +238,33 @@ function sloganFromTitle(title: string | null, name: string | null): string | nu
     .map((s) => s.trim())
     .filter((s) => s.toLowerCase() !== name.toLowerCase());
   return rest.length ? rest.join(" - ") : null;
+}
+
+/**
+ * Ranks brand colors out of CSS text. Custom properties whose names look like
+ * brand tokens win; after that, frequency decides.
+ */
+export function colorsFromCss(css: string, limit = 6): string[] {
+  const scores = new Map<string, number>();
+  const bump = (raw: string, weight: number) => {
+    const hex = normaliseHex(raw);
+    if (hex && !isNeutral(hex)) scores.set(hex, (scores.get(hex) ?? 0) + weight);
+  };
+  for (const m of css.matchAll(
+    /--[\w-]*(?:primary|brand|accent|main|link|cta|action)[\w-]*\s*:\s*(#[0-9a-f]{3,8})\b/gi,
+  )) {
+    bump(m[1]!, 25);
+  }
+  for (const m of css.matchAll(
+    /(?:background(?:-color)?|color|border-color|fill)\s*:\s*(#[0-9a-f]{6})\b/gi,
+  )) {
+    bump(m[1]!, 3);
+  }
+  for (const m of css.matchAll(/#[0-9a-f]{6}\b/gi)) bump(m[0], 1);
+  return [...scores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([hex]) => hex);
 }
 
 export function normaliseHex(input: string | null | undefined): string | null {
