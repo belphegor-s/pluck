@@ -1,5 +1,7 @@
 import { PluckError, type SearchHit, type SearchRequest } from "@pluck/shared";
 import { fetch } from "undici";
+import { absolute, parseDocument, text } from "../html/document.js";
+import { decodeBody, type HttpClient } from "../net/fetch.js";
 
 type Hit = Omit<SearchHit, "page">;
 
@@ -149,6 +151,76 @@ interface SerperResult {
   source?: string;
 }
 
+/**
+ * Zero-configuration fallback: DuckDuckGo's HTML endpoint, read with our own
+ * hardened fetcher so it can use the proxy pool when rate limited. No key, no
+ * quota, and it keeps `/v1/search` working on a fresh self-hosted instance.
+ */
+export class DuckDuckGoProvider implements SearchProvider {
+  readonly name = "duckduckgo";
+
+  constructor(
+    private readonly http: HttpClient,
+    /** Optional browser render, used when the HTML endpoint serves an anti-bot page. */
+    private readonly renderHtml?: (url: string) => Promise<string>,
+  ) {}
+
+  async search(req: SearchRequest): Promise<Hit[]> {
+    const params = new URLSearchParams({
+      q: req.query,
+      kp: "1",
+      kl: req.country ? `${req.country}-${req.country}` : "wt-wt",
+    });
+    if (req.category === "news") params.set("iar", "news");
+    if (req.timeRange)
+      params.set("df", { day: "d", week: "w", month: "m", year: "y" }[req.timeRange]);
+    const url = `https://html.duckduckgo.com/html/?${params}`;
+
+    for (const proxy of this.http.proxies.ladder("auto")) {
+      const res = await this.http.fetch(url, {
+        proxy,
+        timeout: 15_000,
+        maxBytes: 4 * 1024 * 1024,
+        headers: { referer: "https://duckduckgo.com/", "sec-fetch-site": "same-origin" },
+      });
+      const hits = parseDuckDuckGo(decodeBody(res.body, res.contentType)).slice(0, req.limit);
+      if (hits.length) return hits;
+    }
+
+    if (this.renderHtml) {
+      const hits = parseDuckDuckGo(await this.renderHtml(url)).slice(0, req.limit);
+      if (hits.length) return hits;
+    }
+    throw new PluckError(
+      "target_blocked",
+      "Keyless search was blocked by the upstream engine. Set BRAVE_API_KEY, SERPER_API_KEY or SEARXNG_URL for reliable search.",
+    );
+  }
+}
+
+function parseDuckDuckGo(html: string): Hit[] {
+  const doc = parseDocument(html);
+  const hits: Hit[] = [];
+  for (const el of doc.querySelectorAll(".result, .web-result")) {
+    const anchor = el.querySelector("a.result__a");
+    const href = anchor?.getAttribute("href");
+    if (!href) continue;
+    // Links are wrapped: /l/?uddg=<encoded target>
+    const target = /[?&]uddg=([^&]+)/.exec(href)?.[1];
+    const url = target ? decodeURIComponent(target) : absolute(href, "https://duckduckgo.com");
+    if (!url || url.includes("duckduckgo.com/y.js")) continue;
+    hits.push({
+      url,
+      title: text(anchor),
+      snippet: text(el.querySelector(".result__snippet")),
+      publishedAt: null,
+      image: null,
+      source: text(el.querySelector(".result__url")) || null,
+    });
+  }
+  return hits;
+}
+
 /** Tries providers in order; the first one that answers wins. */
 export class FallbackSearch implements SearchProvider {
   readonly name: string;
@@ -171,16 +243,26 @@ export class FallbackSearch implements SearchProvider {
   }
 }
 
-export function searchFromEnv(raw: Readonly<Record<string, unknown>>): FallbackSearch {
+export function searchFromEnv(
+  raw: Readonly<Record<string, unknown>>,
+  http: HttpClient,
+  renderHtml?: (url: string) => Promise<string>,
+): FallbackSearch {
   const env = raw as Record<string, string | undefined>;
   const providers: SearchProvider[] = [];
-  const order = (env.SEARCH_PROVIDERS ?? "brave,serper,searxng").split(",").map((s) => s.trim());
+  const order = (env.SEARCH_PROVIDERS ?? "brave,serper,searxng,duckduckgo")
+    .split(",")
+    .map((s) => s.trim());
   for (const name of order) {
     if (name === "brave" && env.BRAVE_API_KEY) providers.push(new BraveProvider(env.BRAVE_API_KEY));
     if (name === "serper" && env.SERPER_API_KEY)
       providers.push(new SerperProvider(env.SERPER_API_KEY));
     if (name === "searxng" && env.SEARXNG_URL) providers.push(new SearxngProvider(env.SEARXNG_URL));
+    if (name === "duckduckgo") providers.push(new DuckDuckGoProvider(http, renderHtml));
   }
+  // Always keep a keyless option last, so search never hard-fails on a fresh install.
+  if (!providers.some((p) => p.name === "duckduckgo"))
+    providers.push(new DuckDuckGoProvider(http, renderHtml));
   return new FallbackSearch(providers);
 }
 

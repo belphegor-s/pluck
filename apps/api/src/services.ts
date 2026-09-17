@@ -44,7 +44,16 @@ export async function createServices(config: Config) {
     queues,
     renderer,
     store,
-    search: searchFromEnv(config),
+    // Keyless search falls back to a browser render when the engine blocks plain HTTP.
+    search: searchFromEnv(config, http, async (url) => {
+      const rendered = await renderer.render({
+        url,
+        timeout: 30_000,
+        proxy: "none",
+        blockAds: true,
+      });
+      return rendered.html;
+    }),
     llm,
     credits: new Credits(db, config.BILLING_ENABLED),
     usage: new UsageRecorder(db, log),
