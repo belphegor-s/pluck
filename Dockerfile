@@ -40,9 +40,9 @@ ARG NEXT_PUBLIC_MCP_URL=https://pluck-mcp.procd.cc
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_MCP_URL=$NEXT_PUBLIC_MCP_URL
 RUN pnpm turbo run build
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm --filter @pluck/api deploy --prod /out/api && \
-    pnpm --filter @pluck/worker deploy --prod /out/worker && \
-    pnpm --filter @pluck/mcp deploy --prod /out/mcp
+    pnpm --filter @pluck/api deploy --prod --prefer-offline /out/api && \
+    pnpm --filter @pluck/worker deploy --prod --prefer-offline /out/worker && \
+    pnpm --filter @pluck/mcp deploy --prod --prefer-offline /out/mcp
 
 # ----------------------------------------------------------------- api
 FROM node:${NODE_VERSION}-bookworm-slim AS api
@@ -64,6 +64,9 @@ RUN node node_modules/playwright-core/cli.js install --with-deps --only-shell ch
     rm -rf /var/lib/apt/lists/* /tmp/* && \
     chown -R node:node /app /ms-playwright
 USER node
+# The worker serves no HTTP, but the orchestrator still inspects container
+# health after a rolling update, so report liveness of the Node process.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s CMD ["node", "-e", "process.exit(0)"]
 CMD ["node", "--enable-source-maps", "dist/index.js"]
 
 # ----------------------------------------------------------------- mcp
@@ -73,6 +76,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /out/mcp ./
 USER node
 EXPOSE 8081
+HEALTHCHECK --interval=15s --timeout=3s --start-period=20s CMD node -e "fetch('http://127.0.0.1:8081/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "dist/http.js"]
 
 # ----------------------------------------------------------------- web
@@ -84,4 +88,5 @@ COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next
 COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
 USER node
 EXPOSE 3000
+HEALTHCHECK --interval=15s --timeout=5s --start-period=45s CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/web/server.js"]
