@@ -1,12 +1,13 @@
 import { credentialFromEnv } from "@pluck/ai";
 import type { RenderRequest } from "@pluck/core";
 import { assertPublicUrl, createSafeLookup, HttpClient, ProxyPool, RobotsCache } from "@pluck/core";
-import { crawls, createDb, monitorChanges, usageEvents } from "@pluck/db";
+import { crawls, createDb, monitorChanges, usageEvents, users } from "@pluck/db";
 import {
   type CrawlJobData,
   Credits,
   createErrorReporter,
   createLogger,
+  createMailer,
   createQueues,
   createRedis,
   encodeRenderError,
@@ -23,7 +24,7 @@ import {
 } from "@pluck/runtime";
 import { BRAND } from "@pluck/shared";
 import { type ConnectionOptions, Worker } from "bullmq";
-import { lt, sql } from "drizzle-orm";
+import { and, eq, isNull, lt, sql } from "drizzle-orm";
 import { Agent, request } from "undici";
 import { BrowserPool } from "./browser.js";
 import { runCrawl } from "./crawl.js";
@@ -55,6 +56,7 @@ const browser = new BrowserPool({
   // A render job carries a user id; the credentials are read here.
   poolFor: (userId) => proxyDirectory.forUser(userId),
 });
+const mailer = createMailer(config);
 const credits = new Credits(db, config.BILLING_ENABLED);
 const usage = new UsageRecorder(db, log);
 const llm = new LlmResolver(db, config, credentialFromEnv(config));
@@ -168,8 +170,54 @@ async function alertOnBacklog() {
   }
 }
 
+/**
+ * Warns accounts that are about to run out of credits.
+ *
+ * `lowBalanceNotifiedAt` is cleared whenever credits are granted, so topping up
+ * re-arms the warning and nobody gets the same email twice for one dip.
+ */
+async function warnLowBalances() {
+  if (!config.BILLING_ENABLED || !mailer.enabled) return;
+  const rows = await db
+    .select({ id: users.id, email: users.email, name: users.name, credits: users.credits })
+    .from(users)
+    .where(
+      and(
+        lt(users.credits, config.LOW_BALANCE_CREDITS),
+        isNull(users.lowBalanceNotifiedAt),
+        eq(users.role, "user"),
+      ),
+    )
+    .limit(200);
+
+  for (const row of rows) {
+    const sent = await mailer.send({
+      to: row.email,
+      subject: `Your ${BRAND.name} balance is running low`,
+      text: [
+        `Hi ${row.name || "there"},`,
+        "",
+        `Your account has ${row.credits.toLocaleString("en-US")} credits left, so calls will start failing with insufficient_credits once it reaches zero.`,
+        "",
+        `Top up: ${config.PUBLIC_WEB_URL}/dashboard/billing`,
+        "",
+        "Credits never expire and there is no subscription — you only pay for what you use.",
+      ].join("\n"),
+    });
+    // Mark it either way: a broken mailbox should not mean a mail every hour.
+    await db.update(users).set({ lowBalanceNotifiedAt: new Date() }).where(eq(users.id, row.id));
+    if (!sent.ok) log.warn({ userId: row.id, err: sent.error }, "low balance email failed");
+  }
+  if (rows.length) log.info({ warned: rows.length }, "low balance warnings sent");
+}
+
 if (roles.has("maintenance")) {
   await queues.maintenance.upsertJobScheduler("monitors", { every: 60_000 }, { name: "monitors" });
+  await queues.maintenance.upsertJobScheduler(
+    "balances",
+    { pattern: "23 */6 * * *" },
+    { name: "balances" },
+  );
   await queues.maintenance.upsertJobScheduler(
     "retention",
     { pattern: "17 3 * * *" },
@@ -183,6 +231,8 @@ if (roles.has("maintenance")) {
           const n = await scheduleDueMonitors(deps);
           if (n) log.debug({ scheduled: n }, "monitors scheduled");
           await alertOnBacklog();
+        } else if (job.name === "balances") {
+          await warnLowBalances();
         } else if (job.name === "retention") {
           const day = 86_400_000;
           await db.delete(crawls).where(lt(crawls.createdAt, new Date(Date.now() - 7 * day)));

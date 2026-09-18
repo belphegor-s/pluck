@@ -67,6 +67,8 @@ const schema = z.object({
 
   /** Transactional email. Without it the contact form only stores the request. */
   RESEND_API_KEY: optional,
+  /** Warn an account by email once its balance falls below this. */
+  LOW_BALANCE_CREDITS: z.coerce.number().int().min(0).default(200),
   EMAIL_FROM: optional,
   CONTACT_EMAIL: optional,
 
