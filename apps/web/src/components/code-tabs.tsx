@@ -1,4 +1,5 @@
 import { CodeTabsClient } from "@/components/code-tabs-client";
+import { CopyButton } from "@/components/copy-button";
 import { highlight } from "@/lib/highlight";
 
 export interface CodeSample {
@@ -36,10 +37,16 @@ export async function CodeBlock({
 }) {
   const html = await highlight(code, language);
   return (
-    <div
-      className={`sheet shiki-block overflow-x-auto p-4 text-[0.8rem] leading-relaxed ${className}`}
-      // Highlighted from our own source strings.
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className={`group relative ${className}`}>
+      <div
+        className="sheet shiki-block overflow-x-auto p-4 text-[0.8rem] leading-relaxed"
+        // Highlighted from our own source strings.
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      <CopyButton
+        text={code}
+        className="absolute right-2 top-2 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+      />
+    </div>
   );
 }

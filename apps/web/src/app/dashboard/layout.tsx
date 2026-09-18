@@ -1,16 +1,8 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DashboardNav } from "@/components/dashboard/nav";
 import { SignOutButton } from "@/components/dashboard/sign-out";
 import { auth } from "@/lib/auth";
-
-const tabs = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/keys", label: "API keys" },
-  { href: "/dashboard/ai", label: "Model provider" },
-  { href: "/dashboard/monitors", label: "Monitors" },
-  { href: "/dashboard/billing", label: "Credits" },
-];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -25,17 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <SignOutButton />
         </div>
       </div>
-      <nav className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-b border-[var(--line)] pb-3 text-sm">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className="text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
+      <DashboardNav />
       <div className="pt-8">{children}</div>
     </div>
   );

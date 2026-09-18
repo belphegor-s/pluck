@@ -8,7 +8,8 @@ export function SignOutButton() {
   return (
     <button
       type="button"
-      className="underline underline-offset-4 transition-colors hover:text-[var(--ink)]"
+      // Destructive: leaving the session is not what someone wants by accident.
+      className="border border-[var(--accent)] px-3 py-1 text-xs text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white"
       onClick={() => void signOut({ fetchOptions: { onSuccess: () => router.push("/") } })}
     >
       Sign out

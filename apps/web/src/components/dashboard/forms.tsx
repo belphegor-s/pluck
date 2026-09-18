@@ -1,7 +1,8 @@
 "use client";
 
-import { DEFAULT_MODELS, PROVIDER_LABELS, PROVIDERS } from "@pluck/ai";
+import { DEFAULT_MODELS, PROVIDER_LABELS, type PROVIDERS } from "@pluck/ai";
 import { useActionState, useState } from "react";
+import { ProviderSelect } from "@/components/provider-select";
 import {
   type ActionState,
   createApiKey,
@@ -97,21 +98,14 @@ export function ProviderForm({
   return (
     <div className="grid gap-8 lg:grid-cols-2">
       <form action={action} className="space-y-4">
-        <label className="block text-sm">
-          <span className="block text-[var(--ink-soft)]">Provider</span>
-          <select
-            name="provider"
-            value={provider}
-            onChange={(e) => setProvider(e.target.value as (typeof PROVIDERS)[number])}
-            className="mt-1 w-full border border-[var(--line)] bg-[var(--sheet)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-          >
-            {PROVIDERS.map((p) => (
-              <option key={p} value={p}>
-                {PROVIDER_LABELS[p]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="block text-sm">
+          <span className="block text-[var(--ink-soft)]" id="provider-label">
+            Provider
+          </span>
+          <div className="mt-1">
+            <ProviderSelect name="provider" value={provider} onChange={setProvider} />
+          </div>
+        </div>
         <label className="block text-sm">
           <span className="block text-[var(--ink-soft)]">API key</span>
           <input
