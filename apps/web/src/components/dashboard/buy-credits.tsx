@@ -2,6 +2,7 @@
 
 import { creditPacks } from "@pluck/shared";
 import { useState } from "react";
+import { formatNumber } from "@/lib/format";
 
 export function BuyCredits() {
   const [pending, setPending] = useState<string | null>(null);
@@ -35,7 +36,7 @@ export function BuyCredits() {
             disabled={pending !== null}
             className="sheet p-4 text-left transition-colors hover:border-[var(--accent)] disabled:opacity-60"
           >
-            <p className="mono text-xl">{pack.credits.toLocaleString()}</p>
+            <p className="mono text-xl">{formatNumber(pack.credits)}</p>
             <p className="text-sm text-[var(--ink-soft)]">credits</p>
             <p className="mono mt-3 text-sm">${pack.priceUsd}</p>
             {"bonus" in pack && <p className="mt-1 text-xs text-[var(--leaf)]">{pack.bonus}</p>}

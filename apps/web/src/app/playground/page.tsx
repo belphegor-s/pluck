@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { Playground } from "@/components/playground";
+import { SignInWithGitHub } from "@/components/sign-in";
 import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -24,16 +24,13 @@ export default async function PlaygroundPage() {
           <Playground />
         </div>
       ) : (
-        <div className="sheet mt-8 p-6">
+        <div className="sheet mt-8 max-w-md p-6">
           <p className="text-sm text-[var(--ink-soft)]">
             Sign in to run requests — the playground spends credits from your account.
           </p>
-          <Link
-            href="/login?next=/playground"
-            className="mt-4 inline-block bg-[var(--ink)] px-4 py-2 text-sm text-[var(--paper)]"
-          >
-            Sign in with GitHub
-          </Link>
+          <div className="mt-4">
+            <SignInWithGitHub next="/playground" />
+          </div>
         </div>
       )}
     </div>

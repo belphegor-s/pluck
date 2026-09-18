@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { formatNumber } from "@/lib/format";
 
 export const metadata = { title: "Overview" };
 export const dynamic = "force-dynamic";
@@ -58,11 +59,11 @@ export default async function DashboardOverview() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat
           label="Credit balance"
-          value={(account?.credits ?? 0).toLocaleString()}
+          value={formatNumber(account?.credits ?? 0)}
           note={`≈ $${((account?.credits ?? 0) * CREDIT_USD).toFixed(2)} of usage`}
         />
-        <Stat label="Requests, 30 days" value={totals.requests.toLocaleString()} />
-        <Stat label="Credits spent, 30 days" value={totals.credits.toLocaleString()} />
+        <Stat label="Requests, 30 days" value={formatNumber(totals.requests)} />
+        <Stat label="Credits spent, 30 days" value={formatNumber(totals.credits)} />
       </div>
 
       <section>

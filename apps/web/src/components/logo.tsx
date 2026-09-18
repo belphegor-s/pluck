@@ -20,13 +20,6 @@ export function Logo({ size = 22, className = "" }: { size?: number; className?:
         strokeWidth="1.7"
         strokeLinecap="round"
       />
-      <path
-        d="M8.5 13.2c2.3-1.1 4.6-.9 6.2.4"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        opacity=".5"
-      />
       <circle cx="17.4" cy="5.6" r="3.4" fill="var(--accent)" />
     </svg>
   );

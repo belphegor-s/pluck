@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BuyCredits } from "@/components/dashboard/buy-credits";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { formatNumber } from "@/lib/format";
 
 export const metadata = { title: "Credits" };
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export default async function BillingPage({
 
       <section>
         <h2 className="text-lg">Balance</h2>
-        <p className="mono mt-2 text-3xl">{(account?.credits ?? 0).toLocaleString()}</p>
+        <p className="mono mt-2 text-3xl">{formatNumber(account?.credits ?? 0)}</p>
         <p className="mt-1 text-sm text-[var(--ink-soft)]">
           ≈ ${((account?.credits ?? 0) * CREDIT_USD).toFixed(2)} of usage. Credits never expire, and
           there is no subscription.
@@ -93,7 +94,7 @@ export default async function BillingPage({
                       {row.createdAt.toISOString().slice(0, 10)}
                     </td>
                     <td className="px-3 py-2">{REASONS[row.reason] ?? row.reason}</td>
-                    <td className="mono px-3 py-2 text-xs">+{row.delta.toLocaleString()}</td>
+                    <td className="mono px-3 py-2 text-xs">+{formatNumber(row.delta)}</td>
                     <td className="mono px-3 py-2 text-xs text-[var(--ink-faint)]">
                       {row.amountUsdCents ? `$${(row.amountUsdCents / 100).toFixed(2)}` : "—"}
                     </td>

@@ -2,6 +2,7 @@ import { CREDIT_USD, creditPacks, credits, endpoints } from "@pluck/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CreditCalculator } from "@/components/credit-calculator";
+import { formatNumber } from "@/lib/format";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -76,7 +77,7 @@ export default function PricingPage() {
       <section className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {creditPacks.map((pack) => (
           <div key={pack.id} className="sheet flex flex-col p-5">
-            <p className="mono text-2xl">{pack.credits.toLocaleString()}</p>
+            <p className="mono text-2xl">{formatNumber(pack.credits)}</p>
             <p className="text-sm text-[var(--ink-soft)]">credits</p>
             <p className="mono mt-4 text-lg">${pack.priceUsd}</p>
             {"bonus" in pack ? (
@@ -85,8 +86,8 @@ export default function PricingPage() {
               <p className="mt-1 text-xs text-[var(--ink-faint)]">starter pack</p>
             )}
             <p className="mt-4 text-xs text-[var(--ink-faint)]">
-              ≈ {pack.credits.toLocaleString()} scrapes, or{" "}
-              {Math.floor(pack.credits / (credits.scrape + credits.llm)).toLocaleString()} AI
+              ≈ {formatNumber(pack.credits)} scrapes, or{" "}
+              {formatNumber(Math.floor(pack.credits / (credits.scrape + credits.llm)))} AI
               extractions
             </p>
           </div>

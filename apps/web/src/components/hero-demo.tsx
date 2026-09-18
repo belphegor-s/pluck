@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { JsonView } from "@/components/json-view";
+import { MarkdownView } from "@/components/markdown-view";
 
 type Tab = "markdown" | "links" | "metadata";
 
@@ -27,10 +28,12 @@ export function HeroDemo() {
   const [message, setMessage] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const output = useRef<HTMLDivElement | null>(null);
 
   // The one piece of unprompted motion on the page: the plucked text arriving.
+  // Keyed on the result alone — switching tabs must not replay it.
   useEffect(() => {
-    if (!result || tab !== "markdown") return;
+    if (!result) return;
     const full = result.markdown;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setTyped(full);
@@ -46,7 +49,16 @@ export function HeroDemo() {
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [result, tab]);
+  }, [result]);
+
+  // Follow the text as it arrives, but leave the reader alone once they scroll.
+  const typing = Boolean(result) && typed.length < (result?.markdown.length ?? 0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `typed` drives the scroll.
+  useEffect(() => {
+    const el = output.current;
+    if (!el || tab !== "markdown" || !typing) return;
+    el.scrollTop = el.scrollHeight;
+  }, [typed, tab, typing]);
 
   async function run(target: string) {
     if (!target) return;
@@ -148,17 +160,24 @@ export function HeroDemo() {
         )}
       </div>
 
-      <div className="relative h-[17rem] overflow-auto bg-[var(--sheet)] p-4 sm:h-[19rem]">
+      <div
+        ref={output}
+        className="relative h-[17rem] overflow-auto bg-[var(--sheet)] p-4 sm:h-[19rem]"
+      >
         {state === "idle" && <IdlePreview />}
         {state === "working" && <Skeleton />}
         {state === "done" && result && tab === "markdown" && (
-          <pre className="mono whitespace-pre-wrap break-words text-[0.8rem] leading-relaxed text-[var(--ink-soft)]">
-            {title ? <span className="text-[var(--ink)]">{`# ${title}\n\n`}</span> : null}
-            {typed}
-            {typed.length < result.markdown.length && (
-              <span className="animate-[caret_1s_steps(1)_infinite] text-[var(--accent)]">▌</span>
+          <div className="text-[0.8rem] leading-relaxed">
+            <MarkdownView
+              value={title ? `# ${title}\n\n${typed}` : typed}
+              className="text-[0.8rem] leading-relaxed"
+            />
+            {typing && (
+              <span className="mono animate-[caret_1s_steps(1)_infinite] text-[var(--accent)]">
+                ▌
+              </span>
             )}
-          </pre>
+          </div>
         )}
         {state === "done" && result && tab === "links" && (
           <ul className="mono space-y-1 text-[0.8rem]">

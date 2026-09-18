@@ -2,6 +2,7 @@
 
 import { CREDIT_USD, credits } from "@pluck/shared";
 import { useState } from "react";
+import { formatNumber } from "@/lib/format";
 
 const sliders = [
   {
@@ -54,7 +55,7 @@ export function CreditCalculator() {
         <label key={s.key} className="mt-4 block first:mt-0">
           <span className="flex items-baseline justify-between text-sm">
             <span className="text-[var(--ink-soft)]">{s.label}</span>
-            <span className="mono">{values[s.key].toLocaleString()}</span>
+            <span className="mono">{formatNumber(values[s.key])}</span>
           </span>
           <input
             type="range"
@@ -63,7 +64,12 @@ export function CreditCalculator() {
             step={s.step}
             value={values[s.key]}
             onChange={(e) => setValues((v) => ({ ...v, [s.key]: Number(e.target.value) }))}
-            className="mt-1 w-full accent-[var(--accent)]"
+            // Drives the filled portion of the track in CSS.
+            style={
+              { "--range-progress": `${(values[s.key] / s.max) * 100}%` } as React.CSSProperties
+            }
+            className="mt-1 w-full"
+            aria-label={s.label}
           />
         </label>
       ))}
@@ -72,7 +78,7 @@ export function CreditCalculator() {
         <span className="mono text-2xl">${usd.toFixed(2)}</span>
       </div>
       <p className="mt-1 text-xs text-[var(--ink-faint)]">
-        {total.toLocaleString()} credits. Bonus credits on larger packs bring this down.
+        {formatNumber(total)} credits. Bonus credits on larger packs bring this down.
       </p>
     </div>
   );
