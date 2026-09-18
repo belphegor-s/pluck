@@ -2,6 +2,9 @@
 
 import { type EndpointId, endpoints } from "@pluck/shared";
 import { useMemo, useState } from "react";
+import { CopyButton } from "@/components/copy-button";
+import { EndpointSelect, methodColor } from "@/components/endpoint-select";
+import { JsonEditor } from "@/components/json-editor";
 import { JsonView } from "@/components/json-view";
 import { SITE } from "@/lib/site";
 
@@ -35,8 +38,6 @@ const PRESETS: Partial<Record<EndpointId, Record<string, unknown>>> = {
   monitorChanges: { id: "mon_…" },
   usage: { days: 30 },
 };
-
-const ids = Object.keys(endpoints) as EndpointId[];
 
 export function Playground() {
   const [id, setId] = useState<EndpointId>("scrape");
@@ -107,63 +108,60 @@ export function Playground() {
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <div>
-        <label className="block text-sm">
-          <span className="block text-[var(--ink-soft)]">Endpoint</span>
-          <select
-            value={id}
-            onChange={(e) => {
-              const next = e.target.value as EndpointId;
-              setId(next);
-              setBody(JSON.stringify(PRESETS[next] ?? {}, null, 2));
-              setResponse(null);
-              setMeta(null);
-            }}
-            className="mono mt-1 w-full border border-[var(--line)] bg-[var(--sheet)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-          >
-            {ids.map((key) => (
-              <option key={key} value={key}>
-                {endpoints[key].method.toUpperCase()} {endpoints[key].path}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="text-sm">
+          <span className="block text-[var(--ink-soft)]" id="endpoint-label">
+            Endpoint
+          </span>
+          <div className="mt-1">
+            <EndpointSelect
+              value={id}
+              onChange={(next) => {
+                setId(next);
+                setBody(JSON.stringify(PRESETS[next] ?? {}, null, 2));
+                setResponse(null);
+                setMeta(null);
+              }}
+            />
+          </div>
+        </div>
         <p className="mt-2 text-xs text-[var(--ink-faint)]">
           {endpoint.description} · {endpoint.cost}
         </p>
 
-        <label className="mt-4 block text-sm">
+        <div className="mt-4 text-sm">
           <span className="block text-[var(--ink-soft)]">Request</span>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            spellCheck={false}
-            rows={14}
-            className="mono mt-1 w-full resize-y border border-[var(--line)] bg-[var(--sheet)] p-3 text-xs outline-none focus:border-[var(--accent)]"
-          />
-        </label>
+          <div className="mt-1">
+            <JsonEditor value={body} onChange={setBody} label="Request body" />
+          </div>
+        </div>
 
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={() => void run()}
             disabled={running}
-            className="bg-[var(--accent)] px-4 py-2 text-sm text-white disabled:opacity-60"
+            className="bg-[var(--accent)] px-4 py-2.5 text-sm text-white disabled:opacity-60 sm:py-2"
           >
             {running ? "Running…" : "Send request"}
           </button>
-          <button
-            type="button"
-            onClick={() => void navigator.clipboard.writeText(curl)}
-            className="border border-[var(--line)] px-4 py-2 text-sm transition-colors hover:border-[var(--ink)]"
-          >
-            Copy as cURL
-          </button>
+          <CopyButton
+            text={curl}
+            label="Copy as cURL"
+            copiedLabel="cURL copied"
+            className="justify-center border border-[var(--line)] px-4 py-2.5 text-sm transition-colors hover:border-[var(--ink)] sm:py-2"
+          />
         </div>
       </div>
 
       <div>
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-[var(--ink-soft)]">Response</span>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm text-[var(--ink-soft)]">
+            Response{" "}
+            <span className={`mono text-xs ${methodColor(endpoint.method)}`}>
+              {endpoint.method.toUpperCase()}
+            </span>{" "}
+            <span className="mono text-xs text-[var(--ink-faint)]">{endpoint.path}</span>
+          </span>
           {meta && (
             <span className="mono text-xs text-[var(--ink-faint)]">
               {meta.status} · {meta.credits ?? 0} credits · {meta.ms ?? 0} ms

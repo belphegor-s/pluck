@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyCodeButtons } from "@/components/copy-code";
+import { ScrollTabs } from "@/components/scroll-tabs";
 import { docsNav, listDocSlugs, readDoc } from "@/lib/docs";
 import { SITE } from "@/lib/site";
 
@@ -46,20 +47,42 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
         className="-mx-4 border-b border-[var(--line)] px-4 pb-3 sm:-mx-6 sm:px-6 lg:mx-0 lg:sticky lg:top-20 lg:self-start lg:border-0 lg:px-0 lg:pb-0"
       >
         <p className="hidden text-sm font-semibold lg:block">Documentation</p>
-        <ul className="flex snap-x gap-2 overflow-x-auto text-sm lg:mt-3 lg:snap-none lg:flex-col lg:gap-1.5 lg:overflow-visible">
+        {/* One scrolling line on small screens; a plain column once the
+            sidebar has room. */}
+        <ScrollTabs label="documentation" className="text-sm lg:hidden">
           {docsNav.map((item) => {
             const href = item.slug ? `/docs/${item.slug}` : "/docs";
             const active = item.slug === current;
             return (
-              <li key={item.slug} className="shrink-0 snap-start lg:shrink">
+              <Link
+                key={item.slug}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`shrink-0 snap-start whitespace-nowrap border px-3 py-1.5 transition-colors ${
+                  active
+                    ? "border-[var(--accent)] text-[var(--accent)]"
+                    : "border-[var(--line)] text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                }`}
+              >
+                {item.title}
+              </Link>
+            );
+          })}
+        </ScrollTabs>
+        <ul className="mt-3 hidden flex-col gap-1.5 text-sm lg:flex">
+          {docsNav.map((item) => {
+            const href = item.slug ? `/docs/${item.slug}` : "/docs";
+            const active = item.slug === current;
+            return (
+              <li key={item.slug}>
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`block whitespace-nowrap border border-[var(--line)] px-3 py-1.5 transition-colors lg:border-0 lg:px-0 lg:py-0 lg:whitespace-normal ${
+                  className={
                     active
-                      ? "border-[var(--accent)] text-[var(--accent)]"
-                      : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
-                  }`}
+                      ? "text-[var(--accent)]"
+                      : "text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
+                  }
                 >
                   {item.title}
                 </Link>

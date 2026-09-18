@@ -3,13 +3,23 @@
 import { useState } from "react";
 
 /** Copy control for a single block of text. Shows what it did. */
-export function CopyButton({ text, className = "" }: { text: string; className?: string }) {
+export function CopyButton({
+  text,
+  className = "",
+  label = "Copy",
+  copiedLabel = "Copied",
+}: {
+  text: string;
+  className?: string;
+  label?: string;
+  copiedLabel?: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   return (
     <button
       type="button"
-      aria-label="Copy to clipboard"
+      aria-label={label === "Copy" ? "Copy to clipboard" : label}
       onClick={() => {
         void navigator.clipboard.writeText(text).then(() => {
           setCopied(true);
@@ -18,7 +28,7 @@ export function CopyButton({ text, className = "" }: { text: string; className?:
       }}
       className={`border border-[var(--line)] bg-[var(--paper)] px-2 py-1 text-xs text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)] ${className}`}
     >
-      {copied ? "Copied" : "Copy"}
+      {copied ? copiedLabel : label}
     </button>
   );
 }

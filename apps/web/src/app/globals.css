@@ -403,3 +403,11 @@
     height: 2.25rem;
   }
 }
+
+/* Rails provide their own arrows, so the native bar is noise. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
