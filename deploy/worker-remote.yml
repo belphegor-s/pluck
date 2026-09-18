@@ -1,0 +1,46 @@
+# Pluck worker, anywhere.
+#
+# The worker owns no state: it takes jobs from Redis, writes results to
+# Postgres, and needs nothing else. Run this on any machine — a second VPS, an
+# EC2 instance, an ECS task — and browser capacity scales horizontally.
+#
+#   DATABASE_URL=… REDIS_URL=… docker compose -f deploy/worker-remote.yml up -d
+#
+# Connect it to the primary over a private network (Tailscale, WireGuard, VPC
+# peering). Do not expose Postgres or Redis to the internet to make this work.
+
+services:
+  worker:
+    image: ${PLUCK_WORKER_IMAGE:-ghcr.io/belphegor-s/pluck-worker:latest}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL}
+      CACHE_REDIS_URL: ${CACHE_REDIS_URL:-${REDIS_URL}}
+      PLUCK_ENCRYPTION_KEY: ${PLUCK_ENCRYPTION_KEY:?must match the primary}
+      # Split duties across machines: browsers here, schedulers on the primary.
+      WORKER_ROLES: ${WORKER_ROLES:-render,crawl}
+      BROWSER_CONCURRENCY: ${BROWSER_CONCURRENCY:-2}
+      CRAWL_CONCURRENCY: ${CRAWL_CONCURRENCY:-2}
+      BILLING_ENABLED: ${BILLING_ENABLED:-true}
+      ALLOW_PRIVATE_NETWORK: "false"
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-}
+      PLUCK_LLM_PROVIDER: ${PLUCK_LLM_PROVIDER:-}
+      PLUCK_LLM_API_KEY: ${PLUCK_LLM_API_KEY:-}
+      PLUCK_LLM_MODEL: ${PLUCK_LLM_MODEL:-}
+      PROXY_DATACENTER_URLS: ${PROXY_DATACENTER_URLS:-}
+      PROXY_RESIDENTIAL_URLS: ${PROXY_RESIDENTIAL_URLS:-}
+      SEARXNG_URL: ${SEARXNG_URL:-}
+    # Chromium needs more than the default 64 MB of shared memory.
+    shm_size: 1gb
+    deploy:
+      resources:
+        limits:
+          cpus: "${WORKER_CPUS:-2}"
+          memory: ${WORKER_MEMORY:-2g}
