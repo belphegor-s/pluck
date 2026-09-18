@@ -97,6 +97,8 @@ const bugsinkCompose = `services:
       - BEHIND_HTTPS_PROXY=true
       - USE_X_FORWARDED_HOST=true
       - BASE_URL=${ERRORS_URL}
+      # Self-hosted means self-contained: no usage telemetry to bugsink.com.
+      - PHONEHOME=False
     healthcheck:
       test:
         - CMD-SHELL
