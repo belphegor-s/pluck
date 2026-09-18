@@ -199,10 +199,18 @@ export function HeroDemo() {
 
 function IdlePreview() {
   return (
-    <div className="mono space-y-2 text-[0.8rem] text-[var(--ink-faint)]">
-      <p className="text-[var(--ink-soft)]">POST /v1/scrape</p>
-      <p>{`{ "url": "https://example.com", "formats": ["markdown"] }`}</p>
-      <p className="pt-4">Paste a URL above to see what your model would receive.</p>
+    <div className="space-y-2 text-[0.8rem]">
+      <p className="mono">
+        <span className="text-[var(--accent)]">POST</span>{" "}
+        <span className="text-[var(--ink)]">/v1/scrape</span>
+      </p>
+      <JsonView
+        value={`{\n  "url": "https://example.com",\n  "formats": ["markdown"]\n}`}
+        className="text-[0.8rem]"
+      />
+      <p className="mono pt-4 text-[var(--ink-faint)]">
+        Paste a URL above to see what your model would receive.
+      </p>
     </div>
   );
 }

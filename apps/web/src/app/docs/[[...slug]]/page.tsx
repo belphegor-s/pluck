@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CopyCodeButtons } from "@/components/copy-code";
 import { docsNav, listDocSlugs, readDoc } from "@/lib/docs";
 import { SITE } from "@/lib/site";
 
@@ -69,12 +70,28 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
             API reference
           </Link>
         </p>
+        <p className="mt-1 text-xs text-[var(--ink-faint)]">
+          Rendered with{" "}
+          <a
+            href="https://scalar.com"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            Scalar
+          </a>
+        </p>
       </nav>
 
       <article>
         <h1 className="text-3xl">{doc.title}</h1>
         {/* Content is our own markdown, compiled at build time. */}
-        <div className="prose-pluck mt-6" dangerouslySetInnerHTML={{ __html: doc.html }} />
+        <div
+          id="doc-body"
+          className="prose-pluck mt-6"
+          dangerouslySetInnerHTML={{ __html: doc.html }}
+        />
+        <CopyCodeButtons containerId="doc-body" />
 
         <div className="mt-14 flex justify-between gap-4 border-t border-[var(--line)] pt-5 text-sm">
           {previous ? (

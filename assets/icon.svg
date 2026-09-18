@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="512" height="512" role="img" aria-label="Pluck">
+  <title>Pluck</title>
+  <rect width="24" height="24" rx="4" fill="#0d211b"/>
+  <path d="M5 20c0-6.6 4.2-11.4 10.2-13" fill="none" stroke="#eaeee9" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="17.4" cy="6" r="3.2" fill="#b7185c"/>
+</svg>

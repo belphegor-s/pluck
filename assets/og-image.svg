@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#eaeee9"/>
+  <g transform="translate(72 66) scale(1.55)">
+    <path d="M4 21c0-7.2 4.4-12.4 11-14" fill="none" stroke="#0d211b" stroke-width="1.7" stroke-linecap="round"/>
+    <circle cx="17.4" cy="5.6" r="3.4" fill="#b7185c"/>
+  </g>
+  <text x="122" y="108" font-family="Bricolage Grotesque, Inter, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" letter-spacing="-1" fill="#0d211b">pluck</text>
+  <text x="72" y="300" font-family="Bricolage Grotesque, Inter, Helvetica, Arial, sans-serif" font-size="76" font-weight="700" letter-spacing="-2.5" fill="#0d211b">Give your model the page,</text>
+  <text x="72" y="382" font-family="Bricolage Grotesque, Inter, Helvetica, Arial, sans-serif" font-size="76" font-weight="700" letter-spacing="-2.5" fill="#0d211b">not the HTML.</text>
+  <text x="72" y="448" font-family="Inter, Helvetica, Arial, sans-serif" font-size="28" fill="#3c544b">Scrape, crawl, search and extract any site as clean markdown or JSON. Open source.</text>
+  <g font-family="IBM Plex Mono, ui-monospace, monospace" font-size="22" fill="#3c544b">
+    <rect x="72" y="500" width="220" height="48" fill="#f4f6f2" stroke="#c8d2c9"/>
+    <text x="92" y="531">POST /v1/scrape</text>
+    <rect x="308" y="500" width="130" height="48" fill="#f4f6f2" stroke="#c8d2c9"/>
+    <text x="328" y="531">1 credit</text>
+    <rect x="454" y="500" width="230" height="48" fill="#f4f6f2" stroke="#c8d2c9"/>
+    <text x="474" y="531">pluck.procd.cc</text>
+  </g>
+</svg>

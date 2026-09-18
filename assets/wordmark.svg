@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 32" width="660" height="160" role="img" aria-label="Pluck">
+  <title>Pluck</title>
+  <g transform="translate(2 4)">
+    <path d="M4 21c0-7.2 4.4-12.4 11-14" fill="none" stroke="#0d211b" stroke-width="1.7" stroke-linecap="round"/>
+    <circle cx="17.4" cy="5.6" r="3.4" fill="#b7185c"/>
+  </g>
+  <text x="34" y="23" font-family="Bricolage Grotesque, Inter, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" letter-spacing="-0.8" fill="#0d211b">pluck</text>
+</svg>

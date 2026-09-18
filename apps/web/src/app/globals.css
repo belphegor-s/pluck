@@ -71,6 +71,8 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+    /* Clear the sticky header when jumping to an anchor. */
+    scroll-padding-top: 5.5rem;
   }
 
   body {

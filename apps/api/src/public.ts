@@ -45,6 +45,7 @@ export function publicRouter(s: Services) {
     Scalar({
       url: "/openapi.json",
       pageTitle: `${BRAND.name} API Reference`,
+      favicon: `${s.config.PUBLIC_WEB_URL}/icon.svg`,
       theme: "none",
       hideModels: false,
       defaultHttpClient: { targetKey: "js", clientKey: "fetch" },
