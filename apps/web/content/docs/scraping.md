@@ -51,7 +51,22 @@ Actions imply a browser render.
 
 `proxy` defaults to `auto`: go direct, and only if the site answers with a challenge or a 403/429 retry through a datacenter proxy and then a residential one. You pay for what was used, so most pages cost nothing extra. Force a route with `"proxy": "residential"` (+5 credits) or turn it off with `"none"`.
 
-Proxies are configured per instance. A self-hosted Pluck with no proxy URLs set simply always goes direct.
+### Your own proxies
+
+Add proxies under [Dashboard → Proxies](/dashboard/proxies) and every request on your account goes out through them — scrapes, crawls, monitors and browser renders alike. Paste the gateway URL your provider gave you:
+
+```
+http://user:pass@gateway.provider.io:7777
+socks5://user-country-{country}-session-{session}:pass@pool.example.net:1080
+```
+
+`{country}` and `{session}` are substituted per request, which is how most providers do geo-targeting and sticky sessions. `http`, `https` and `socks5` all work.
+
+A tier you have not configured falls back to ours, so adding one residential proxy keeps our datacenter pool for the cheaper hops. URLs are encrypted before storage and never shown again — only the gateway host stays visible — and a proxy that fails five checks in a row leaves the rotation until you re-enable it. **Test** on each row makes a real connection and reports the exit IP, which is the quickest way to find an expired password or an allowlist that is missing this server's address.
+
+Proxies on private or loopback addresses are refused: the server makes these connections on your behalf, so they would be a way into networks you should not reach.
+
+Self-hosting sets them for the whole instance instead, with `PROXY_DATACENTER_URLS` and `PROXY_RESIDENTIAL_URLS`. An instance with no proxy URLs and no account proxies simply always goes direct.
 
 ## Caching
 
