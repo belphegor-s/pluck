@@ -42,7 +42,7 @@ RUN pnpm turbo run build
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --filter @pluck/api deploy --prod --prefer-offline /out/api && \
     pnpm --filter @pluck/worker deploy --prod --prefer-offline /out/worker && \
-    pnpm --filter @pluck/mcp deploy --prod --prefer-offline /out/mcp
+    pnpm --filter @pluckai/mcp deploy --prod --prefer-offline /out/mcp
 
 # ----------------------------------------------------------------- api
 FROM node:${NODE_VERSION}-bookworm-slim AS api
