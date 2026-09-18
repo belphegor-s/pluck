@@ -14,3 +14,6 @@ next-env.d.ts
 
 # Planning notes, deliberately kept out of the repository
 ROADMAP.md
+
+# Generated npm bundle for @pluckai/mcp (built by scripts/bundle.mjs).
+apps/mcp/npm

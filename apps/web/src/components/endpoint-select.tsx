@@ -30,7 +30,7 @@ export function EndpointSelect({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(() => ids.indexOf(value));
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const listRef = useRef<HTMLUListElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const seek = useRef({ text: "", at: 0 });
   const listId = useId();
 
@@ -142,7 +142,7 @@ export function EndpointSelect({
       </button>
 
       {open && (
-        <ul
+        <div
           ref={listRef}
           id={listId}
           role="listbox"
@@ -154,41 +154,40 @@ export function EndpointSelect({
             const isSelected = id === value;
             const active = index === activeIndex;
             return (
-              <li key={id}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  data-active={active}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={() => commit(index)}
-                  className={`flex w-full items-start gap-2.5 px-2.5 py-2 text-left transition-colors ${
-                    active ? "bg-[var(--accent-wash)]" : ""
-                  }`}
+              <button
+                key={id}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                data-active={active}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => commit(index)}
+                className={`flex w-full items-start gap-2.5 px-2.5 py-2 text-left transition-colors ${
+                  active ? "bg-[var(--accent-wash)]" : ""
+                }`}
+              >
+                <span
+                  className={`mono mt-0.5 w-12 shrink-0 text-xs font-medium ${methodColor(endpoint.method)}`}
                 >
-                  <span
-                    className={`mono mt-0.5 w-12 shrink-0 text-xs font-medium ${methodColor(endpoint.method)}`}
-                  >
-                    {endpoint.method.toUpperCase()}
+                  {endpoint.method.toUpperCase()}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="mono block truncate text-sm text-[var(--ink)]">
+                    {endpoint.path}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="mono block truncate text-sm text-[var(--ink)]">
-                      {endpoint.path}
-                    </span>
-                    <span className="block truncate text-xs text-[var(--ink-faint)]">
-                      {endpoint.description}
-                    </span>
+                  <span className="block truncate text-xs text-[var(--ink-faint)]">
+                    {endpoint.description}
                   </span>
-                  {/* Only the headline price: the full cost breakdown runs to a
+                </span>
+                {/* Only the headline price: the full cost breakdown runs to a
                       paragraph and belongs under the closed control. */}
-                  <span className="mono mt-0.5 shrink-0 text-xs text-[var(--ink-faint)]">
-                    {endpoint.cost.split(/[.,]/)[0]}
-                  </span>
-                </button>
-              </li>
+                <span className="mono mt-0.5 shrink-0 text-xs text-[var(--ink-faint)]">
+                  {endpoint.cost.split(/[.,]/)[0]}
+                </span>
+              </button>
             );
           })}
-        </ul>
+        </div>
       )}
     </div>
   );

@@ -28,8 +28,6 @@ const BASE = env.COOLIFY_API_URL.replace(/\/$/, "");
 const SERVER_UUID = env.COOLIFY_SERVER_UUID ?? "eo4ww8c8w0cgs000sos8g4ow";
 const ERRORS_URL = env.ERRORS_URL ?? "https://pluck-errors.procd.cc";
 const STATUS_URL = env.STATUS_URL ?? "https://pluck-status.procd.cc";
-const ERRORS_HOST = new URL(ERRORS_URL).host;
-const STATUS_HOST = new URL(STATUS_URL).host;
 
 const headers = {
   authorization: `Bearer ${env.COOLIFY_API_TOKEN}`,

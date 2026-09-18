@@ -7,36 +7,43 @@ type Provider = (typeof PROVIDERS)[number];
 
 /** Small, recognisable marks. Brand glyphs, drawn rather than fetched. */
 function ProviderIcon({ provider }: { provider: Provider }) {
-  const common = { width: 16, height: 16, viewBox: "0 0 24 24", "aria-hidden": true } as const;
+  const common = { width: 16, height: 16, viewBox: "0 0 24 24" } as const;
   switch (provider) {
     case "openai":
       return (
-        <svg {...common} fill="currentColor">
+        <svg {...common} aria-hidden="true" fill="currentColor">
           <path d="M21.6 10a5.4 5.4 0 0 0-.5-4.5 5.5 5.5 0 0 0-5.9-2.6A5.4 5.4 0 0 0 11.1 1a5.5 5.5 0 0 0-5.2 3.8A5.4 5.4 0 0 0 2.3 7.4a5.5 5.5 0 0 0 .7 6.4 5.4 5.4 0 0 0 .5 4.5 5.5 5.5 0 0 0 5.9 2.6A5.4 5.4 0 0 0 12.9 23a5.5 5.5 0 0 0 5.2-3.8 5.4 5.4 0 0 0 3.6-2.6 5.5 5.5 0 0 0-.7-6.4Zm-8.7 11.6a4 4 0 0 1-2.6-.9l.1-.1 4.4-2.5c.2-.1.4-.4.4-.7v-6.2l1.8 1.1v5.1a4.1 4.1 0 0 1-4.1 4.2ZM4.6 17a4 4 0 0 1-.5-2.7l.1.1 4.4 2.5c.2.1.5.1.7 0l5.4-3.1v2.1l-4.5 2.6a4.1 4.1 0 0 1-5.6-1.5Zm-1.1-9.3a4 4 0 0 1 2.2-1.8v5.2c0 .3.1.5.4.7l5.4 3.1-1.8 1-4.5-2.6a4.1 4.1 0 0 1-1.7-5.6Zm15.3 3.6-5.4-3.2 1.8-1 4.5 2.6a4.1 4.1 0 0 1-.6 7.4v-5.2c0-.3-.1-.5-.3-.6Zm1.8-2.7-.1-.1-4.4-2.6a.7.7 0 0 0-.7 0L10 9v-2.1l4.5-2.6a4.1 4.1 0 0 1 6.1 4.3ZM9 13.1l-1.8-1V6.9c0-2.3 1.8-4.1 4.1-4.1a4 4 0 0 1 2.6.9l-.1.1-4.4 2.5c-.2.1-.4.4-.4.7Zm1-2.1L12.4 9.6l2.4 1.4v2.8l-2.4 1.4L10 13.8Z" />
         </svg>
       );
     case "anthropic":
       return (
-        <svg {...common} fill="currentColor">
+        <svg {...common} aria-hidden="true" fill="currentColor">
           <path d="M14.6 3h-3L17 21h3.5L14.6 3ZM6.9 3 1 21h3.6l1.2-3.7h6L13 21h3.6L10.7 3H6.9Zm-.2 11.2 2-6.2 2 6.2h-4Z" />
         </svg>
       );
     case "google":
       return (
-        <svg {...common} fill="currentColor">
+        <svg {...common} aria-hidden="true" fill="currentColor">
           <path d="M12 2c.6 4.6 5.4 9.4 10 10-4.6.6-9.4 5.4-10 10-.6-4.6-5.4-9.4-10-10C6.6 11.4 11.4 6.6 12 2Z" />
         </svg>
       );
     case "groq":
       return (
-        <svg {...common} fill="none" stroke="currentColor" strokeWidth="2">
+        <svg {...common} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="8" />
           <path d="M12 8v8M8 12h8" strokeLinecap="round" />
         </svg>
       );
     case "openrouter":
       return (
-        <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <svg
+          {...common}
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        >
           <path d="M3 8h4l5 8h4" />
           <path d="M3 16h4l5-8h4" />
           <path d="m18 5 3 3-3 3M18 13l3 3-3 3" />
@@ -44,7 +51,14 @@ function ProviderIcon({ provider }: { provider: Provider }) {
       );
     default:
       return (
-        <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <svg
+          {...common}
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        >
           <rect x="3" y="4" width="18" height="16" rx="2" />
           <path d="m8 10 2 2-2 2M13 14h3" />
         </svg>
@@ -70,7 +84,7 @@ export function ProviderSelect({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(() => PROVIDERS.indexOf(value));
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const listRef = useRef<HTMLUListElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const seek = useRef({ text: "", at: 0 });
   const listId = useId();
 
@@ -181,7 +195,7 @@ export function ProviderSelect({
       </button>
 
       {open && (
-        <ul
+        <div
           ref={listRef}
           id={listId}
           role="listbox"
@@ -192,52 +206,51 @@ export function ProviderSelect({
             const selected = provider === value;
             const active = index === activeIndex;
             return (
-              <li key={provider}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  data-active={active}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={() => commit(index)}
-                  className={`flex w-full items-start gap-2.5 px-2.5 py-2 text-left text-sm transition-colors ${
-                    active ? "bg-[var(--accent-wash)] text-[var(--ink)]" : "text-[var(--ink-soft)]"
-                  }`}
+              <button
+                key={provider}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                data-active={active}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => commit(index)}
+                className={`flex w-full items-start gap-2.5 px-2.5 py-2 text-left text-sm transition-colors ${
+                  active ? "bg-[var(--accent-wash)] text-[var(--ink)]" : "text-[var(--ink-soft)]"
+                }`}
+              >
+                <span
+                  className={`mt-0.5 ${selected ? "text-[var(--accent)]" : "text-[var(--ink-faint)]"}`}
                 >
-                  <span
-                    className={`mt-0.5 ${selected ? "text-[var(--accent)]" : "text-[var(--ink-faint)]"}`}
+                  <ProviderIcon provider={provider} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[var(--ink)]">
+                    {PROVIDER_LABELS[provider]}
+                  </span>
+                  <span className="mono block truncate text-xs text-[var(--ink-faint)]">
+                    {DEFAULT_MODELS[provider] ?? "your own endpoint"}
+                  </span>
+                </span>
+                {selected && (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mt-0.5 shrink-0 text-[var(--accent)]"
                   >
-                    <ProviderIcon provider={provider} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[var(--ink)]">
-                      {PROVIDER_LABELS[provider]}
-                    </span>
-                    <span className="mono block truncate text-xs text-[var(--ink-faint)]">
-                      {DEFAULT_MODELS[provider] ?? "your own endpoint"}
-                    </span>
-                  </span>
-                  {selected && (
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mt-0.5 shrink-0 text-[var(--accent)]"
-                    >
-                      <path d="m5 13 4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-              </li>
+                    <path d="m5 13 4 4L19 7" />
+                  </svg>
+                )}
+              </button>
             );
           })}
-        </ul>
+        </div>
       )}
     </div>
   );
