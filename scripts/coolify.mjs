@@ -341,13 +341,38 @@ async function pushEnv(apps, dbs) {
   }
 }
 
+/**
+ * Deploys are serialised: two image builds at once starved a 4-core host badly
+ * enough to take every site on it offline. Each build waits for the previous
+ * one to leave the queue before the next is asked for.
+ */
 async function deploy(apps, only = []) {
   const targets = only.length ? APPS.filter((a) => only.includes(a.key)) : APPS;
-  for (const spec of targets) {
+  for (const [index, spec] of targets.entries()) {
+    if (index > 0) await waitForIdleBuilds();
     const res = await api(`/deploy?uuid=${apps[spec.key].uuid}&force=false`, { method: "POST" });
     const id = res.deployments?.[0]?.deployment_uuid ?? res.message ?? "queued";
     console.log(`deploying ${spec.name}: ${id}`);
   }
+}
+
+async function waitForIdleBuilds(timeoutMs = 25 * 60_000) {
+  const names = new Set(APPS.map((a) => a.name));
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 15_000));
+    let active;
+    try {
+      active = await api("/deployments");
+    } catch {
+      // The API itself goes unresponsive when the host is loaded: keep waiting.
+      continue;
+    }
+    const mine = (Array.isArray(active) ? active : []).filter((d) => names.has(d.application_name));
+    if (mine.length === 0) return;
+    process.stdout.write(`  waiting for ${mine.map((d) => d.application_name).join(", ")}\r`);
+  }
+  console.log("\n  build queue still busy; continuing anyway");
 }
 
 async function status() {
