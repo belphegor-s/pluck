@@ -49,7 +49,13 @@ export function publicRouter(s: Services) {
       theme: "none",
       hideModels: false,
       defaultHttpClient: { targetKey: "js", clientKey: "fetch" },
-      customCss: `:root{--scalar-font:"Geist",system-ui,sans-serif;--scalar-font-code:"Geist Mono",ui-monospace,monospace}.light-mode{--scalar-color-accent:#e5480d;--scalar-background-1:#faf9f6}.dark-mode{--scalar-color-accent:#ff6a2c;--scalar-background-1:#0c0c0b}`,
+      // Matches the site palette, and hides the renderer's own branding.
+      customCss: [
+        `:root{--scalar-font:"IBM Plex Sans",system-ui,sans-serif;--scalar-font-code:"IBM Plex Mono",ui-monospace,monospace}`,
+        `.light-mode{--scalar-color-accent:#b7185c;--scalar-background-1:#eaeee9;--scalar-background-2:#f4f6f2}`,
+        `.dark-mode{--scalar-color-accent:#ff5c95;--scalar-background-1:#0a1210;--scalar-background-2:#101a17}`,
+        `a[href*="scalar.com"],.scalar-footer,.scalar-powered-by,[class*="powered-by"],[class*="poweredBy"]{display:none!important}`,
+      ].join(""),
     }),
   );
 

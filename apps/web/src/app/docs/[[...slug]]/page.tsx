@@ -70,17 +70,6 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
             API reference
           </Link>
         </p>
-        <p className="mt-1 text-xs text-[var(--ink-faint)]">
-          Rendered with{" "}
-          <a
-            href="https://scalar.com"
-            target="_blank"
-            rel="noreferrer"
-            className="underline underline-offset-2"
-          >
-            Scalar
-          </a>
-        </p>
       </nav>
 
       <article>
