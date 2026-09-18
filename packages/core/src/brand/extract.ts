@@ -284,7 +284,7 @@ export function fontsFromCss(css: string, limit = 6): string[] {
 }
 
 const GENERIC_FONT =
-  /^(inherit|initial|unset|revert|var\(|-apple-system|blinkmacsystemfont|system-ui|ui-\w+|sans-serif|serif|monospace|cursive|fantasy|arial|helvetica|segoe ui|roboto|times|courier|georgia|verdana|tahoma|emoji|icons?)$/i;
+  /^(inherit|initial|unset|revert|var\(.*|-apple-system|blinkmacsystemfont|system-ui|ui-[\w-]+|sans-serif|serif|monospace|cursive|fantasy|arial|helvetica|segoe ui|roboto|times(\s+new\s+roman)?|courier(\s+new)?|georgia|verdana|tahoma|emoji|icons?)$/i;
 
 export function normaliseHex(input: string | null | undefined): string | null {
   if (!input) return null;
