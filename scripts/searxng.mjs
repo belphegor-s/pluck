@@ -114,6 +114,9 @@ if (!service) {
       environment_uuid: environment.uuid,
       server_uuid: SERVER_UUID,
       docker_compose_raw: Buffer.from(compose).toString("base64"),
+      // Services get their own Docker network by default, which leaves them
+      // unreachable from the API and worker containers.
+      connect_to_docker_network: true,
       instant_deploy: true,
     }),
   });
@@ -121,7 +124,10 @@ if (!service) {
 } else {
   await api(`/services/${service.uuid}`, {
     method: "PATCH",
-    body: JSON.stringify({ docker_compose_raw: Buffer.from(compose).toString("base64") }),
+    body: JSON.stringify({
+      docker_compose_raw: Buffer.from(compose).toString("base64"),
+      connect_to_docker_network: true,
+    }),
   });
   await api(`/services/${service.uuid}/restart`, { method: "POST" });
   console.log(`updated service ${NAME} (${service.uuid})`);
