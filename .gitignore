@@ -11,3 +11,6 @@ coverage
 .DS_Store
 next-env.d.ts
 *.tsbuildinfo
+
+# Planning notes, deliberately kept out of the repository
+ROADMAP.md
