@@ -44,7 +44,9 @@ const flag = (name) => {
 
 const target = flag("env") ?? env.POLAR_SERVER ?? "sandbox";
 const sandbox = target !== "production";
-const token = sandbox ? env.POLAR_ACCESS_TOKEN : (env.POLAR_ACCESS_TOKEN_PROD ?? env.POLAR_ACCESS_TOKEN);
+const token = sandbox
+  ? env.POLAR_ACCESS_TOKEN
+  : (env.POLAR_ACCESS_TOKEN_PROD ?? env.POLAR_ACCESS_TOKEN);
 const api = sandbox ? "https://sandbox-api.polar.sh" : "https://api.polar.sh";
 
 if (!token) {
@@ -159,7 +161,8 @@ async function webhooks() {
     return;
   }
   const list = await call(`/webhooks/endpoints?organization_id=${org.id}&limit=50`);
-  for (const w of list.items ?? []) console.log(`  ${w.url}  ${(w.events ?? []).join(",")}  ${w.id}`);
+  for (const w of list.items ?? [])
+    console.log(`  ${w.url}  ${(w.events ?? []).join(",")}  ${w.id}`);
   if (!list.items?.length) console.log("  (none)");
 }
 
