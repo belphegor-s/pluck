@@ -61,19 +61,25 @@ const compose = `services:
     environment:
       - SEARXNG_SECRET=${secret}
       - SEARXNG_BASE_URL=http://searxng:8080/
+      - SEARXNG_LIMITER=false
+      - SEARXNG_PUBLIC_INSTANCE=false
+      # Our own file, so the image's entrypoint cannot regenerate over it.
+      - SEARXNG_SETTINGS_PATH=/etc/searxng/pluck.yml
     entrypoint:
       - /bin/sh
       - '-c'
       - |
         mkdir -p /etc/searxng
-        cat > /etc/searxng/settings.yml <<'YAML'
+        cat > /etc/searxng/pluck.yml <<'YAML'
         use_default_settings: true
         general:
           instance_name: "Pluck Search"
         server:
           secret_key: "${secret}"
           limiter: false
+          public_instance: false
           image_proxy: false
+          method: "GET"
         search:
           safe_search: 1
           formats:

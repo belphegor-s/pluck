@@ -249,16 +249,27 @@ export class FallbackSearch implements SearchProvider {
     // Bounded overall: a caller waiting on search would rather have a clear
     // failure than a request that hangs long enough for a proxy to cut it.
     const deadline = Date.now() + 45_000;
-    let last: unknown;
+    const attempts: { provider: string; error: string }[] = [];
     for (const p of this.providers) {
-      if (Date.now() > deadline) break;
+      if (Date.now() > deadline) {
+        attempts.push({ provider: p.name, error: "skipped: search deadline reached" });
+        break;
+      }
       try {
         return await p.search(req);
       } catch (err) {
-        last = err;
+        attempts.push({
+          provider: p.name,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
-    throw last ?? new PluckError("target_blocked", "Search timed out across every provider.");
+    // Report every provider, so a misconfigured backend is obvious.
+    throw new PluckError(
+      "target_blocked",
+      `No search provider returned results (${attempts.map((a) => a.provider).join(", ")}). Set BRAVE_API_KEY, SERPER_API_KEY or SEARXNG_URL for reliable search.`,
+      { attempts },
+    );
   }
 }
 

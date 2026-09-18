@@ -35,11 +35,13 @@ if (!BASE || !env.COOLIFY_API_TOKEN) {
   process.exit(1);
 }
 
+// `memory` caps each container so a runaway browser or build cannot take the
+// whole host down; the numbers assume a small shared server.
 const APPS = [
-  { key: "api", name: "pluck-api", target: "api", port: "8080", domain: DOMAINS.api },
-  { key: "worker", name: "pluck-worker", target: "worker", port: "8080", domain: null },
-  { key: "mcp", name: "pluck-mcp", target: "mcp", port: "8081", domain: DOMAINS.mcp },
-  { key: "web", name: "pluck-web", target: "web", port: "3000", domain: DOMAINS.web },
+  { key: "api", name: "pluck-api", target: "api", port: "8080", domain: DOMAINS.api, memory: "1g" },
+  { key: "worker", name: "pluck-worker", target: "worker", port: "8080", domain: null, memory: "2g" },
+  { key: "mcp", name: "pluck-mcp", target: "mcp", port: "8081", domain: DOMAINS.mcp, memory: "512m" },
+  { key: "web", name: "pluck-web", target: "web", port: "3000", domain: DOMAINS.web, memory: "1g" },
 ];
 
 const DATABASES = [
@@ -211,6 +213,8 @@ async function ensureApps(ctx) {
         ports_exposes: spec.port,
         ...(spec.domain ? { domains: spec.domain } : {}),
         health_check_enabled: false,
+        limits_memory: spec.memory,
+        limits_memory_swap: spec.memory,
       },
     });
     result[spec.key] = app;
@@ -277,8 +281,9 @@ function buildEnv(dbs) {
     },
     worker: {
       ...shared,
-      BROWSER_CONCURRENCY: env.BROWSER_CONCURRENCY || "4",
-      CRAWL_CONCURRENCY: env.CRAWL_CONCURRENCY || "2",
+      // Each Chromium costs 300-500 MB. Raise only with headroom to spare.
+      BROWSER_CONCURRENCY: env.BROWSER_CONCURRENCY || "2",
+      CRAWL_CONCURRENCY: env.CRAWL_CONCURRENCY || "1",
       WORKER_ROLES: env.WORKER_ROLES || "render,crawl,monitor,webhook,maintenance",
     },
     mcp: { PORT: "8081", PLUCK_API_INTERNAL_URL: DOMAINS.api, PUBLIC_API_URL: DOMAINS.api },
