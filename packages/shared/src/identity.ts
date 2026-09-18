@@ -24,7 +24,9 @@ const config = {
   contactEmail: "hello@pluck.procd.cc",
   /** API keys read `<prefix>_live_…`. Changing it invalidates existing keys. */
   apiKeyPrefix: "pk",
-  npmPackage: "@pluck/sdk",
+  /** Published names. The workspace uses `@pluck/*` internally. */
+  npmPackage: "@pluckai/sdk",
+  npmMcpPackage: "@pluckai/mcp",
 } as const;
 
 const env = (key: string): string | undefined => {

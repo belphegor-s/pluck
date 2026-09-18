@@ -28,7 +28,7 @@ The first check records a baseline and reports nothing. After that, every change
 Deliveries are signed. Verify before trusting:
 
 ```ts
-import { verifyWebhook } from "@pluck/sdk";
+import { verifyWebhook } from "@pluckai/sdk";
 
 const raw = await request.text();
 const ok = await verifyWebhook(raw, request.headers.get("pluck-signature"), process.env.PLUCK_WEBHOOK_SECRET!);

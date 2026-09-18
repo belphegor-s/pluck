@@ -21,7 +21,7 @@ const samples = [
   {
     label: "TypeScript",
     language: "ts",
-    code: `import { Pluck } from "@pluck/sdk";
+    code: `import { Pluck } from "@pluckai/sdk";
 
 const pluck = new Pluck({ apiKey: process.env.PLUCK_API_KEY });
 

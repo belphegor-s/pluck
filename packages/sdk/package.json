@@ -1,7 +1,7 @@
 {
-  "name": "@pluck/sdk",
-  "version": "0.1.0",
-  "description": "TypeScript client for the Pluck web context API",
+  "name": "@pluckai/sdk",
+  "version": "0.1.1",
+  "description": "TypeScript client for the Pluck web context API: scrape, crawl, search, extract and monitor the web as LLM-ready data.",
   "type": "module",
   "license": "MIT",
   "exports": {
@@ -20,5 +20,24 @@
   },
   "devDependencies": {
     "@pluck/shared": "workspace:*"
+  },
+  "homepage": "https://pluck.procd.cc/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/belphegor-s/pluck.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": "https://github.com/belphegor-s/pluck/issues",
+  "keywords": [
+    "web-scraping",
+    "crawler",
+    "markdown",
+    "llm",
+    "scraper-api",
+    "content-extraction",
+    "ai"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

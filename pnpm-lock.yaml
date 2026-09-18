@@ -306,15 +306,19 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.30.0(zod@4.6.5)
-      '@pluck/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       hono:
         specifier: 'catalog:'
         version: 4.13.7
       zod:
         specifier: 'catalog:'
         version: 4.6.5
+    devDependencies:
+      '@pluck/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      esbuild:
+        specifier: ^0.25.12
+        version: 0.25.12
 
   apps/web:
     dependencies:

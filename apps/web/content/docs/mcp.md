@@ -24,7 +24,7 @@ In Claude Code: `claude mcp add --transport http pluck https://pluck-mcp.procd.c
   "mcpServers": {
     "pluck": {
       "command": "npx",
-      "args": ["-y", "@pluck/mcp"],
+      "args": ["-y", "@pluckai/mcp"],
       "env": { "PLUCK_API_KEY": "pk_live_…" }
     }
   }

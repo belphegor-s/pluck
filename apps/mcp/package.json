@@ -1,22 +1,50 @@
 {
-  "name": "@pluck/mcp",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@pluckai/mcp",
+  "version": "0.1.1",
+  "description": "Model Context Protocol server for the Pluck web context API: scrape, crawl, search, extract and monitor the web from any MCP client.",
   "type": "module",
   "license": "AGPL-3.0-only",
+  "homepage": "https://pluck.procd.cc/docs/mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/belphegor-s/pluck.git",
+    "directory": "apps/mcp"
+  },
+  "bugs": "https://github.com/belphegor-s/pluck/issues",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "web-scraping",
+    "crawler",
+    "llm",
+    "markdown",
+    "claude",
+    "ai-agents"
+  ],
   "bin": {
-    "pluck-mcp": "dist/stdio.js"
+    "pluck-mcp": "npm/stdio.js"
+  },
+  "files": [
+    "npm",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/http.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:npm": "node scripts/bundle.mjs"
   },
   "dependencies": {
     "@hono/node-server": "catalog:",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@pluck/shared": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@pluck/shared": "workspace:*",
+    "esbuild": "^0.25.12"
   }
 }

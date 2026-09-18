@@ -37,7 +37,7 @@ Every response has the same shape: `data` for the result, `meta` for what it cos
 ## 3. Use it from your language
 
 ```ts
-import { Pluck } from "@pluck/sdk";
+import { Pluck } from "@pluckai/sdk";
 
 const pluck = new Pluck();                       // reads PLUCK_API_KEY
 const page = await pluck.scrape({ url: "https://example.com" });
