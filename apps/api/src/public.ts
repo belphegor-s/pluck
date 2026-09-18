@@ -110,14 +110,22 @@ export function publicRouter(s: Services) {
         s.config.POLAR_WEBHOOK_SECRET,
       );
     } catch (err) {
-      if (err instanceof WebhookVerificationError)
+      if (err instanceof WebhookVerificationError) {
+        // Silent 403s are undebuggable: Polar retries and the cause never surfaces.
+        s.log.warn(
+          { id: c.req.header("webhook-id"), server: s.config.POLAR_SERVER },
+          "polar webhook signature rejected; POLAR_WEBHOOK_SECRET likely does not match the endpoint",
+        );
         return c.json({ error: "invalid signature" }, 403);
+      }
       throw err;
     }
 
     if (event.type === "order.paid") {
       const order = event.data;
-      const userId = order.customer.externalId ?? (order.metadata?.userId as string | undefined);
+      // Checkout metadata wins: a Polar organization can already hold customers
+      // whose `externalId` belongs to a different product of the same seller.
+      const userId = (order.metadata?.userId as string | undefined) ?? order.customer.externalId;
       const packId =
         (order.product?.metadata?.pack as string | undefined) ??
         (order.metadata?.pack as string | undefined);
