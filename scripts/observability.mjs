@@ -28,6 +28,8 @@ const BASE = env.COOLIFY_API_URL.replace(/\/$/, "");
 const SERVER_UUID = env.COOLIFY_SERVER_UUID ?? "eo4ww8c8w0cgs000sos8g4ow";
 const ERRORS_URL = env.ERRORS_URL ?? "https://pluck-errors.procd.cc";
 const STATUS_URL = env.STATUS_URL ?? "https://pluck-status.procd.cc";
+const ERRORS_HOST = new URL(ERRORS_URL).host;
+const STATUS_HOST = new URL(STATUS_URL).host;
 
 const headers = {
   authorization: `Bearer ${env.COOLIFY_API_TOKEN}`,
@@ -76,8 +78,9 @@ const bugsinkDbPassword = env.BUGSINK_DB_PASSWORD || randomBytes(18).toString("b
 const bugsinkAdminPassword = env.BUGSINK_ADMIN_PASSWORD || randomBytes(12).toString("base64url");
 const bugsinkAdminEmail = env.BUGSINK_ADMIN_EMAIL || "hello@ayushsharma.me";
 
-// `SERVICE_FQDN_<service>_<port>` is Coolify's hook for routing; the value is
-// set as a service env var below so the hostname is ours rather than generated.
+// `SERVICE_FQDN_<service>_<port>` is Coolify.s hook for routing. The hostname
+// has to be written into the compose file itself: Coolify regenerates the
+// matching env var from compose on every deploy, so editing it has no effect.
 const bugsinkCompose = `services:
   web:
     image: 'bugsink/bugsink:2'
@@ -86,7 +89,7 @@ const bugsinkCompose = `services:
       db:
         condition: service_healthy
     environment:
-      - SERVICE_FQDN_WEB_8000
+      - SERVICE_FQDN_WEB_8000=${ERRORS_URL}
       - SECRET_KEY=${bugsinkSecret}
       - CREATE_SUPERUSER=${bugsinkAdminEmail}:${bugsinkAdminPassword}
       - PORT=8000
@@ -127,7 +130,7 @@ const kumaCompose = `services:
     image: 'louislam/uptime-kuma:1'
     restart: unless-stopped
     environment:
-      - SERVICE_FQDN_KUMA_3001
+      - SERVICE_FQDN_KUMA_3001=${STATUS_URL}
       - UPTIME_KUMA_DISABLE_FRAME_SAMEORIGIN=false
     volumes:
       - 'kuma-data:/app/data'
@@ -158,7 +161,7 @@ updateEnvFile({
   STATUS_URL,
 });
 
-async function ensureService(name, description, compose, envs) {
+async function ensureService(name, description, compose) {
   let service = services.find((s) => s.name === name);
   const body = { docker_compose_raw: Buffer.from(compose).toString("base64") };
   if (!service) {
@@ -186,18 +189,6 @@ async function ensureService(name, description, compose, envs) {
     body: JSON.stringify({ ...body, connect_to_docker_network: true }),
   });
 
-  for (const [key, value] of Object.entries(envs)) {
-    await api(`/services/${service.uuid}/envs`, {
-      method: "POST",
-      body: JSON.stringify({ key, value, is_preview: false }),
-    }).catch(() =>
-      api(`/services/${service.uuid}/envs`, {
-        method: "PATCH",
-        body: JSON.stringify({ key, value, is_preview: false }),
-      }),
-    );
-  }
-
   // `start` deploys a new service; a running one has to be restarted instead to
   // pick up a changed compose file.
   await api(`/services/${service.uuid}/start`, { method: "POST" }).catch(() =>
@@ -206,12 +197,8 @@ async function ensureService(name, description, compose, envs) {
   return service;
 }
 
-await ensureService("pluck-bugsink", "Error tracking (Sentry protocol)", bugsinkCompose, {
-  SERVICE_FQDN_WEB_8000: ERRORS_URL,
-});
-await ensureService("pluck-uptime", "Uptime checks and public status page", kumaCompose, {
-  SERVICE_FQDN_KUMA_3001: STATUS_URL,
-});
+await ensureService("pluck-bugsink", "Error tracking (Sentry protocol)", bugsinkCompose);
+await ensureService("pluck-uptime", "Uptime checks and public status page", kumaCompose);
 
 console.log(`
 Bugsink  ${ERRORS_URL}   sign in as ${bugsinkAdminEmail} / ${bugsinkAdminPassword}
