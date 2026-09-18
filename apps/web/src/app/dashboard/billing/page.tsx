@@ -78,12 +78,12 @@ export default async function BillingPage({
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="text-lg">History</h2>
           {purchases.length > 0 && (
-            <a
-              href="/api/portal"
+            <Link
+              href="/dashboard/invoices"
               className="text-sm text-[var(--accent)] underline underline-offset-4"
             >
-              Payment methods and receipts
-            </a>
+              Invoices and payment methods
+            </Link>
           )}
         </div>
         {ledger.length === 0 ? (

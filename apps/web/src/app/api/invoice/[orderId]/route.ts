@@ -4,13 +4,13 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { customerPortalUrl, invoiceUrl } from "@/lib/polar";
+import { invoiceUrl } from "@/lib/polar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Redirects to the invoice for one order, after checking the caller owns it. */
-export async function GET(_request: Request, { params }: { params: Promise<{ orderId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
 
@@ -28,8 +28,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ord
   const url = await invoiceUrl(orderId);
   if (url) return NextResponse.redirect(url);
 
-  // Polar issues an invoice only once it has billing details for the customer.
-  const portal = await customerPortalUrl(session.user.id);
-  if (portal) return NextResponse.redirect(portal);
-  return NextResponse.json({ error: "Invoice is not available yet." }, { status: 503 });
+  // Polar issues an invoice only once it holds a billing name and address, and
+  // the portal is where those are entered — so say that rather than 503.
+  const back = new URL("/dashboard/invoices", request.url);
+  back.searchParams.set(
+    "error",
+    "That invoice needs your billing name and address first — add them under payment methods, then download again.",
+  );
+  return NextResponse.redirect(back);
 }

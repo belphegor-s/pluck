@@ -11,6 +11,7 @@ const tabs = [
   { href: "/dashboard/monitors", label: "Monitors" },
   { href: "/dashboard/proxies", label: "Proxies" },
   { href: "/dashboard/billing", label: "Credits" },
+  { href: "/dashboard/invoices", label: "Invoices" },
 ];
 
 export function DashboardNav() {
