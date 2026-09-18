@@ -1,5 +1,6 @@
 export { type Config, loadConfig } from "./config.js";
 export { Credits, type UsageRecord, UsageRecorder } from "./credits.js";
+export { createMailer, type Mailer, type Message } from "./email.js";
 export { createLogger, createRedis, JsonCache, type Logger, rateLimit, S3Store } from "./infra.js";
 export { generateApiKey, hashApiKey } from "./keys.js";
 export { type LlmHeaders, LlmResolver } from "./llm.js";

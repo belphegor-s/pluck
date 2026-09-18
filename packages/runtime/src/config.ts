@@ -65,9 +65,8 @@ const schema = z.object({
   POLAR_WEBHOOK_SECRET: optional,
   POLAR_SERVER: z.enum(["production", "sandbox"]).default("production"),
 
-  SES_REGION: optional,
-  SES_ACCESS_KEY_ID: optional,
-  SES_SECRET_ACCESS_KEY: optional,
+  /** Transactional email. Without it the contact form only stores the request. */
+  RESEND_API_KEY: optional,
   EMAIL_FROM: optional,
   CONTACT_EMAIL: optional,
 

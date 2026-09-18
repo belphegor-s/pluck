@@ -3,7 +3,7 @@
 import { isProviderId, keyHint, SecretBox } from "@pluck/ai";
 import { assertPublicUrl } from "@pluck/core";
 import { apiKeys, contactRequests, llmCredentials, newId, userProxies } from "@pluck/db";
-import { checkProxyUrl, generateApiKey } from "@pluck/runtime";
+import { checkProxyUrl, createMailer, generateApiKey } from "@pluck/runtime";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -150,7 +150,34 @@ export async function submitContact(_prev: ActionState, formData: FormData): Pro
     if (!parsed.success)
       return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
     const session = await auth.api.getSession({ headers: await headers() });
+    const { name, email, company, volume, message } = parsed.data;
     await db.insert(contactRequests).values({ ...parsed.data, userId: session?.user.id ?? null });
+
+    // The row is the record; the email is what makes anyone read it. A failure
+    // to send must not lose the enquiry, so it is logged and swallowed.
+    const to = process.env.CONTACT_EMAIL;
+    if (to) {
+      const mailer = createMailer({
+        RESEND_API_KEY: process.env.RESEND_API_KEY,
+        EMAIL_FROM: process.env.EMAIL_FROM,
+      });
+      const result = await mailer.send({
+        to,
+        replyTo: email,
+        subject: `Pluck enquiry from ${name}${company ? ` (${company})` : ""}`,
+        text: [
+          `From: ${name} <${email}>`,
+          company && `Company: ${company}`,
+          volume && `Volume: ${volume}`,
+          session?.user.id && `Account: ${session.user.email}`,
+          "",
+          message,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      });
+      if (!result.ok) console.error("contact email failed:", result.error);
+    }
     return { ok: "Thanks — we read every message and usually reply within a day." };
   } catch (err) {
     return fail(err);
