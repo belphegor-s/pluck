@@ -77,6 +77,9 @@ const schema = z.object({
   SENTRY_ENVIRONMENT: optional,
   /** Optional. Operational alerts (Slack/Discord/any JSON endpoint). */
   ALERT_WEBHOOK_URL: optional,
+  /** Optional. Operational alerts to a Telegram chat or channel. */
+  TELEGRAM_BOT_TOKEN: optional,
+  TELEGRAM_CHAT_ID: optional,
 
   BROWSER_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(4),
   CRAWL_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(4),

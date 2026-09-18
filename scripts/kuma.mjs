@@ -122,6 +122,35 @@ if (!login?.ok) throw new Error(`login failed: ${login?.msg ?? "unknown reason"}
 console.log(`signed in as ${USERNAME}`);
 await settle(1_000);
 
+/*
+  Telegram first: a monitor created before the notification exists would not be
+  attached to it, and Kuma only applies "default" notifications at creation.
+*/
+let notificationId = null;
+if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
+  const list = socket.seen("notificationList") ?? [];
+  const found = list.find((n) => n.name === "Telegram");
+  notificationId = found?.id ?? null;
+  const saved = await socket
+    .emit(
+      "addNotification",
+      {
+        name: "Telegram",
+        type: "telegram",
+        isDefault: true,
+        applyExisting: true,
+        telegramBotToken: env.TELEGRAM_BOT_TOKEN,
+        telegramChatID: env.TELEGRAM_CHAT_ID,
+        telegramSendSilently: false,
+        telegramProtectContent: false,
+      },
+      notificationId,
+    )
+    .catch((err) => ({ ok: false, msg: err.message }));
+  notificationId = saved?.id ?? notificationId;
+  console.log(saved?.ok ? "telegram notification saved" : `telegram: ${saved?.msg}`);
+}
+
 const existing = Object.values(socket.seen("monitorList") ?? {});
 for (const monitor of MONITORS) {
   if (existing.some((m) => m.name === monitor.name)) {
@@ -143,6 +172,8 @@ for (const monitor of MONITORS) {
     upsideDown: false,
     maxredirects: 5,
     active: true,
+    // Kuma attaches notifications by id at creation time.
+    notificationIDList: notificationId ? { [notificationId]: true } : {},
   });
   console.log(added?.ok ? `+ ${monitor.name}` : `! ${monitor.name}: ${added?.msg}`);
 }

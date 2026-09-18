@@ -89,6 +89,7 @@ class Reporter implements ErrorReporter {
     private readonly log: Logger,
     private readonly dsn: Dsn | null,
     private readonly alertUrl: string | undefined,
+    private readonly telegram: { token: string; chatId: string } | null,
     private readonly environment: string,
     private readonly release: string | undefined,
   ) {}
@@ -163,9 +164,18 @@ class Reporter implements ErrorReporter {
 
   alert(title: string, detail: Record<string, unknown> = {}): void {
     this.log.warn(detail, title);
-    if (!this.alertUrl || !this.budget(`alert:${title}`)) return;
+    if ((!this.alertUrl && !this.telegram) || !this.budget(`alert:${title}`)) return;
     const lines = Object.entries(detail).map(([k, v]) => `${k}: ${String(v)}`);
     const text = [`[${this.service}] ${title}`, ...lines].join("\n");
+
+    if (this.telegram) {
+      this.send(
+        `https://api.telegram.org/bot${this.telegram.token}/sendMessage`,
+        JSON.stringify({ chat_id: this.telegram.chatId, text, disable_notification: false }),
+        "application/json",
+      );
+    }
+    if (!this.alertUrl) return;
     // `text` suits Slack, `content` suits Discord; the rest is for anything else.
     this.send(
       this.alertUrl,
@@ -187,7 +197,15 @@ class Reporter implements ErrorReporter {
 }
 
 export function createErrorReporter(
-  config: Pick<Config, "SENTRY_DSN" | "SENTRY_ENVIRONMENT" | "NODE_ENV" | "ALERT_WEBHOOK_URL">,
+  config: Pick<
+    Config,
+    | "SENTRY_DSN"
+    | "SENTRY_ENVIRONMENT"
+    | "NODE_ENV"
+    | "ALERT_WEBHOOK_URL"
+    | "TELEGRAM_BOT_TOKEN"
+    | "TELEGRAM_CHAT_ID"
+  >,
   service: string,
   log: Logger,
 ): ErrorReporter {
@@ -198,6 +216,9 @@ export function createErrorReporter(
     log,
     dsn,
     config.ALERT_WEBHOOK_URL,
+    config.TELEGRAM_BOT_TOKEN && config.TELEGRAM_CHAT_ID
+      ? { token: config.TELEGRAM_BOT_TOKEN, chatId: config.TELEGRAM_CHAT_ID }
+      : null,
     config.SENTRY_ENVIRONMENT ?? config.NODE_ENV,
     process.env.RELEASE_SHA?.slice(0, 12),
   );
