@@ -397,4 +397,9 @@
   textarea {
     min-height: 8rem;
   }
+
+  /* The track stays 3px; the taller box is hit area for a fingertip. */
+  input[type="range"] {
+    height: 2.25rem;
+  }
 }
