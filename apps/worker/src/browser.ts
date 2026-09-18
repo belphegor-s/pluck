@@ -27,6 +27,12 @@ export interface BrowserPoolOptions {
   allowPrivateNetwork: boolean;
   executablePath?: string;
   log: Logger;
+  /**
+   * Resolves the pool belonging to one account. A render job carries only a
+   * user id, so proxy credentials are read here rather than passed through the
+   * queue.
+   */
+  poolFor?: (userId: string) => Promise<ProxyPool>;
 }
 
 /**
@@ -117,8 +123,11 @@ export class BrowserPool implements Renderer {
     let context: BrowserContext | null = null;
     try {
       const browser = await this.launch();
-      const proxy =
-        req.proxy === "none" ? null : this.opts.proxies.pick(req.proxy, { country: req.country });
+      const pool =
+        req.userId && this.opts.poolFor
+          ? await this.opts.poolFor(req.userId).catch(() => this.opts.proxies)
+          : this.opts.proxies;
+      const proxy = req.proxy === "none" ? null : pool.pick(req.proxy, { country: req.country });
       const viewport =
         req.screenshot?.viewport ??
         (req.mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });

@@ -5,6 +5,11 @@ export interface RenderRequest {
   url: string;
   timeout: number;
   proxy: ProxyUsed;
+  /**
+   * Whose proxies to use. The renderer resolves the account's own pool itself
+   * rather than accepting a URL, so provider credentials never sit in a queue.
+   */
+  userId?: string;
   country?: string;
   mobile?: boolean;
   blockAds?: boolean;

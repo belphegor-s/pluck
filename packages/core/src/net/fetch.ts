@@ -31,6 +31,8 @@ export interface FetchOptions {
   timeout?: number;
   maxBytes?: number;
   proxy?: ProxyUsed;
+  /** Overrides the client's pool, e.g. with the caller's own proxies. */
+  pool?: ProxyPool;
   country?: string;
   mobile?: boolean;
   signal?: AbortSignal;
@@ -80,9 +82,9 @@ export class HttpClient {
     return this.opts.proxies;
   }
 
-  private dispatcher(proxy: ProxyUsed, country?: string): Dispatcher {
+  private dispatcher(proxy: ProxyUsed, country?: string, pool?: ProxyPool): Dispatcher {
     if (proxy === "none") return this.direct;
-    const picked = this.opts.proxies.pick(proxy, { country });
+    const picked = (pool ?? this.opts.proxies).pick(proxy, { country });
     if (!picked) return this.direct;
     let agent = this.proxyAgents.get(picked.url);
     if (!agent) {
@@ -104,7 +106,7 @@ export class HttpClient {
       ...browserHeaders(options.mobile ?? false),
       ...lowerKeys(options.headers ?? {}),
     };
-    const dispatcher = this.dispatcher(proxy, options.country);
+    const dispatcher = this.dispatcher(proxy, options.country, options.pool);
 
     let current = assertPublicUrl(rawUrl, this.opts.allowPrivateNetwork);
     try {

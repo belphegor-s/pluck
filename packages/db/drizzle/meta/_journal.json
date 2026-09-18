@@ -8,6 +8,13 @@
       "when": 1789665323845,
       "tag": "0000_thick_changeling",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789740867831,
+      "tag": "0001_curved_reavers",
+      "breakpoints": true
     }
   ]
 }

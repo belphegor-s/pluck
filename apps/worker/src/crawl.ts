@@ -9,7 +9,14 @@ import {
   sameSite,
 } from "@pluck/core";
 import { crawlPages, crawls, type Database, users } from "@pluck/db";
-import type { Credits, LlmResolver, Logger, Queues, UsageRecorder } from "@pluck/runtime";
+import type {
+  Credits,
+  LlmResolver,
+  Logger,
+  ProxyDirectory,
+  Queues,
+  UsageRecorder,
+} from "@pluck/runtime";
 import { type CrawlRequest, crawlRequest, isPluckError, scrapeCost } from "@pluck/shared";
 import { eq, sql } from "drizzle-orm";
 import type { BrowserPool } from "./browser.js";
@@ -23,6 +30,7 @@ export interface CrawlDeps {
   usage: UsageRecorder;
   llm: LlmResolver;
   queues: Queues;
+  proxies?: ProxyDirectory;
   log: Logger;
   allowPrivateNetwork: boolean;
   concurrency: number;
@@ -52,6 +60,8 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
     http: deps.http,
     robots: deps.robots,
     renderer: deps.browser,
+    userId: crawl.userId,
+    proxies: await deps.proxies?.forUser(crawl.userId),
     extractor: req.scrapeOptions.formats.includes("json") ? deps.llm.tasks(crawl.userId) : null,
     allowPrivateNetwork: deps.allowPrivateNetwork,
   });

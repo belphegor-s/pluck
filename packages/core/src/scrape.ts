@@ -11,7 +11,7 @@ import { isBlocked, needsJavaScript } from "./html/detect.js";
 import { parseDocument } from "./html/document.js";
 import { extractMetadata } from "./html/metadata.js";
 import { decodeBody, type HttpClient } from "./net/fetch.js";
-import type { ProxyUsed } from "./net/proxy.js";
+import type { ProxyPool, ProxyUsed } from "./net/proxy.js";
 import { assertPublicUrl } from "./net/ssrf.js";
 import { detectKind, parseDocumentBytes } from "./parse/index.js";
 import type { RobotsCache } from "./robots.js";
@@ -30,6 +30,10 @@ export interface ScraperDeps {
   store?: AssetStore | null;
   extractor?: StructuredExtractor | null;
   allowPrivateNetwork: boolean;
+  /** The caller's own proxies, when they have configured any. */
+  proxies?: ProxyPool | null;
+  /** Passed to the renderer so it can resolve the same pool for a browser. */
+  userId?: string;
 }
 
 export interface ScrapeOutcome {
@@ -87,7 +91,9 @@ export class Scraper {
   }
 
   private async load(url: string, req: ScrapeRequest, warnings: string[]): Promise<Page> {
-    const ladder = this.deps.http.proxies.ladder(req.proxy);
+    // The caller's own pool when they have one, the instance's otherwise.
+    const pool = this.deps.proxies ?? this.deps.http.proxies;
+    const ladder = pool.ladder(req.proxy);
     const wantsBrowser =
       req.render === "always" ||
       req.formats.includes("screenshot") ||
@@ -103,6 +109,7 @@ export class Scraper {
         try {
           const res = await this.deps.http.fetch(url, {
             proxy,
+            pool,
             timeout: req.timeout,
             headers: req.headers,
             country: req.country,
@@ -165,6 +172,7 @@ export class Scraper {
           url,
           timeout: req.timeout,
           proxy,
+          userId: this.deps.userId,
           country: req.country,
           mobile: req.mobile,
           blockAds: req.blockAds,

@@ -10,6 +10,12 @@ export {
   installProcessHandlers,
 } from "./observability.js";
 export {
+  checkProxyUrl,
+  ProxyDirectory,
+  parseProxyUrl,
+  type StoredProxy,
+} from "./proxies.js";
+export {
   type CrawlJobData,
   createQueues,
   encodeRenderError,

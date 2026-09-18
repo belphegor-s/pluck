@@ -140,6 +140,35 @@ export const llmCredentials = pgTable(
   (t) => [uniqueIndex("llm_credential_user_provider_uidx").on(t.userId, t.provider)],
 );
 
+export const proxyTierEnum = pgEnum("proxy_tier", ["datacenter", "residential"]);
+
+/**
+ * Egress proxies belonging to one account. Instance-wide proxies still come
+ * from the environment; these are tried first for their owner's requests, so
+ * bringing your own residential pool needs no redeploy.
+ */
+export const userProxies = pgTable(
+  "user_proxy",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    tier: proxyTierEnum("tier").notNull(),
+    /** AES-256-GCM ciphertext: the URL carries provider credentials. */
+    encryptedUrl: text("encrypted_url").notNull(),
+    /** `http://user:…@gw.provider.io:7777`, safe to show. */
+    urlHint: text("url_hint").notNull(),
+    active: boolean("active").notNull().default(true),
+    /** Consecutive failures; a proxy that keeps failing is skipped. */
+    failures: integer("failures").notNull().default(0),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("user_proxy_user_idx").on(t.userId, t.tier)],
+);
+
 /* -------------------------------------------------------------------- billing */
 
 export const ledgerReasonEnum = pgEnum("ledger_reason", [

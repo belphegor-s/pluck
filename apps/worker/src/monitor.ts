@@ -8,7 +8,14 @@ import {
   sha256,
 } from "@pluck/core";
 import { type Database, monitorChanges, monitors, newId, users } from "@pluck/db";
-import type { Credits, LlmResolver, Logger, Queues, UsageRecorder } from "@pluck/runtime";
+import type {
+  Credits,
+  LlmResolver,
+  Logger,
+  ProxyDirectory,
+  Queues,
+  UsageRecorder,
+} from "@pluck/runtime";
 import { credits as creditPrices, isPluckError, scrapeCost } from "@pluck/shared";
 import { eq, sql } from "drizzle-orm";
 import type { BrowserPool } from "./browser.js";
@@ -22,6 +29,7 @@ export interface MonitorDeps {
   usage: UsageRecorder;
   llm: LlmResolver;
   queues: Queues;
+  proxies?: ProxyDirectory;
   log: Logger;
   allowPrivateNetwork: boolean;
 }
@@ -75,6 +83,8 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
         http: deps.http,
         robots: deps.robots,
         renderer: deps.browser,
+        userId: m.userId,
+        proxies: await deps.proxies?.forUser(m.userId),
         extractor: m.type === "extract" ? deps.llm.tasks(m.userId) : null,
         allowPrivateNetwork: deps.allowPrivateNetwork,
       });

@@ -14,6 +14,7 @@ import {
   LlmResolver,
   loadConfig,
   type MonitorJobData,
+  ProxyDirectory,
   QUEUES,
   signWebhook,
   UsageRecorder,
@@ -44,12 +45,15 @@ const queues = createQueues(redis);
 const proxies = ProxyPool.fromEnv(config);
 const http = new HttpClient({ proxies, allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK });
 const robots = new RobotsCache(http);
+const proxyDirectory = new ProxyDirectory(db, config, proxies);
 const browser = new BrowserPool({
   concurrency: config.BROWSER_CONCURRENCY,
   proxies,
   allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK,
   executablePath: process.env.CHROMIUM_PATH || undefined,
   log,
+  // A render job carries a user id; the credentials are read here.
+  poolFor: (userId) => proxyDirectory.forUser(userId),
 });
 const credits = new Credits(db, config.BILLING_ENABLED);
 const usage = new UsageRecorder(db, log);
@@ -63,6 +67,7 @@ const deps = {
   usage,
   llm,
   queues,
+  proxies: proxyDirectory,
   log,
   allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK,
 };

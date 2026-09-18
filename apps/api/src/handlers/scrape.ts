@@ -25,7 +25,7 @@ const estimateScrape = (req: ScrapeRequest) =>
 export const scrape = handler("scrape", {
   estimate: estimateScrape,
   target: (i) => i.url,
-  async run({ s, llm }, req) {
+  async run({ s, llm, caller }, req) {
     const { maxAge, timeout: _t, ...identity } = req;
     const key = cacheKey("scrape", identity);
     if (maxAge > 0 && cacheable(req)) {
@@ -35,7 +35,8 @@ export const scrape = handler("scrape", {
       }
     }
 
-    const { result, usage } = await s.scraper(llm).scrape(req);
+    const scraper = await s.scraperFor(caller.userId, llm);
+    const { result, usage } = await scraper.scrape(req);
     if (cacheable(req) && result.metadata.statusCode < 400) {
       void s.cache.set(key, result, Math.max(maxAge, 3_600)).catch(() => {});
     }
@@ -88,7 +89,7 @@ export const screenshot = handler("screenshot", {
     credits.screenshot +
     (i.proxy === "residential" ? credits.residentialProxy : 0),
   target: (i) => i.url,
-  async run({ s }, req) {
+  async run({ s, caller }, req) {
     const { maxAge, timeout: _t, ...identity } = req;
     const key = cacheKey("shot", identity);
     type Shot = {
@@ -104,7 +105,8 @@ export const screenshot = handler("screenshot", {
         return { data: hit.value, credits: credits.scrape, cached: true };
     }
 
-    const { result, usage } = await s.scraper().scrape({
+    const scraper = await s.scraperFor(caller.userId);
+    const { result, usage } = await scraper.scrape({
       url: req.url,
       formats: ["screenshot"],
       screenshot: {

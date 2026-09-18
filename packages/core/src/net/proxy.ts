@@ -38,6 +38,11 @@ export class ProxyPool {
     return this.config[tier].length > 0;
   }
 
+  /** The configured URLs for a tier, for composing one pool from another. */
+  urls(tier: ProxyTier): string[] {
+    return [...this.config[tier]];
+  }
+
   get tiers(): ProxyTier[] {
     return (["datacenter", "residential"] as const).filter((t) => this.has(t));
   }

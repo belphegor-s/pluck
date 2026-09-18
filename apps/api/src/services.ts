@@ -10,6 +10,7 @@ import {
   createRedis,
   JsonCache,
   LlmResolver,
+  ProxyDirectory,
   QueueRenderer,
   S3Store,
   UsageRecorder,
@@ -32,6 +33,7 @@ export async function createServices(config: Config) {
   const renderer = new QueueRenderer(queues.render, queueRedis);
   const store = S3Store.fromConfig(config);
   const llm = new LlmResolver(db, config, credentialFromEnv(config));
+  const proxyDirectory = new ProxyDirectory(db, config, proxies);
 
   return {
     config,
@@ -57,14 +59,39 @@ export async function createServices(config: Config) {
       return rendered.html;
     }),
     llm,
+    proxies: proxyDirectory,
     credits: new Credits(db, config.BILLING_ENABLED),
     usage: new UsageRecorder(db, log),
-    /** Scraper bound to a specific caller's LLM credentials. */
-    scraper(extractor: ConstructorParameters<typeof Scraper>[0]["extractor"] = null) {
+    /**
+     * Scraper bound to one caller: their LLM credentials, and their own egress
+     * proxies when they have configured any.
+     */
+    scraper(
+      extractor: ConstructorParameters<typeof Scraper>[0]["extractor"] = null,
+      caller?: { userId: string; proxies?: ProxyPool | null },
+    ) {
       return new Scraper({
         http,
         robots,
         renderer,
+        userId: caller?.userId,
+        proxies: caller?.proxies ?? null,
+        store,
+        extractor,
+        allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK,
+      });
+    },
+    /** The same, with the caller's proxy pool looked up first. */
+    async scraperFor(
+      userId: string,
+      extractor: ConstructorParameters<typeof Scraper>[0]["extractor"] = null,
+    ) {
+      return new Scraper({
+        http,
+        robots,
+        renderer,
+        userId,
+        proxies: await proxyDirectory.forUser(userId),
         store,
         extractor,
         allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK,

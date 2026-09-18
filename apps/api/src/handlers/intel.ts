@@ -21,11 +21,11 @@ import { BrandService } from "../services/brand.js";
 export const search = handler("search", {
   estimate: (i) => credits.search + (i.scrape ? i.limit * credits.scrape : 0),
   target: (i) => i.query,
-  async run({ s }, req) {
+  async run({ s, caller }, req) {
     const hits = await s.search.search(req);
     if (!req.scrape) return { data: { results: hits }, credits: credits.search };
 
-    const scraper = s.scraper();
+    const scraper = await s.scraperFor(caller.userId);
     let spent = credits.search;
     const opts = req.scrape;
     const results: SearchHit[] = await Promise.all(
@@ -59,8 +59,9 @@ export const search = handler("search", {
 export const extract = handler("extract", {
   estimate: () => credits.scrape + credits.llm,
   target: (i) => i.url,
-  async run({ s, llm }, req) {
-    const { result, usage } = await s.scraper(llm).scrape({
+  async run({ s, llm, caller }, req) {
+    const scraper = await s.scraperFor(caller.userId, llm);
+    const { result, usage } = await scraper.scrape({
       url: req.url,
       formats: ["json"],
       jsonOptions: { schema: req.schema, prompt: req.prompt, llm: req.llm },
@@ -82,11 +83,13 @@ export const extract = handler("extract", {
 
 async function loadPage(
   s: Parameters<(typeof extract)["run"]>[0]["s"],
+  userId: string,
   url: string,
   proxy: "auto" | "none" | "datacenter" | "residential",
   maxAge: number,
 ) {
-  const { result, usage } = await s.scraper().scrape({
+  const scraper = await s.scraperFor(userId);
+  const { result, usage } = await scraper.scrape({
     url,
     formats: ["markdown", "rawHtml"],
     onlyMainContent: false,
@@ -104,8 +107,8 @@ async function loadPage(
 export const product = handler("product", {
   estimate: () => credits.extractProduct,
   target: (i) => i.url,
-  async run({ s, llm }, req) {
-    const { result, usage, doc } = await loadPage(s, req.url, req.proxy, req.maxAge);
+  async run({ s, llm, caller }, req) {
+    const { result, usage, doc } = await loadPage(s, caller.userId, req.url, req.proxy, req.maxAge);
     const structured = productsFromStructuredData(doc, result.metadata.finalUrl);
     const base = credits.extractProduct + scrapeCost(usage) - credits.scrape;
     if (structured[0])
@@ -130,8 +133,8 @@ export const product = handler("product", {
 export const products = handler("products", {
   estimate: () => credits.extractProduct,
   target: (i) => i.url,
-  async run({ s, llm }, req) {
-    const { result, usage, doc } = await loadPage(s, req.url, req.proxy, req.maxAge);
+  async run({ s, llm, caller }, req) {
+    const { result, usage, doc } = await loadPage(s, caller.userId, req.url, req.proxy, req.maxAge);
     const structured = productsFromStructuredData(doc, result.metadata.finalUrl);
     const base = credits.extractProduct + scrapeCost(usage) - credits.scrape;
     if (structured.length > 1) {

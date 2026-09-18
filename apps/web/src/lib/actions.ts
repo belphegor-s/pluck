@@ -2,14 +2,15 @@
 
 import { isProviderId, keyHint, SecretBox } from "@pluck/ai";
 import { assertPublicUrl } from "@pluck/core";
-import { apiKeys, contactRequests, llmCredentials, newId } from "@pluck/db";
-import { generateApiKey } from "@pluck/runtime";
-import { and, eq } from "drizzle-orm";
+import { apiKeys, contactRequests, llmCredentials, newId, userProxies } from "@pluck/db";
+import { checkProxyUrl, generateApiKey } from "@pluck/runtime";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { proxyDirectory } from "@/lib/proxies";
 
 export type ActionState = { ok?: string; error?: string; secret?: string };
 
@@ -151,6 +152,114 @@ export async function submitContact(_prev: ActionState, formData: FormData): Pro
     const session = await auth.api.getSession({ headers: await headers() });
     await db.insert(contactRequests).values({ ...parsed.data, userId: session?.user.id ?? null });
     return { ok: "Thanks — we read every message and usually reply within a day." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/* --------------------------------------------------------------------- proxies */
+
+const MAX_PROXIES = 20;
+
+export async function addProxy(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const label = String(formData.get("label") ?? "").trim() || "Proxy";
+    const tier = String(formData.get("tier") ?? "datacenter");
+    const url = String(formData.get("url") ?? "").trim();
+    if (tier !== "datacenter" && tier !== "residential") return { error: "Unknown proxy tier." };
+    if (!url) return { error: "Paste the proxy URL from your provider." };
+
+    const [{ count } = { count: 0 }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userProxies)
+      .where(eq(userProxies.userId, user.id));
+    if (count >= MAX_PROXIES) return { error: `You can store up to ${MAX_PROXIES} proxies.` };
+
+    // Validation and encryption both live in the runtime, so the API and the
+    // dashboard cannot disagree about what a usable proxy URL is.
+    const directory = proxyDirectory();
+    const { encryptedUrl, urlHint } = directory.seal(url);
+
+    await db.insert(userProxies).values({
+      id: newId("prx"),
+      userId: user.id,
+      label: label.slice(0, 60),
+      tier,
+      encryptedUrl,
+      urlHint,
+    });
+    directory.invalidate(user.id);
+    revalidatePath("/dashboard/proxies");
+    return { ok: `${label} added.` };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function setProxyActive(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const id = String(formData.get("id"));
+    const active = String(formData.get("active")) === "true";
+    await db
+      .update(userProxies)
+      // Re-enabling clears the failure count: the operator is saying it is fixed.
+      .set({ active, ...(active ? { failures: 0 } : {}) })
+      .where(and(eq(userProxies.id, id), eq(userProxies.userId, user.id)));
+    proxyDirectory().invalidate(user.id);
+    revalidatePath("/dashboard/proxies");
+    return { ok: active ? "Proxy enabled." : "Proxy paused." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function deleteProxy(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const id = String(formData.get("id"));
+    await db
+      .delete(userProxies)
+      .where(and(eq(userProxies.id, id), eq(userProxies.userId, user.id)));
+    proxyDirectory().invalidate(user.id);
+    revalidatePath("/dashboard/proxies");
+    return { ok: "Proxy removed." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/**
+ * Checks a stored proxy by fetching a page through it. Nothing is billed: this
+ * is the dashboard proving the credentials work before a real job depends on
+ * them.
+ */
+export async function testProxy(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const id = String(formData.get("id"));
+    const [row] = await db
+      .select()
+      .from(userProxies)
+      .where(and(eq(userProxies.id, id), eq(userProxies.userId, user.id)));
+    if (!row) return { error: "Proxy not found." };
+
+    const started = Date.now();
+    const result = await checkProxyUrl(proxyDirectory().reveal(row.encryptedUrl));
+    await db
+      .update(userProxies)
+      .set(
+        result.ok
+          ? { failures: 0, lastUsedAt: new Date() }
+          : { failures: Math.min(row.failures + 1, 99) },
+      )
+      .where(eq(userProxies.id, id));
+    proxyDirectory().invalidate(user.id);
+    revalidatePath("/dashboard/proxies");
+    return result.ok
+      ? { ok: `Working — exit IP ${result.ip}, ${Date.now() - started} ms.` }
+      : { error: result.error };
   } catch (err) {
     return fail(err);
   }
