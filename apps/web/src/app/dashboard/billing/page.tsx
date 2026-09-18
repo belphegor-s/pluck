@@ -7,6 +7,7 @@ import { BuyCredits } from "@/components/dashboard/buy-credits";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/format";
+import { orderIdFromReference } from "@/lib/polar";
 
 export const metadata = { title: "Credits" };
 export const dynamic = "force-dynamic";
@@ -36,6 +37,8 @@ export default async function BillingPage({
       .orderBy(desc(creditLedger.id))
       .limit(20),
   ]);
+
+  const purchases = ledger.filter((row) => orderIdFromReference(row.reference));
 
   return (
     <div className="space-y-8">
@@ -72,7 +75,17 @@ export default async function BillingPage({
       </section>
 
       <section>
-        <h2 className="text-lg">History</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="text-lg">History</h2>
+          {purchases.length > 0 && (
+            <a
+              href="/api/portal"
+              className="text-sm text-[var(--accent)] underline underline-offset-4"
+            >
+              Payment methods and receipts
+            </a>
+          )}
+        </div>
         {ledger.length === 0 ? (
           <p className="mt-2 text-sm text-[var(--ink-soft)]">No credit events yet.</p>
         ) : (
@@ -80,7 +93,7 @@ export default async function BillingPage({
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-[var(--ink-faint)]">
                 <tr>
-                  {["Date", "Reason", "Credits", "Paid"].map((h) => (
+                  {["Date", "Reason", "Credits", "Paid", "Invoice"].map((h) => (
                     <th key={h} className="border-b border-[var(--line)] px-3 py-2 font-medium">
                       {h}
                     </th>
@@ -88,18 +101,36 @@ export default async function BillingPage({
                 </tr>
               </thead>
               <tbody>
-                {ledger.map((row) => (
-                  <tr key={row.id} className="border-b border-[var(--line)] last:border-0">
-                    <td className="mono px-3 py-2 text-xs text-[var(--ink-faint)]">
-                      {row.createdAt.toISOString().slice(0, 10)}
-                    </td>
-                    <td className="px-3 py-2">{REASONS[row.reason] ?? row.reason}</td>
-                    <td className="mono px-3 py-2 text-xs">+{formatNumber(row.delta)}</td>
-                    <td className="mono px-3 py-2 text-xs text-[var(--ink-faint)]">
-                      {row.amountUsdCents ? `$${(row.amountUsdCents / 100).toFixed(2)}` : "—"}
-                    </td>
-                  </tr>
-                ))}
+                {ledger.map((row) => {
+                  const orderId = orderIdFromReference(row.reference);
+                  return (
+                    <tr key={row.id} className="border-b border-[var(--line)] last:border-0">
+                      <td className="mono px-3 py-2 text-xs text-[var(--ink-faint)]">
+                        {row.createdAt.toISOString().slice(0, 10)}
+                      </td>
+                      <td className="px-3 py-2">{REASONS[row.reason] ?? row.reason}</td>
+                      <td className="mono px-3 py-2 text-xs">
+                        {row.delta < 0 ? "" : "+"}
+                        {formatNumber(row.delta)}
+                      </td>
+                      <td className="mono px-3 py-2 text-xs text-[var(--ink-faint)]">
+                        {row.amountUsdCents ? `$${(row.amountUsdCents / 100).toFixed(2)}` : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {orderId ? (
+                          <a
+                            href={`/api/invoice/${orderId}`}
+                            className="text-[var(--accent)] underline underline-offset-4"
+                          >
+                            Download
+                          </a>
+                        ) : (
+                          <span className="text-[var(--ink-faint)]">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
