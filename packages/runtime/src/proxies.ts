@@ -149,33 +149,83 @@ export async function checkProxyUrl(
   timeoutMs = 15_000,
 ): Promise<{ ok: true; ip: string } | { ok: false; error: string }> {
   const agent = new ProxyAgent({ uri: proxyUrl, connections: 1 });
+  const attempt = async (): Promise<{ ok: true; ip: string } | { ok: false; error: string }> => {
+    try {
+      const res = await request("https://api.ipify.org?format=json", {
+        dispatcher: agent,
+        headersTimeout: timeoutMs,
+        bodyTimeout: timeoutMs,
+      });
+      const body = (await res.body.json()) as { ip?: string };
+      if (res.statusCode >= 400)
+        return { ok: false, error: `Proxy returned HTTP ${res.statusCode}.` };
+      if (!body.ip) return { ok: false, error: "The proxy answered, but not with an address." };
+      return { ok: true, ip: body.ip };
+    } catch (err) {
+      return { ok: false, error: `Could not reach the proxy: ${explain(err)}.` };
+    }
+  };
+
+  // Neither the per-phase timeouts nor an abort signal cover undici's CONNECT
+  // to the gateway, which is exactly where a dead proxy hangs, so the deadline
+  // is enforced out here.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<{ ok: false; error: string }>((resolve) => {
+    timer = setTimeout(
+      () => resolve({ ok: false, error: "Could not reach the proxy: timed out." }),
+      timeoutMs,
+    );
+  });
   try {
-    const res = await request("https://api.ipify.org?format=json", {
-      dispatcher: agent,
-      headersTimeout: timeoutMs,
-      bodyTimeout: timeoutMs,
-    });
-    const body = (await res.body.json()) as { ip?: string };
-    if (res.statusCode >= 400)
-      return { ok: false, error: `Proxy returned HTTP ${res.statusCode}.` };
-    if (!body.ip) return { ok: false, error: "The proxy answered, but not with an address." };
-    return { ok: true, ip: body.ip };
-  } catch (err) {
-    const cause = (err as { cause?: { code?: string; message?: string } }).cause;
-    const code = cause?.code;
-    const reason =
-      code === "ECONNREFUSED"
-        ? "connection refused"
-        : code === "ENOTFOUND"
-          ? "host not found"
-          : code === "UND_ERR_CONNECT_TIMEOUT" || code === "UND_ERR_HEADERS_TIMEOUT"
-            ? "timed out"
-            : code === "ERR_TLS_CERT_ALTNAME_INVALID"
-              ? "certificate did not match"
-              : (cause?.message ?? (err as Error).message);
-    // 407 arrives as a socket error from some gateways.
-    return { ok: false, error: `Could not reach the proxy: ${reason}.` };
+    return await Promise.race([attempt(), deadline]);
   } finally {
-    await agent.close().catch(() => {});
+    clearTimeout(timer);
+    // `close` waits for the in-flight request, which is the very thing that may
+    // be hanging; `destroy` drops the socket now.
+    void agent.destroy().catch(() => {});
   }
 }
+
+type Nested = { code?: string; message?: string; cause?: Nested };
+
+/**
+ * Turns a connection failure into something an operator can act on. undici
+ * nests the real cause one or two levels down and does not always set `code`,
+ * so both the chain and the message are inspected.
+ */
+function explain(err: unknown): string {
+  let node = err as Nested | undefined;
+  if ((err as { name?: string }).name === "TimeoutError")
+    return "timed out — the gateway did not answer";
+  const messages: string[] = [];
+  for (let depth = 0; node && depth < 4; depth++) {
+    if (node.code) {
+      const known = CONNECT_ERRORS[node.code];
+      if (known) return known;
+    }
+    if (node.message) messages.push(node.message);
+    node = node.cause;
+  }
+  const text = messages.join(" ");
+  for (const [code, reason] of Object.entries(CONNECT_ERRORS)) {
+    if (text.includes(code)) return reason;
+  }
+  // 407 arrives as a socket error from some gateways rather than a response.
+  if (/407|proxy authentication/i.test(text)) return "the proxy rejected those credentials";
+  return messages[0] ?? "connection failed";
+}
+
+const CONNECT_ERRORS: Record<string, string> = {
+  ECONNREFUSED: "connection refused — check the port",
+  ENOTFOUND: "host not found — check the gateway address",
+  EAI_AGAIN: "host not found — check the gateway address",
+  ETIMEDOUT: "timed out — the gateway did not answer",
+  ABORT_ERR: "timed out — the gateway did not answer",
+  TimeoutError: "timed out — the gateway did not answer",
+  UND_ERR_CONNECT_TIMEOUT: "timed out — the gateway did not answer",
+  UND_ERR_HEADERS_TIMEOUT: "timed out — the gateway did not answer",
+  ECONNRESET: "the gateway closed the connection",
+  EPROTO: "the gateway spoke a different protocol — check http vs https",
+  ERR_TLS_CERT_ALTNAME_INVALID: "the certificate did not match the gateway",
+  CERT_HAS_EXPIRED: "the gateway's certificate has expired",
+};
