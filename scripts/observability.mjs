@@ -71,7 +71,7 @@ function updateEnvFile(values) {
   writeFileSync(ENV_PATH, content);
 }
 
-const bugsinkSecret = env.BUGSINK_SECRET_KEY || randomBytes(36).toString("base64url");
+const bugsinkSecret = env.BUGSINK_SECRET_KEY || randomBytes(48).toString("base64url");
 const bugsinkDbPassword = env.BUGSINK_DB_PASSWORD || randomBytes(18).toString("base64url");
 const bugsinkAdminPassword = env.BUGSINK_ADMIN_PASSWORD || randomBytes(12).toString("base64url");
 const bugsinkAdminEmail = env.BUGSINK_ADMIN_EMAIL || "hello@ayushsharma.me";
@@ -147,6 +147,17 @@ if (!project) throw new Error("run scripts/coolify.mjs provision first");
 const environment = (await api(`/projects/${project.uuid}`)).environments[0];
 const services = await api("/services");
 
+// Written before anything is deployed so a failed run leaves the credentials
+// that the containers were actually given.
+updateEnvFile({
+  BUGSINK_SECRET_KEY: bugsinkSecret,
+  BUGSINK_DB_PASSWORD: bugsinkDbPassword,
+  BUGSINK_ADMIN_EMAIL: bugsinkAdminEmail,
+  BUGSINK_ADMIN_PASSWORD: bugsinkAdminPassword,
+  ERRORS_URL,
+  STATUS_URL,
+});
+
 async function ensureService(name, description, compose, envs) {
   let service = services.find((s) => s.name === name);
   const body = { docker_compose_raw: Buffer.from(compose).toString("base64") };
@@ -187,8 +198,11 @@ async function ensureService(name, description, compose, envs) {
     );
   }
 
-  // `start` both deploys a new service and picks up a changed compose file.
-  await api(`/services/${service.uuid}/start`, { method: "POST" });
+  // `start` deploys a new service; a running one has to be restarted instead to
+  // pick up a changed compose file.
+  await api(`/services/${service.uuid}/start`, { method: "POST" }).catch(() =>
+    api(`/services/${service.uuid}/restart`, { method: "POST" }),
+  );
   return service;
 }
 
@@ -197,15 +211,6 @@ await ensureService("pluck-bugsink", "Error tracking (Sentry protocol)", bugsink
 });
 await ensureService("pluck-uptime", "Uptime checks and public status page", kumaCompose, {
   SERVICE_FQDN_KUMA_3001: STATUS_URL,
-});
-
-updateEnvFile({
-  BUGSINK_SECRET_KEY: bugsinkSecret,
-  BUGSINK_DB_PASSWORD: bugsinkDbPassword,
-  BUGSINK_ADMIN_EMAIL: bugsinkAdminEmail,
-  BUGSINK_ADMIN_PASSWORD: bugsinkAdminPassword,
-  ERRORS_URL,
-  STATUS_URL,
 });
 
 console.log(`
