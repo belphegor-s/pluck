@@ -39,8 +39,22 @@ if (!BASE || !env.COOLIFY_API_TOKEN) {
 // whole host down; the numbers assume a small shared server.
 const APPS = [
   { key: "api", name: "pluck-api", target: "api", port: "8080", domain: DOMAINS.api, memory: "1g" },
-  { key: "worker", name: "pluck-worker", target: "worker", port: "8080", domain: null, memory: "2g" },
-  { key: "mcp", name: "pluck-mcp", target: "mcp", port: "8081", domain: DOMAINS.mcp, memory: "512m" },
+  {
+    key: "worker",
+    name: "pluck-worker",
+    target: "worker",
+    port: "8080",
+    domain: null,
+    memory: "2g",
+  },
+  {
+    key: "mcp",
+    name: "pluck-mcp",
+    target: "mcp",
+    port: "8081",
+    domain: DOMAINS.mcp,
+    memory: "512m",
+  },
   { key: "web", name: "pluck-web", target: "web", port: "3000", domain: DOMAINS.web, memory: "1g" },
 ];
 

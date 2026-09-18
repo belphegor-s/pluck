@@ -267,6 +267,25 @@ export function colorsFromCss(css: string, limit = 6): string[] {
     .map(([hex]) => hex);
 }
 
+/** Font families declared in CSS, most-used first. */
+export function fontsFromCss(css: string, limit = 6): string[] {
+  const scores = new Map<string, number>();
+  const add = (raw: string, weight: number) => {
+    const family = raw.trim().replace(/^["']|["']$/g, "");
+    if (!family || GENERIC_FONT.test(family) || family.length > 60) return;
+    scores.set(family, (scores.get(family) ?? 0) + weight);
+  };
+  for (const m of css.matchAll(/@font-face\s*\{[^}]*font-family\s*:\s*([^;}]+)/gi)) add(m[1]!, 20);
+  for (const m of css.matchAll(/font-family\s*:\s*([^;}]+)/gi)) add(m[1]!.split(",")[0]!, 1);
+  return [...scores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([family]) => family);
+}
+
+const GENERIC_FONT =
+  /^(inherit|initial|unset|revert|var\(|-apple-system|blinkmacsystemfont|system-ui|ui-\w+|sans-serif|serif|monospace|cursive|fantasy|arial|helvetica|segoe ui|roboto|times|courier|georgia|verdana|tahoma|emoji|icons?)$/i;
+
 export function normaliseHex(input: string | null | undefined): string | null {
   if (!input) return null;
   const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})([0-9a-f]{2})?$/i.exec(input.trim());

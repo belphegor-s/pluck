@@ -4,6 +4,7 @@ import {
   colorsFromCss,
   decodeBody,
   extractBrandFromHtml,
+  fontsFromCss,
   normaliseHex,
   parseDocument,
   registrableDomain,
@@ -132,10 +133,12 @@ export class BrandService {
         ),
       ),
     ];
-    // Most sites keep their palette in external CSS rather than inline styles.
-    if (colors.length < 3 && stat.stylesheets.length) {
+    // Most sites keep their palette and webfonts in external CSS.
+    const fonts = [...stat.fonts];
+    if ((colors.length < 3 || fonts.length === 0) && stat.stylesheets.length) {
       const css = await this.fetchCss(stat.stylesheets);
       for (const hex of colorsFromCss(css)) if (!colors.includes(hex)) colors.push(hex);
+      for (const font of fontsFromCss(css)) if (!fonts.includes(font)) fonts.push(font);
     }
 
     let industries: Brand["industries"] = null;
@@ -154,7 +157,7 @@ export class BrandService {
       slogan: stat.slogan,
       logos,
       colors: colors.slice(0, 6).map((hex) => ({ hex, name: null })),
-      fonts: stat.fonts,
+      fonts: fonts.slice(0, 6),
       socials: stat.socials,
       address: stat.address,
       email: stat.email,

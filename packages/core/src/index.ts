@@ -1,6 +1,7 @@
 export {
   colorsFromCss,
   extractBrandFromHtml,
+  fontsFromCss,
   isNeutral,
   normaliseHex,
   type StaticBrand,
