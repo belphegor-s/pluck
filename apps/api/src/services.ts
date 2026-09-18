@@ -4,6 +4,7 @@ import { createDb } from "@pluck/db";
 import {
   type Config,
   Credits,
+  createErrorReporter,
   createLogger,
   createQueues,
   createRedis,
@@ -35,6 +36,7 @@ export async function createServices(config: Config) {
   return {
     config,
     log,
+    errors: createErrorReporter(config, "api", log),
     db,
     queueRedis,
     cacheRedis,
@@ -69,6 +71,7 @@ export async function createServices(config: Config) {
       });
     },
     async close() {
+      await this.errors.close();
       await this.usage.close();
       await renderer.close();
       await Promise.all(Object.values(queues).map((q) => q.close()));

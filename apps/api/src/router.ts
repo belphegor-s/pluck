@@ -49,7 +49,13 @@ export type AppEnv = { Variables: { requestId: string; caller?: Caller } };
 export const INTERNAL_SECRET_HEADER = `x-${BRAND.header("internal")}`;
 export const INTERNAL_USER_HEADER = `x-${BRAND.header("user")}`;
 
-export function errorResponse(c: Context, err: unknown, requestId: string, log: Services["log"]) {
+export function errorResponse(
+  c: Context,
+  err: unknown,
+  requestId: string,
+  s: Pick<Services, "errors">,
+  context: { endpoint?: string; userId?: string; url?: string } = {},
+) {
   if (err instanceof z.ZodError) {
     return c.json(
       {
@@ -64,12 +70,14 @@ export function errorResponse(c: Context, err: unknown, requestId: string, log: 
     );
   }
   if (isPluckError(err)) {
+    // 5xx means we broke, not the caller — those are worth a report.
+    if (err.status >= 500) s.errors.capture(err, { requestId, ...context, code: err.code });
     return c.json(
       { error: { code: err.code, message: err.message, requestId, details: err.details } },
       err.status as ContentfulStatusCode,
     );
   }
-  log.error({ err, requestId }, "unhandled error");
+  s.errors.capture(err, { requestId, ...context });
   return c.json(
     { error: { code: "internal", message: "Something went wrong on our side.", requestId } },
     500,
@@ -164,7 +172,11 @@ export function v1Router(s: Services) {
         if (caller && reserved > 0)
           await s.credits.settle(caller.userId, reserved, 0).catch(() => {});
         spent = 0;
-        const res = errorResponse(c, err, requestId, s.log);
+        const res = errorResponse(c, err, requestId, s, {
+          endpoint: id,
+          userId: caller?.userId,
+          url: target,
+        });
         status = res.status;
         return res;
       } finally {

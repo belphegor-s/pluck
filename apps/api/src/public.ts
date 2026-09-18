@@ -94,7 +94,7 @@ export function publicRouter(s: Services) {
         "access-control-allow-origin": "*",
       });
     } catch (err) {
-      return errorResponse(c, err, requestId, s.log);
+      return errorResponse(c, err, requestId, s);
     }
   });
 

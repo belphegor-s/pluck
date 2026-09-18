@@ -4,6 +4,12 @@ export { createLogger, createRedis, JsonCache, type Logger, rateLimit, S3Store }
 export { generateApiKey, hashApiKey } from "./keys.js";
 export { type LlmHeaders, LlmResolver } from "./llm.js";
 export {
+  createErrorReporter,
+  type ErrorContext,
+  type ErrorReporter,
+  installProcessHandlers,
+} from "./observability.js";
+export {
   type CrawlJobData,
   createQueues,
   encodeRenderError,

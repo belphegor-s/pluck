@@ -254,6 +254,11 @@ function buildEnv(dbs) {
   };
   updateEnvFile(generated);
 
+  // Polar keeps separate sandbox and live credentials; `_PROD` suffixed values
+  // win once POLAR_SERVER is production, so both sets can live in one .env.
+  const live = (env.POLAR_SERVER || "sandbox") === "production";
+  const polar = (key) => (live ? (env[`${key}_PROD`] ?? env[key]) : env[key]);
+
   const shared = {
     NODE_ENV: "production",
     LOG_LEVEL: env.LOG_LEVEL || "info",
@@ -281,6 +286,9 @@ function buildEnv(dbs) {
     SEARXNG_URL: env.SEARXNG_URL,
     PROXY_DATACENTER_URLS: env.PROXY_DATACENTER_URLS,
     PROXY_RESIDENTIAL_URLS: env.PROXY_RESIDENTIAL_URLS,
+    SENTRY_DSN: env.SENTRY_DSN,
+    SENTRY_ENVIRONMENT: env.SENTRY_ENVIRONMENT || "production",
+    ALERT_WEBHOOK_URL: env.ALERT_WEBHOOK_URL,
   };
 
   return {
@@ -289,8 +297,8 @@ function buildEnv(dbs) {
       PORT: "8080",
       BOOTSTRAP_API_KEY: generated.BOOTSTRAP_API_KEY,
       INTERNAL_API_SECRET: generated.INTERNAL_API_SECRET,
-      POLAR_ACCESS_TOKEN: env.POLAR_ACCESS_TOKEN,
-      POLAR_WEBHOOK_SECRET: env.POLAR_WEBHOOK_SECRET,
+      POLAR_ACCESS_TOKEN: polar("POLAR_ACCESS_TOKEN"),
+      POLAR_WEBHOOK_SECRET: polar("POLAR_WEBHOOK_SECRET"),
       POLAR_SERVER: env.POLAR_SERVER || "sandbox",
     },
     worker: {
@@ -310,12 +318,12 @@ function buildEnv(dbs) {
       GITHUB_CLIENT_ID: env.GITHUB_CLIENT_ID,
       GITHUB_CLIENT_SECRET: env.GITHUB_CLIENT_SECRET,
       DEMO_API_KEY: env.DEMO_API_KEY || generated.BOOTSTRAP_API_KEY,
-      POLAR_ACCESS_TOKEN: env.POLAR_ACCESS_TOKEN,
+      POLAR_ACCESS_TOKEN: polar("POLAR_ACCESS_TOKEN"),
       POLAR_SERVER: env.POLAR_SERVER || "sandbox",
-      POLAR_PRODUCT_STARTER: env.POLAR_PRODUCT_STARTER,
-      POLAR_PRODUCT_BUILDER: env.POLAR_PRODUCT_BUILDER,
-      POLAR_PRODUCT_SCALE: env.POLAR_PRODUCT_SCALE,
-      POLAR_PRODUCT_HYPER: env.POLAR_PRODUCT_HYPER,
+      POLAR_PRODUCT_STARTER: polar("POLAR_PRODUCT_STARTER"),
+      POLAR_PRODUCT_BUILDER: polar("POLAR_PRODUCT_BUILDER"),
+      POLAR_PRODUCT_SCALE: polar("POLAR_PRODUCT_SCALE"),
+      POLAR_PRODUCT_HYPER: polar("POLAR_PRODUCT_HYPER"),
       NEXT_PUBLIC_API_URL: DOMAINS.api,
       NEXT_PUBLIC_SITE_URL: DOMAINS.web,
       NEXT_PUBLIC_MCP_URL: DOMAINS.mcp,

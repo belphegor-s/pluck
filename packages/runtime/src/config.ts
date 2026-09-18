@@ -71,6 +71,12 @@ const schema = z.object({
   EMAIL_FROM: optional,
   CONTACT_EMAIL: optional,
 
+  /** Optional. Errors are reported straight to Sentry's ingest API; no SDK. */
+  SENTRY_DSN: optional,
+  SENTRY_ENVIRONMENT: optional,
+  /** Optional. Operational alerts (Slack/Discord/any JSON endpoint). */
+  ALERT_WEBHOOK_URL: optional,
+
   BROWSER_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(4),
   CRAWL_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(4),
 });

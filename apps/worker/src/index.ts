@@ -5,10 +5,12 @@ import { crawls, createDb, monitorChanges, usageEvents } from "@pluck/db";
 import {
   type CrawlJobData,
   Credits,
+  createErrorReporter,
   createLogger,
   createQueues,
   createRedis,
   encodeRenderError,
+  installProcessHandlers,
   LlmResolver,
   loadConfig,
   type MonitorJobData,
@@ -28,6 +30,7 @@ import { checkMonitor, scheduleDueMonitors } from "./monitor.js";
 
 const config = loadConfig();
 const log = createLogger(config, "worker");
+const errors = createErrorReporter(config, "worker", log);
 const roles = new Set(
   (process.env.WORKER_ROLES ?? "render,crawl,monitor,webhook,maintenance")
     .split(",")
@@ -144,6 +147,22 @@ if (roles.has("webhook")) {
   );
 }
 
+/**
+ * A backlog means either a stuck worker or a traffic spike; both want a human.
+ * Depth alone is not enough — a busy queue drains — so age of the oldest
+ * waiting job is what decides.
+ */
+async function alertOnBacklog() {
+  for (const [name, queue] of Object.entries(queues)) {
+    if (name === "maintenance") continue;
+    const waiting = await queue.getWaitingCount();
+    if (waiting < 50) continue;
+    const [oldest] = await queue.getWaiting(0, 0);
+    const ageMinutes = oldest ? Math.round((Date.now() - oldest.timestamp) / 60_000) : 0;
+    if (ageMinutes >= 10) errors.alert(`${name} queue is backed up`, { waiting, ageMinutes });
+  }
+}
+
 if (roles.has("maintenance")) {
   await queues.maintenance.upsertJobScheduler("monitors", { every: 60_000 }, { name: "monitors" });
   await queues.maintenance.upsertJobScheduler(
@@ -158,6 +177,7 @@ if (roles.has("maintenance")) {
         if (job.name === "monitors") {
           const n = await scheduleDueMonitors(deps);
           if (n) log.debug({ scheduled: n }, "monitors scheduled");
+          await alertOnBacklog();
         } else if (job.name === "retention") {
           const day = 86_400_000;
           await db.delete(crawls).where(lt(crawls.createdAt, new Date(Date.now() - 7 * day)));
@@ -177,15 +197,23 @@ if (roles.has("maintenance")) {
 }
 
 for (const w of workers) {
-  w.on("failed", (job, err) =>
-    log.warn({ queue: w.name, jobId: job?.id, err: err.message }, "job failed"),
-  );
-  w.on("error", (err) => log.error({ queue: w.name, err }, "worker error"));
+  w.on("failed", (job, err) => {
+    log.warn({ queue: w.name, jobId: job?.id, err: err.message }, "job failed");
+    // Retries are normal; only a job that has given up is a real failure.
+    const attempts = job?.opts.attempts ?? 1;
+    if (!job || job.attemptsMade >= attempts)
+      errors.capture(err, { queue: w.name, jobId: job?.id, attempts: job?.attemptsMade });
+  });
+  w.on("error", (err) => errors.capture(err, { queue: w.name, kind: "worker" }));
 }
 log.info(
   { roles: [...roles], browserConcurrency: config.BROWSER_CONCURRENCY },
   "pluck worker started",
 );
+
+installProcessHandlers(errors, async () => {
+  await Promise.allSettled(workers.map((w) => w.close(true)));
+});
 
 let stopping = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -197,6 +225,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     await Promise.allSettled(workers.map((w) => w.close()));
     await Promise.allSettled([
       usage.close(),
+      errors.close(),
       browser.close(),
       http.close(),
       ...Object.values(queues).map((q) => q.close()),

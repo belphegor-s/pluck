@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { serve } from "@hono/node-server";
-import { loadConfig } from "@pluck/runtime";
+import { installProcessHandlers, loadConfig } from "@pluck/runtime";
 import { BRAND } from "@pluck/shared";
 import { Hono } from "hono";
 import { compress } from "hono/compress";
@@ -67,10 +67,14 @@ app.notFound((c) =>
     404,
   ),
 );
-app.onError((err, c) => errorResponse(c, err, c.get("requestId"), s.log));
+app.onError((err, c) => errorResponse(c, err, c.get("requestId"), s));
 
 const server = serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, (info) => {
   s.log.info({ port: info.port }, "pluck api listening");
+});
+
+installProcessHandlers(s.errors, async () => {
+  await s.close().catch(() => {});
 });
 
 // Long crawls are async; the slowest sync call is a browser render + LLM.
