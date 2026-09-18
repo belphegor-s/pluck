@@ -78,6 +78,26 @@ const bugsinkDbPassword = env.BUGSINK_DB_PASSWORD || randomBytes(18).toString("b
 const bugsinkAdminPassword = env.BUGSINK_ADMIN_PASSWORD || randomBytes(12).toString("base64url");
 const bugsinkAdminEmail = env.BUGSINK_ADMIN_EMAIL || "hello@ayushsharma.me";
 
+/*
+  An error tracker that cannot email is a dashboard nobody opens, so Bugsink
+  gets SMTP when a Resend key is present and falls back to the console backend
+  when it is not — which is also what a self-hoster without mail wants.
+  Resend authenticates with the literal username "resend" and the API key as
+  the password.
+*/
+const mailFrom = env.BUGSINK_EMAIL_FROM || "Pluck Errors <errors@procd.cc>";
+const mailEnv = env.RESEND_API_KEY
+  ? [
+      "      - EMAIL_HOST=smtp.resend.com",
+      "      - EMAIL_PORT=587",
+      "      - EMAIL_USE_TLS=True",
+      "      - EMAIL_USE_SSL=False",
+      "      - EMAIL_HOST_USER=resend",
+      `      - EMAIL_HOST_PASSWORD=${env.RESEND_API_KEY}`,
+      `      - 'DEFAULT_FROM_EMAIL=${mailFrom}'`,
+    ].join("\n")
+  : "      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend";
+
 // `SERVICE_FQDN_<service>_<port>` is Coolify.s hook for routing. The hostname
 // has to be written into the compose file itself: Coolify regenerates the
 // matching env var from compose on every deploy, so editing it has no effect.
@@ -99,6 +119,7 @@ const bugsinkCompose = `services:
       - BASE_URL=${ERRORS_URL}
       # Self-hosted means self-contained: no usage telemetry to bugsink.com.
       - PHONEHOME=False
+${mailEnv}
     healthcheck:
       test:
         - CMD-SHELL
