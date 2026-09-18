@@ -98,7 +98,7 @@ export default async function DashboardOverview() {
           </p>
         ) : (
           <div className="sheet mt-3 overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[34rem] text-sm">
               <thead className="text-left text-xs text-[var(--ink-faint)]">
                 <tr>
                   {["When", "Endpoint", "Target", "Status", "Credits", "Time"].map((h) => (

@@ -24,12 +24,18 @@
   --text-sm: 0.88rem;
   --text-base: 1rem;
   --text-lg: 1.16rem;
-  --text-xl: 1.4rem;
-  --text-2xl: 1.8rem;
-  --text-3xl: 2.35rem;
-  --text-4xl: 3.1rem;
-  --text-5xl: 4.1rem;
-  --text-6xl: 5.4rem;
+  /*
+    Display sizes are fluid: the same markup has to set a 44ch measure on a
+    desktop and stay readable on a 360px phone, so the scale interpolates on
+    viewport width rather than snapping at a breakpoint. Body sizes are fixed —
+    text people read line by line should not depend on how wide the window is.
+  */
+  --text-xl: clamp(1.25rem, 1.1rem + 0.8vw, 1.4rem);
+  --text-2xl: clamp(1.45rem, 1.25rem + 1.1vw, 1.8rem);
+  --text-3xl: clamp(1.8rem, 1.4rem + 2vw, 2.35rem);
+  --text-4xl: clamp(2.15rem, 1.5rem + 3.2vw, 3.1rem);
+  --text-5xl: clamp(2.6rem, 1.6rem + 5vw, 4.1rem);
+  --text-6xl: clamp(3rem, 1.6rem + 7vw, 5.4rem);
 
   --radius-press: 3px;
   --ease-press: cubic-bezier(0.2, 0.9, 0.25, 1);
@@ -66,6 +72,21 @@
 
   * {
     border-color: var(--line);
+  }
+
+  /*
+    Grid and flex children default to min-width:auto, so one long line of code or
+    a wide table pushes the whole page sideways instead of scrolling inside its
+    own box. Every layout here wants the opposite.
+  */
+  :where(.grid, .flex) > * {
+    min-width: 0;
+  }
+
+  /* Long URLs and keys are everywhere in this product; none of them may push
+     the page wider than the screen. */
+  body {
+    overflow-wrap: break-word;
   }
 
   html {
@@ -184,6 +205,7 @@
     border-radius: 2px;
   }
 
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -260,8 +282,17 @@
     overflow-x: auto;
     font-size: var(--text-sm);
   }
+  /*
+    Docs tables come from markdown, so there is no wrapper to scroll. Making the
+    table itself the scroll container keeps a wide comparison table readable on
+    a phone instead of widening the page.
+  */
   .prose-pluck :where(table) {
-    width: 100%;
+    display: block;
+    width: max-content;
+    min-width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
     border-collapse: collapse;
     font-size: var(--text-sm);
   }
@@ -343,5 +374,27 @@
 @keyframes caret {
   50% {
     opacity: 0;
+  }
+}
+
+/*
+  Deliberately outside every layer, so it beats the `text-sm` and `text-xs`
+  utilities the form controls carry.
+
+  Safari zooms the page when a focused field is smaller than 16px, which throws
+  the layout off and cannot be undone without a pinch. Below the `sm` breakpoint
+  every text control is 16px and tall enough to hit with a thumb, whatever type
+  scale the component asked for.
+*/
+@media (max-width: 639px) {
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+    min-height: 2.75rem;
+  }
+
+  textarea {
+    min-height: 8rem;
   }
 }

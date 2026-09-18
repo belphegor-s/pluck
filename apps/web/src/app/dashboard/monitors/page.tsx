@@ -62,7 +62,7 @@ export default async function MonitorsPage() {
         </div>
       ) : (
         <div className="sheet overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[34rem] text-sm">
             <thead className="text-left text-xs text-[var(--ink-faint)]">
               <tr>
                 {["Name", "Type", "URL", "Every", "Last checked", "Changes", "State"].map((h) => (

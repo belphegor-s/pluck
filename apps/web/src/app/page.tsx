@@ -123,16 +123,18 @@ export default function HomePage() {
               cookie banner, keeping the tables — and hands back markdown, JSON, links or a
               screenshot. One call, one credit.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            {/* Side by side once there is room; stacked and full width on a
+                phone, where a half-width button is a small target. */}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <Link
                 href="/dashboard"
-                className="bg-[var(--ink)] px-5 py-2.5 text-[var(--paper)] transition-opacity hover:opacity-85"
+                className="bg-[var(--ink)] px-5 py-3 text-center text-[var(--paper)] transition-opacity hover:opacity-85 sm:py-2.5"
               >
                 Start with 1,000 free credits
               </Link>
               <Link
                 href={SITE.repo}
-                className="border border-[var(--line)] px-5 py-2.5 transition-colors hover:border-[var(--ink)]"
+                className="border border-[var(--line)] px-5 py-3 text-center transition-colors hover:border-[var(--ink)] sm:py-2.5"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -252,16 +254,16 @@ curl localhost:8080/v1/scrape \\
               1,000 credits when you sign in with GitHub. No card.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Link
               href="/dashboard"
-              className="bg-[var(--accent)] px-5 py-2.5 text-white transition-opacity hover:opacity-90"
+              className="bg-[var(--accent)] px-5 py-3 text-center text-white transition-opacity hover:opacity-90 sm:py-2.5"
             >
               Get an API key
             </Link>
             <Link
               href="/enterprise"
-              className="border border-[var(--line)] px-5 py-2.5 transition-colors hover:border-[var(--ink)]"
+              className="border border-[var(--line)] px-5 py-3 text-center transition-colors hover:border-[var(--ink)] sm:py-2.5"
             >
               Talk to us about volume
             </Link>

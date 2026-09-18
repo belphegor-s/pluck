@@ -47,10 +47,15 @@ export function SiteFooter() {
             <h2 className="font-[family-name:var(--font-sans)] text-sm font-semibold">
               {group.title}
             </h2>
-            <ul className="mt-3 space-y-2 text-sm text-[var(--ink-soft)]">
+            {/* Roomier rows on a phone, where these are thumb targets rather
+                than pointer targets. */}
+            <ul className="mt-2 text-sm text-[var(--ink-soft)] sm:mt-3">
               {group.links.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.href} className="transition-colors hover:text-[var(--ink)]">
+                  <Link
+                    href={link.href}
+                    className="inline-block py-2 transition-colors hover:text-[var(--ink)] sm:py-1"
+                  >
                     {link.label}
                   </Link>
                 </li>

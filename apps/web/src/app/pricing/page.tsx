@@ -94,13 +94,16 @@ export default function PricingPage() {
         ))}
       </section>
 
-      <section className="mt-6 flex flex-wrap items-center gap-3">
-        <Link href="/dashboard" className="bg-[var(--ink)] px-5 py-2.5 text-[var(--paper)]">
+      <section className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <Link
+          href="/dashboard"
+          className="bg-[var(--ink)] px-5 py-3 text-center text-[var(--paper)] sm:py-2.5"
+        >
           Start with 1,000 free credits
         </Link>
         <Link
           href="/enterprise"
-          className="border border-[var(--line)] px-5 py-2.5 transition-colors hover:border-[var(--ink)]"
+          className="border border-[var(--line)] px-5 py-3 text-center transition-colors hover:border-[var(--ink)] sm:py-2.5"
         >
           Volume and invoicing
         </Link>
