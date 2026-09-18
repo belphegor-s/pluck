@@ -121,7 +121,9 @@ export const monitorCreate = handler("monitorCreate", {
     if (req.type === "extract" && !req.schema && !req.prompt) {
       throw new PluckError("bad_request", "Extract monitors need a `schema` or `prompt`.");
     }
-    const minInterval = s.config.BILLING_ENABLED ? 60 : 5;
+    // Every check is charged, so frequency polices itself; the floor only
+    // keeps one account from hammering a target on our behalf.
+    const minInterval = s.config.BILLING_ENABLED ? 15 : 5;
     if (req.intervalMinutes < minInterval) {
       throw new PluckError(
         "bad_request",

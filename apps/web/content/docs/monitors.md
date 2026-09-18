@@ -38,4 +38,4 @@ The signature header is `t=<unix seconds>,v1=<hmac sha256 of "t.body">`, using y
 
 ## Costs and limits
 
-Each check costs 1 credit plus the underlying scrape or extraction. If the balance runs out the monitor pauses rather than failing silently, and ten consecutive errors also pause it. Hosted accounts check at most hourly; self-hosted instances go down to every five minutes.
+Each check costs 1 credit plus the underlying scrape or extraction. If the balance runs out the monitor pauses rather than failing silently, and ten consecutive errors also pause it. Hosted accounts check at most every 15 minutes; self-hosted instances go down to every five.
