@@ -2,12 +2,13 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { customerPortal } from "@/lib/polar";
+import { siteUrl } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Sends the signed-in user to their Polar portal: payment methods and receipts. */
-export async function GET(request: Request) {
+export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
 
@@ -21,7 +22,5 @@ export async function GET(request: Request) {
     "no-purchases": "The payment portal opens once you have bought credits.",
     failed: "The payment portal is unavailable right now. Try again shortly.",
   }[result.reason];
-  const back = new URL("/dashboard/invoices", request.url);
-  back.searchParams.set("error", message);
-  return NextResponse.redirect(back);
+  return NextResponse.redirect(siteUrl("/dashboard/invoices", { error: message }));
 }

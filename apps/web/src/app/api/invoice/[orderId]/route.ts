@@ -5,12 +5,13 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { invoiceUrl } from "@/lib/polar";
+import { siteUrl } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Redirects to the invoice for one order, after checking the caller owns it. */
-export async function GET(request: Request, { params }: { params: Promise<{ orderId: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
 
@@ -30,10 +31,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ orde
 
   // Polar issues an invoice only once it holds a billing name and address, and
   // the portal is where those are entered — so say that rather than 503.
-  const back = new URL("/dashboard/invoices", request.url);
-  back.searchParams.set(
-    "error",
-    "That invoice needs your billing name and address first — add them under payment methods, then download again.",
+  return NextResponse.redirect(
+    siteUrl("/dashboard/invoices", {
+      error:
+        "That invoice needs your billing name and address first — add them under payment methods, then download again.",
+    }),
   );
-  return NextResponse.redirect(back);
 }
