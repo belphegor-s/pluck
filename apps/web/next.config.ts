@@ -18,6 +18,11 @@ const config: NextConfig = {
           { key: "x-content-type-options", value: "nosniff" },
           { key: "referrer-policy", value: "strict-origin-when-cross-origin" },
           { key: "x-frame-options", value: "DENY" },
+          { key: "strict-transport-security", value: "max-age=31536000; includeSubDomains" },
+          {
+            key: "permissions-policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+          },
         ],
       },
     ];

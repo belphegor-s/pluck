@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SITE } from "@/lib/site";
 
-const UPDATED = "17 September 2026";
+const UPDATED = "23 September 2026";
 
 const pages = {
   terms: {
@@ -51,11 +51,11 @@ const pages = {
       ],
       [
         "Retention",
-        "Cached pages expire within hours. Crawl results are deleted after 7 days, monitor history after 90 days, usage records after 400 days. Delete your account and we remove everything tied to it.",
+        "Cached pages expire within hours. Crawl results are deleted after 7 days, the webhook delivery log after 30 days, screenshots after 30 days, monitor history after 90 days, usage records after 400 days and backups after 35 days. Ask us to delete your account and we remove everything tied to it.",
       ],
       [
         "Subprocessors",
-        "Hosting and databases on our own servers in Europe, Cloudflare for DNS, caching and object storage, Polar for payments, and the model provider configured for AI endpoints. Search may be handled by an upstream search API.",
+        `Servers and databases with Hetzner in Finland, object storage and backups with AWS in Frankfurt, Cloudflare for DNS and TLS, GitHub for sign-in, Polar for payments, Resend for email, OpenRouter as the default model provider for AI endpoints, and Serper for search. The full list, with what each one receives, is on the trust page: ${SITE.url}/trust.`,
       ],
       [
         "Your rights",

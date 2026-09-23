@@ -27,6 +27,7 @@ const groups = [
       { href: SITE.repo, label: "GitHub" },
       { href: "/legal/terms", label: "Terms" },
       { href: "/legal/privacy", label: "Privacy" },
+      { href: "/trust", label: "Trust" },
       { href: `mailto:${SITE.contactEmail}`, label: "Email us" },
     ],
   },
