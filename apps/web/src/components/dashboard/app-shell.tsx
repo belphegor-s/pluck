@@ -161,27 +161,18 @@ export function AppShell({
         <SidebarBody pathname={pathname} collapsed={collapsed} user={user} />
       </aside>
 
-      {/* Phones and tablets: a bar with the menu, the page and the balance. */}
-      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--paper)_88%,transparent)] px-4 backdrop-blur-sm lg:hidden">
-        <button
-          ref={menuButton}
-          type="button"
-          onClick={() => setDrawer(true)}
-          aria-label="Open navigation"
-          aria-expanded={drawer}
-          aria-controls="app-drawer"
-          className="-ml-1 flex size-9 items-center justify-center border border-[var(--line)] text-[var(--ink)]"
-        >
-          <Icon name="menu" />
-        </button>
-        <h1 className="min-w-0 flex-1 truncate text-base font-medium">{titleFor(pathname)}</h1>
-        <Link
-          href="/dashboard/billing"
-          className="mono shrink-0 border border-[var(--line)] px-2 py-1 text-xs text-[var(--ink-soft)]"
-        >
-          {formatNumber(user.credits)} cr
-        </Link>
-      </div>
+      {/* Phones and tablets: no bar, just a button in thumb reach that opens the sidebar. */}
+      <button
+        ref={menuButton}
+        type="button"
+        onClick={() => setDrawer(true)}
+        aria-label="Open navigation"
+        aria-expanded={drawer}
+        aria-controls="app-drawer"
+        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-40 flex size-12 items-center justify-center rounded-full bg-[var(--ink)] text-[var(--paper)] shadow-lg transition-transform active:scale-95 lg:hidden"
+      >
+        <Icon name="menu" className="size-5" />
+      </button>
 
       <div
         className={`fixed inset-0 z-50 lg:hidden ${drawer ? "" : "pointer-events-none"}`}
@@ -225,16 +216,8 @@ export function AppShell({
       </div>
 
       <div className="min-w-0">
-        <header className="hidden h-14 items-center border-b border-[var(--line)] px-8 lg:flex">
-          <p className="text-sm text-[var(--ink-faint)]">
-            Dashboard{" "}
-            <span className="px-1.5" aria-hidden="true">
-              /
-            </span>
-          </p>
-          <h1 className="text-sm text-[var(--ink)]">{titleFor(pathname)}</h1>
-        </header>
-        <main id="main" className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <main id="main" className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:py-8">
+          <h1 className="sr-only">{titleFor(pathname)}</h1>
           {children}
         </main>
       </div>
