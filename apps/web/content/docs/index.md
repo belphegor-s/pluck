@@ -65,5 +65,6 @@ Both retry rate limits and gateway errors, raise typed errors carrying the reque
 - [Extraction](/docs/extraction) — JSON that matches your schema
 - [Brand data](/docs/brand) — logos, colors, fonts, industry codes
 - [Monitors](/docs/monitors) — get told when a page changes
+- [Teams](/docs/teams) — shared workspaces, roles and invitations
 - [MCP server](/docs/mcp) — give an agent these tools directly
 - [Self-hosting](/docs/self-hosting) — run the whole thing yourself
