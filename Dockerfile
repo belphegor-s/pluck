@@ -38,7 +38,7 @@ ARG NEXT_PUBLIC_API_URL=https://pluck-api.procd.cc
 ARG NEXT_PUBLIC_SITE_URL=https://pluck.procd.cc
 ARG NEXT_PUBLIC_MCP_URL=https://pluck-mcp.procd.cc
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_MCP_URL=$NEXT_PUBLIC_MCP_URL
-RUN pnpm turbo run build
+RUN pnpm turbo run build && pnpm --filter @pluckai/mcp build:npm
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --filter @pluck/api deploy --prod --prefer-offline /out/api && \
     pnpm --filter @pluck/worker deploy --prod --prefer-offline /out/worker && \
@@ -77,7 +77,9 @@ COPY --from=build --chown=node:node /out/mcp ./
 USER node
 EXPOSE 8081
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s CMD node -e "fetch('http://127.0.0.1:8081/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "dist/http.js"]
+# The published bundle: @pluck/shared is inlined, since it is a workspace-only
+# package that `pnpm deploy --prod` leaves out; real dependencies are installed.
+CMD ["node", "npm/http.js"]
 
 # ----------------------------------------------------------------- web
 FROM node:${NODE_VERSION}-bookworm-slim AS web
