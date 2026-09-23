@@ -38,6 +38,12 @@ export async function enqueueWebhook(
 }
 
 /**
+ * A fresh job id for one redelivery. BullMQ rejects ":" in custom ids, since
+ * it separates its own Redis keys with it.
+ */
+export const redeliveryJobId = (deliveryId: string, now = Date.now()) => `${deliveryId}-r${now}`;
+
+/**
  * Sends a delivery again, as a fresh run of attempts.
  *
  * The queue keeps finished jobs for a while, so reusing the delivery id as the
@@ -50,13 +56,28 @@ export async function redeliverWebhook(
   userId: string,
   id: string,
 ) {
+  const owned = and(eq(webhookDeliveries.id, id), eq(webhookDeliveries.userId, userId));
+  const [before] = await db.select().from(webhookDeliveries).where(owned).limit(1);
+  if (!before) throw new PluckError("not_found", "Delivery not found.");
+
+  // Pending is set before the job exists, so a fast worker cannot finish and
+  // then be overwritten. If queueing fails the row goes back to what it was
+  // rather than showing a send that will never happen.
   const [row] = await db
     .update(webhookDeliveries)
     .set({ status: "pending", lastError: null })
-    .where(and(eq(webhookDeliveries.id, id), eq(webhookDeliveries.userId, userId)))
+    .where(owned)
     .returning();
   if (!row) throw new PluckError("not_found", "Delivery not found.");
-  await queues.webhook.add(row.event, { deliveryId: id }, { jobId: `${id}:${Date.now()}` });
+  try {
+    await queues.webhook.add(row.event, { deliveryId: id }, { jobId: redeliveryJobId(id) });
+  } catch (err) {
+    await db
+      .update(webhookDeliveries)
+      .set({ status: before.status, lastError: before.lastError })
+      .where(owned);
+    throw err;
+  }
   return row;
 }
 
