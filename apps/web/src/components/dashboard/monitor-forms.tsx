@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { SelectMenu } from "@/components/select-menu";
 import { type ActionState, createMonitor, deleteMonitor, updateMonitor } from "@/lib/actions";
 
 const empty: ActionState = {};
@@ -13,6 +14,8 @@ export const INTERVALS = [
   { minutes: 1440, label: "Daily" },
   { minutes: 10_080, label: "Weekly" },
 ] as const;
+
+const intervalOptions = INTERVALS.map((i) => ({ value: i.minutes as number, label: i.label }));
 
 export const intervalLabel = (minutes: number) =>
   INTERVALS.find((i) => i.minutes === minutes)?.label ??
@@ -90,16 +93,15 @@ export function CreateMonitorForm() {
           <span className="block text-[var(--ink-soft)]">Name</span>
           <input name="name" maxLength={120} placeholder="Competitor pricing" className={input} />
         </label>
-        <label className="block text-sm">
+        <div className="text-sm">
           <span className="block text-[var(--ink-soft)]">Check</span>
-          <select name="intervalMinutes" defaultValue={1440} className={input}>
-            {INTERVALS.map((i) => (
-              <option key={i.minutes} value={i.minutes}>
-                {i.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <SelectMenu
+            name="intervalMinutes"
+            label="Check interval"
+            defaultValue={1440}
+            options={intervalOptions}
+          />
+        </div>
       </div>
 
       {type === "page" && (
@@ -226,21 +228,27 @@ export function EditMonitorForm({
           <span className="block text-[var(--ink-soft)]">Name</span>
           <input name="name" maxLength={120} defaultValue={monitor.name ?? ""} className={input} />
         </label>
-        <label className="block text-sm">
+        <div className="text-sm">
           <span className="block text-[var(--ink-soft)]">Check</span>
-          <select name="intervalMinutes" defaultValue={monitor.intervalMinutes} className={input}>
-            {!known && (
-              <option value={monitor.intervalMinutes}>
-                {intervalLabel(monitor.intervalMinutes)}
-              </option>
-            )}
-            {INTERVALS.map((i) => (
-              <option key={i.minutes} value={i.minutes}>
-                {i.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <SelectMenu
+            name="intervalMinutes"
+            label="Check interval"
+            defaultValue={monitor.intervalMinutes}
+            // An interval set through the API may not be one of the presets;
+            // it stays selectable rather than silently changing on save.
+            options={
+              known
+                ? intervalOptions
+                : [
+                    {
+                      value: monitor.intervalMinutes,
+                      label: intervalLabel(monitor.intervalMinutes),
+                    },
+                    ...intervalOptions,
+                  ]
+            }
+          />
+        </div>
       </div>
       {monitor.type === "page" && (
         <label className="block text-sm">
