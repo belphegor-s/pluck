@@ -12,7 +12,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-That brings up Postgres, two Redis instances (one for queues, one for cache), SearXNG for search, MinIO for screenshots, the API, a browser worker, the MCP server and the dashboard.
+That brings up Postgres, two Redis instances (one for queues, one for cache), SearXNG for search, SeaweedFS (S3-compatible) for screenshots, the API, a browser worker, the MCP server and the dashboard.
 
 ```bash
 curl -X POST http://localhost:8080/v1/scrape \

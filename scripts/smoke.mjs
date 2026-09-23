@@ -146,9 +146,11 @@ await check("POST /v1/screenshot", async () => {
     typeof json.data.screenshot === "string" && json.data.screenshot.length > 0,
     "no screenshot",
   );
-  return json.data.screenshot.startsWith("http")
-    ? "stored in object storage"
-    : "returned as data URI";
+  if (!json.data.screenshot.startsWith("http")) return "returned as data URI";
+  // Stored: the public URL must actually serve the image, not just exist.
+  const image = await fetch(json.data.screenshot, { signal: AbortSignal.timeout(15_000) });
+  assert(image.ok, `stored screenshot not readable: ${image.status}`);
+  return `stored in object storage (${image.headers.get("content-type")})`;
 });
 
 await check("POST /v1/parse (pdf)", async () => {
