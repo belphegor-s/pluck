@@ -8,6 +8,7 @@ export {
 } from "./brand/extract.js";
 export { productsFromStructuredData } from "./brand/products.js";
 export { styleguideProbe } from "./brand/styleguide-probe.js";
+export { mapConcurrent, throwIfAborted, withDeadline } from "./deadline.js";
 export { diffSets, diffText, sha256 } from "./diff.js";
 export {
   cleanHtml,

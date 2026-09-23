@@ -100,7 +100,11 @@ export const searchHit = z.object({
   page: scrapeResult.partial().optional(),
 });
 export type SearchHit = z.infer<typeof searchHit>;
-export const searchResult = z.object({ results: z.array(searchHit) });
+export const searchResult = z.object({
+  results: z.array(searchHit),
+  /** Present when some results could not be read within the time budget. */
+  warnings: z.array(z.string()).optional(),
+});
 
 /* ---------------------------------------------------------------- extract */
 

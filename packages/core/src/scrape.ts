@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { PluckError, type ScrapeRequest, type ScrapeResult } from "@pluck/shared";
+import { throwIfAborted } from "./deadline.js";
 import {
   cleanHtml,
   extractImages,
@@ -55,7 +56,12 @@ interface Page {
 export class Scraper {
   constructor(private readonly deps: ScraperDeps) {}
 
-  async scrape(req: ScrapeRequest): Promise<ScrapeOutcome> {
+  /**
+   * `signal` bounds the whole scrape: it is checked before every proxy tier and
+   * the browser, and cancels an HTTP fetch in flight.
+   */
+  async scrape(req: ScrapeRequest, opts: { signal?: AbortSignal } = {}): Promise<ScrapeOutcome> {
+    const { signal } = opts;
     const url = assertPublicUrl(req.url, this.deps.allowPrivateNetwork).href;
     if (req.respectRobots && !(await this.deps.robots.isAllowed(url))) {
       throw new PluckError(
@@ -65,7 +71,7 @@ export class Scraper {
     }
 
     const warnings: string[] = [];
-    let page = await this.load(url, req, warnings);
+    let page = await this.load(url, req, warnings, signal);
     let { result, llm } = await this.format(url, page, req, warnings);
 
     // Safety net for pages the heuristic misjudged: substantial HTML, almost no content.
@@ -76,7 +82,7 @@ export class Scraper {
       page.html.length > 20_000 &&
       (result.markdown ?? htmlToText(page.html)).trim().length < 150
     ) {
-      page = await this.load(url, { ...req, render: "always" }, warnings);
+      page = await this.load(url, { ...req, render: "always" }, warnings, signal);
       ({ result, llm } = await this.format(url, page, req, warnings));
     }
     return {
@@ -90,7 +96,12 @@ export class Scraper {
     };
   }
 
-  private async load(url: string, req: ScrapeRequest, warnings: string[]): Promise<Page> {
+  private async load(
+    url: string,
+    req: ScrapeRequest,
+    warnings: string[],
+    signal?: AbortSignal,
+  ): Promise<Page> {
     // The caller's own pool when they have one, the instance's otherwise.
     const pool = this.deps.proxies ?? this.deps.http.proxies;
     const ladder = pool.ladder(req.proxy);
@@ -106,10 +117,12 @@ export class Scraper {
     if (!wantsBrowser) {
       for (let i = 0; i < ladder.length; i++) {
         const proxy = ladder[i]!;
+        throwIfAborted(signal, "scrape");
         try {
           const res = await this.deps.http.fetch(url, {
             proxy,
             pool,
+            signal,
             timeout: req.timeout,
             headers: req.headers,
             country: req.country,
@@ -167,6 +180,7 @@ export class Scraper {
     // one shot on the strongest tier: challenges often clear with real JS.
     const browserLadder = ladder.slice(Math.min(startTier, ladder.length - 1));
     for (const proxy of browserLadder) {
+      throwIfAborted(signal, "scrape");
       try {
         const rendered = await this.deps.renderer.render({
           url,

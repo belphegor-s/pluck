@@ -1,5 +1,6 @@
 import { PluckError, type SearchHit, type SearchRequest } from "@pluck/shared";
 import { fetch } from "undici";
+import { withDeadline } from "../deadline.js";
 import { absolute, parseDocument, text } from "../html/document.js";
 import { decodeBody, type HttpClient } from "../net/fetch.js";
 
@@ -14,6 +15,14 @@ const timeRangeMap = { day: "d", week: "w", month: "m", year: "y" } as const;
 
 /** Search is a foreground request: every provider call is kept short. */
 const PROVIDER_TIMEOUT_MS = 9_000;
+/** The whole provider chain, fallbacks included. */
+export const SEARCH_BUDGET_MS = 30_000;
+/**
+ * The most any one provider may take. Without a per-provider cap, a first
+ * provider that hangs spends the entire budget and the fallbacks never run —
+ * which is the one situation a fallback chain exists for.
+ */
+export const SEARCH_PROVIDER_SLICE_MS = 12_000;
 
 async function getJson<T>(
   url: string,
@@ -239,24 +248,36 @@ function parseDuckDuckGo(html: string): Hit[] {
 /** Tries providers in order; the first one that answers wins. */
 export class FallbackSearch implements SearchProvider {
   readonly name: string;
-  constructor(private readonly providers: SearchProvider[]) {
+  private readonly budgetMs: number;
+  private readonly sliceMs: number;
+
+  constructor(
+    private readonly providers: SearchProvider[],
+    limits: { budgetMs?: number; sliceMs?: number } = {},
+  ) {
+    this.budgetMs = limits.budgetMs ?? SEARCH_BUDGET_MS;
+    this.sliceMs = limits.sliceMs ?? SEARCH_PROVIDER_SLICE_MS;
     this.name = providers.map((p) => p.name).join(">");
   }
 
   async search(req: SearchRequest): Promise<Hit[]> {
     if (!this.providers.length)
       throw new PluckError("internal", "No search provider is configured on this instance.");
-    // Bounded overall: a caller waiting on search would rather have a clear
-    // failure than a request that hangs long enough for a proxy to cut it.
-    const deadline = Date.now() + 45_000;
+    // One budget for the whole chain, and each provider races a capped slice of
+    // what is left. Checking the clock only between providers bounded nothing:
+    // a single provider stuck on a queued browser render ran for minutes.
+    const deadline = Date.now() + this.budgetMs;
     const attempts: { provider: string; error: string }[] = [];
     for (const p of this.providers) {
-      if (Date.now() > deadline) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
         attempts.push({ provider: p.name, error: "skipped: search deadline reached" });
         break;
       }
       try {
-        return await p.search(req);
+        return await withDeadline(p.search(req), Math.min(remaining, this.sliceMs), () => {
+          throw new PluckError("target_timeout", `${p.name} did not answer in time.`);
+        });
       } catch (err) {
         attempts.push({
           provider: p.name,

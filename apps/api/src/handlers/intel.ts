@@ -1,9 +1,11 @@
 import {
   decodeBody,
   extractBrandFromHtml,
+  mapConcurrent,
   parseDocument,
   productsFromStructuredData,
   type styleguideProbe,
+  withDeadline,
 } from "@pluck/core";
 import {
   credits,
@@ -18,39 +20,83 @@ import { BrandService } from "../services/brand.js";
 
 /* ----------------------------------------------------------------- search */
 
+/** Reading search results, all of them together. */
+const SEARCH_READ_BUDGET_MS = 30_000;
+/** Results read at once — enough to overlap network waits, not enough to flood the render pool. */
+const SEARCH_READ_CONCURRENCY = 4;
+
+/** What is left of a budget that started at `started`, never negative. */
+const remainingMs = (budget: AbortSignal, total: number, started: number) =>
+  budget.aborted ? 0 : Math.max(0, total - (Date.now() - started));
+
 export const search = handler("search", {
   estimate: (i) => credits.search + (i.scrape ? i.limit * credits.scrape : 0),
   target: (i) => i.query,
-  async run({ s, caller }, req) {
+  async run({ s, caller, signal }, req) {
     const hits = await s.search.search(req);
+    const started = Date.now();
     if (!req.scrape) return { data: { results: hits }, credits: credits.search };
 
     const scraper = await s.scraperFor(caller.userId);
     let spent = credits.search;
     const opts = req.scrape;
-    const results: SearchHit[] = await Promise.all(
-      hits.map(async (hit) => {
-        try {
-          const { result, usage } = await scraper.scrape({
-            url: hit.url,
-            formats: opts.formats.filter((f) => f !== "json" && f !== "screenshot"),
-            onlyMainContent: opts.onlyMainContent,
-            render: opts.render,
-            proxy: opts.proxy,
-            timeout: Math.min(opts.timeout, 20_000),
-            maxAge: opts.maxAge,
-            blockAds: true,
-            respectRobots: true,
-            mobile: false,
-          });
-          spent += scrapeCost(usage);
-          return { ...hit, page: result as Partial<ScrapeResult> };
-        } catch {
+
+    /*
+      Reading the results is where search used to run for minutes: each result
+      could walk every proxy tier and then the browser, and all of them started
+      at once against a small render pool. Now the reading phase has one budget,
+      a bounded number in flight, and an abort signal that stops the work rather
+      than merely abandoning it. A result that runs out of time comes back
+      without `page` — the caller still gets every hit, just not every page.
+    */
+    const budget = AbortSignal.any([signal, AbortSignal.timeout(SEARCH_READ_BUDGET_MS)]);
+    let unread = 0;
+    const results: SearchHit[] = await mapConcurrent(hits, SEARCH_READ_CONCURRENCY, async (hit) => {
+      if (budget.aborted) {
+        unread++;
+        return hit;
+      }
+      try {
+        const outcome = await withDeadline(
+          scraper.scrape(
+            {
+              url: hit.url,
+              formats: opts.formats.filter((f) => f !== "json" && f !== "screenshot"),
+              onlyMainContent: opts.onlyMainContent,
+              render: opts.render,
+              proxy: opts.proxy,
+              timeout: Math.min(opts.timeout, 15_000),
+              maxAge: opts.maxAge,
+              blockAds: true,
+              respectRobots: true,
+              mobile: false,
+            },
+            { signal: budget },
+          ),
+          // A browser render in flight cannot be recalled from the queue, so the
+          // wait is capped as well as the work.
+          remainingMs(budget, SEARCH_READ_BUDGET_MS, started),
+          () => null,
+        );
+        if (!outcome) {
+          unread++;
           return hit;
         }
-      }),
-    );
-    return { data: { results }, credits: spent };
+        spent += scrapeCost(outcome.usage);
+        return { ...hit, page: outcome.result as Partial<ScrapeResult> };
+      } catch {
+        return hit;
+      }
+    });
+    return {
+      data: {
+        results,
+        ...(unread
+          ? { warnings: [`${unread} result(s) were not read within the time budget.`] }
+          : {}),
+      },
+      credits: spent,
+    };
   },
 });
 
