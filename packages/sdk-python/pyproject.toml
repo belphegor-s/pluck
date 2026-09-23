@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pluckai"
+version = "0.1.0"
+description = "Python client for the Pluck web context API: scrape, crawl, search, extract and monitor the web as LLM-ready data."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [{ name = "Ayush Sharma", email = "hello@ayushsharma.me" }]
+keywords = ["llm", "scraping", "crawler", "markdown", "rag", "ai", "web"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Software Development :: Libraries",
+  "Typing :: Typed",
+]
+dependencies = ["httpx>=0.25,<1"]
+
+[project.urls]
+Homepage = "https://pluck.procd.cc"
+Documentation = "https://pluck.procd.cc/docs"
+Source = "https://github.com/belphegor-s/pluck/tree/main/packages/sdk-python"
+Issues = "https://github.com/belphegor-s/pluck/issues"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pluckai"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

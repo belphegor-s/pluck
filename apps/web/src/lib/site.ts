@@ -15,6 +15,7 @@ export const SITE = {
   contactEmail: BRAND.contactEmail,
   apiKeyExample: `${BRAND.apiKeyLive}…`,
   sdkPackage: BRAND.npmPackage,
+  pythonPackage: BRAND.pythonPackage,
 } as const;
 
 export const nav = [

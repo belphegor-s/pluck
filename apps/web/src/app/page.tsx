@@ -36,16 +36,17 @@ console.log(page.$meta.creditsUsed); // 1`,
   {
     label: "Python",
     language: "python",
-    code: `from pluck import Pluck
+    code: `from ${SITE.pythonPackage} import Pluck
 
 pluck = Pluck()  # reads PLUCK_API_KEY
 
 page = pluck.scrape(
-    url="https://arxiv.org/abs/1706.03762",
+    "https://arxiv.org/abs/1706.03762",
     formats=["markdown"],
 )
 
-print(page.markdown)`,
+print(page.markdown)                # ready for your prompt
+print(page.meta.credits_used)       # 1`,
   },
   {
     label: "cURL",

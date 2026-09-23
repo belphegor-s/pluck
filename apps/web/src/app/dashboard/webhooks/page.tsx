@@ -162,15 +162,24 @@ app.post("/hooks/pluck", express.text({ type: "*/*" }), async (req, res) => {
               {
                 label: "Python",
                 language: "python",
-                code: `import hashlib, hmac, time
+                code: `import os
 
-def verify(body: bytes, header: str, secret: str, tolerance: int = 300) -> bool:
-    parts = dict(p.split("=", 1) for p in header.split(","))
-    t, v1 = int(parts["t"]), parts["v1"]
-    if abs(time.time() - t) > tolerance:
-        return False
-    expected = hmac.new(secret.encode(), f"{t}.".encode() + body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, v1)`,
+from flask import request
+from ${SITE.pythonPackage} import WebhookVerificationError, construct_event
+
+@app.post("/hooks/pluck")
+def hook():
+    try:
+        event = construct_event(
+            request.get_data(),                # the raw body, not parsed JSON
+            request.headers.get("${SIGNATURE}"),
+            os.environ["PLUCK_WEBHOOK_SECRET"],
+        )
+    except WebhookVerificationError:
+        return "", 401
+
+    # event.id is stable across retries — use it to ignore duplicates.
+    return "", 200`,
               },
             ]}
           />

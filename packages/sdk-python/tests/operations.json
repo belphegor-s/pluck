@@ -1,0 +1,127 @@
+[
+  {
+    "id": "brand",
+    "method": "GET",
+    "path": "/v1/brand"
+  },
+  {
+    "id": "classify",
+    "method": "POST",
+    "path": "/v1/brand/classify"
+  },
+  {
+    "id": "crawlCancel",
+    "method": "DELETE",
+    "path": "/v1/crawl/{id}"
+  },
+  {
+    "id": "crawlGet",
+    "method": "GET",
+    "path": "/v1/crawl/{id}"
+  },
+  {
+    "id": "crawlStart",
+    "method": "POST",
+    "path": "/v1/crawl"
+  },
+  {
+    "id": "extract",
+    "method": "POST",
+    "path": "/v1/extract"
+  },
+  {
+    "id": "map",
+    "method": "POST",
+    "path": "/v1/map"
+  },
+  {
+    "id": "monitorChanges",
+    "method": "GET",
+    "path": "/v1/monitors/{id}/changes"
+  },
+  {
+    "id": "monitorCreate",
+    "method": "POST",
+    "path": "/v1/monitors"
+  },
+  {
+    "id": "monitorDelete",
+    "method": "DELETE",
+    "path": "/v1/monitors/{id}"
+  },
+  {
+    "id": "monitorGet",
+    "method": "GET",
+    "path": "/v1/monitors/{id}"
+  },
+  {
+    "id": "monitorList",
+    "method": "GET",
+    "path": "/v1/monitors"
+  },
+  {
+    "id": "monitorUpdate",
+    "method": "PATCH",
+    "path": "/v1/monitors/{id}"
+  },
+  {
+    "id": "parse",
+    "method": "POST",
+    "path": "/v1/parse"
+  },
+  {
+    "id": "product",
+    "method": "POST",
+    "path": "/v1/extract/product"
+  },
+  {
+    "id": "products",
+    "method": "POST",
+    "path": "/v1/extract/products"
+  },
+  {
+    "id": "scrape",
+    "method": "POST",
+    "path": "/v1/scrape"
+  },
+  {
+    "id": "screenshot",
+    "method": "POST",
+    "path": "/v1/screenshot"
+  },
+  {
+    "id": "search",
+    "method": "POST",
+    "path": "/v1/search"
+  },
+  {
+    "id": "styleguide",
+    "method": "POST",
+    "path": "/v1/styleguide"
+  },
+  {
+    "id": "transaction",
+    "method": "POST",
+    "path": "/v1/brand/transaction"
+  },
+  {
+    "id": "usage",
+    "method": "GET",
+    "path": "/v1/usage"
+  },
+  {
+    "id": "webhookDeliveries",
+    "method": "GET",
+    "path": "/v1/webhooks/deliveries"
+  },
+  {
+    "id": "webhookRedeliver",
+    "method": "POST",
+    "path": "/v1/webhooks/deliveries/{id}/redeliver"
+  },
+  {
+    "id": "webhookTest",
+    "method": "POST",
+    "path": "/v1/webhooks/test"
+  }
+]

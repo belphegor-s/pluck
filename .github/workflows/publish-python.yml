@@ -1,0 +1,50 @@
+name: Publish Python SDK
+
+# Push a tag such as `python-v0.1.0` to publish packages/sdk-python to PyPI.
+# Uses PyPI trusted publishing: no token is stored in the repository. The
+# publisher is configured once on pypi.org for this repo, this workflow file
+# and the `pypi` environment.
+
+on:
+  push:
+    tags: ["python-v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: packages/sdk-python
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+
+      - name: Tag matches the package version
+        run: |
+          version=$(uv run --no-project python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if [ "python-v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match pyproject version $version" >&2
+            exit 1
+          fi
+          grep -q "__version__ = \"$version\"" src/pluckai/_version.py || {
+            echo "src/pluckai/_version.py is not $version" >&2
+            exit 1
+          }
+
+      - name: Test
+        run: uv run --group dev pytest -q
+
+      - name: Build
+        run: uv build
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/sdk-python/dist

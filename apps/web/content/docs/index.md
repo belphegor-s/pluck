@@ -36,6 +36,8 @@ Every response has the same shape: `data` for the result, `meta` for what it cos
 
 ## 3. Use it from your language
 
+TypeScript, with `npm install @pluckai/sdk`:
+
 ```ts
 import { Pluck } from "@pluckai/sdk";
 
@@ -43,6 +45,18 @@ const pluck = new Pluck();                       // reads PLUCK_API_KEY
 const page = await pluck.scrape({ url: "https://example.com" });
 console.log(page.markdown, page.$meta.creditsUsed);
 ```
+
+Python, with `pip install pluckai`:
+
+```python
+from pluckai import Pluck
+
+pluck = Pluck()                                  # reads PLUCK_API_KEY
+page = pluck.scrape("https://example.com")
+print(page.markdown, page.meta.credits_used)
+```
+
+Both retry rate limits and gateway errors, raise typed errors carrying the request id, and verify webhook signatures. The Python client also has an `AsyncPluck` for asyncio; see its [README](https://github.com/belphegor-s/pluck/tree/main/packages/sdk-python).
 
 ## What to read next
 

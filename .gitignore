@@ -17,3 +17,10 @@ ROADMAP.md
 
 # Generated npm bundle for @pluckai/mcp (built by scripts/bundle.mjs).
 apps/mcp/npm
+
+# Python SDK
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/

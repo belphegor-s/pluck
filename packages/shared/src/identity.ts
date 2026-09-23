@@ -27,6 +27,8 @@ const config = {
   /** Published names. The workspace uses `@pluck/*` internally. */
   npmPackage: "@pluckai/sdk",
   npmMcpPackage: "@pluckai/mcp",
+  /** PyPI distribution; also the Python import name. */
+  pythonPackage: "pluckai",
 } as const;
 
 const env = (key: string): string | undefined => {

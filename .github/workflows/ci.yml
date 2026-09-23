@@ -38,6 +38,32 @@ jobs:
       - name: Test
         run: pnpm test
 
+  python-sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.13"]
+    defaults:
+      run:
+        working-directory: packages/sdk-python
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Lint
+        run: uv run --group dev ruff check . && uv run --group dev ruff format --check .
+
+      - name: Test
+        run: uv run --group dev pytest -q
+
+      - name: Build
+        run: uv build
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 40
