@@ -186,6 +186,17 @@ export class Pluck {
     changes: (id: string, page: { cursor?: string; limit?: number } = {}) =>
       this.request<"monitorChanges">("GET", `/v1/monitors/${id}/changes`, undefined, page),
   };
+
+  webhooks = {
+    /** Every webhook sent in the last 30 days, with its last response. */
+    deliveries: (page: { cursor?: string; limit?: number } = {}) =>
+      this.request<"webhookDeliveries">("GET", "/v1/webhooks/deliveries", undefined, page),
+    /** Sends a delivery again with its original payload and a fresh signature. */
+    redeliver: (id: string) =>
+      this.request<"webhookRedeliver">("POST", `/v1/webhooks/deliveries/${id}/redeliver`),
+    /** Sends a signed `webhook.test` event to `url`. */
+    test: (url: string) => this.request<"webhookTest">("POST", "/v1/webhooks/test", { url }),
+  };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
