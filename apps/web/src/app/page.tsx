@@ -2,6 +2,7 @@ import { endpoints } from "@pluck/shared";
 import Link from "next/link";
 import { CodeBlock, CodeTabs } from "@/components/code-tabs";
 import { HeroDemo } from "@/components/hero-demo";
+import { HeroField } from "@/components/hero-field";
 import { SITE } from "@/lib/site";
 
 const menuRows = [
@@ -113,43 +114,46 @@ const extractSample = [
 export default function HomePage() {
   return (
     <>
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-20">
-        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-          <div>
-            <h1 className="max-w-[17ch] text-4xl sm:text-[3.3rem]">
-              Give your model the page, not the HTML.
-            </h1>
-            <p className="prose-pluck mt-6 text-lg text-[var(--ink-soft)]">
-              Pluck reads any URL the way a person would — running the JavaScript, skipping the
-              cookie banner, keeping the tables — and hands back markdown, JSON, links or a
-              screenshot. One call, one credit.
-            </p>
-            {/* Side by side once there is room; stacked and full width on a
+      <div className="relative isolate overflow-hidden">
+        <HeroField />
+        <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-20">
+          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+            <div data-hero-copy>
+              <h1 className="max-w-[17ch] text-4xl sm:text-[3.3rem]">
+                Give your model the page, not the HTML.
+              </h1>
+              <p className="prose-pluck mt-6 text-lg text-[var(--ink-soft)]">
+                Pluck reads any URL the way a person would — running the JavaScript, skipping the
+                cookie banner, keeping the tables — and hands back markdown, JSON, links or a
+                screenshot. One call, one credit.
+              </p>
+              {/* Side by side once there is room; stacked and full width on a
                 phone, where a half-width button is a small target. */}
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <Link
-                href="/dashboard"
-                className="bg-[var(--ink)] px-5 py-3 text-center text-[var(--paper)] transition-opacity hover:opacity-85 sm:py-2.5"
-              >
-                Start with 1,000 free credits
-              </Link>
-              <Link
-                href={SITE.repo}
-                className="border border-[var(--line)] px-5 py-3 text-center transition-colors hover:border-[var(--ink)] sm:py-2.5"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Read the source
-              </Link>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <Link
+                  href="/dashboard"
+                  className="bg-[var(--ink)] px-5 py-3 text-center text-[var(--paper)] transition-opacity hover:opacity-85 sm:py-2.5"
+                >
+                  Start with 1,000 free credits
+                </Link>
+                <Link
+                  href={SITE.repo}
+                  className="border border-[var(--line)] px-5 py-3 text-center transition-colors hover:border-[var(--ink)] sm:py-2.5"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Read the source
+                </Link>
+              </div>
+              <p className="mt-5 text-sm text-[var(--ink-faint)]">
+                No subscription. Credits do not expire. Every endpoint works the same on your own
+                server.
+              </p>
             </div>
-            <p className="mt-5 text-sm text-[var(--ink-faint)]">
-              No subscription. Credits do not expire. Every endpoint works the same on your own
-              server.
-            </p>
+            <HeroDemo />
           </div>
-          <HeroDemo />
-        </div>
-      </section>
+        </section>
+      </div>
 
       <section className="border-y border-[var(--line)] bg-[var(--sheet)]">
         <div className="mx-auto grid max-w-6xl gap-x-12 gap-y-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr]">
