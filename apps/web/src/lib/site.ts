@@ -1,4 +1,4 @@
-import { BRAND } from "@pluck/shared";
+import { BRAND, safeRedirect } from "@pluck/shared";
 
 /**
  * All product naming comes from `packages/shared/src/identity.ts`.
@@ -37,3 +37,6 @@ export function siteUrl(path: string, params?: Record<string, string>): URL {
   for (const [key, value] of Object.entries(params ?? {})) url.searchParams.set(key, value);
   return url;
 }
+
+/** Same-site redirect targets only; see `safeRedirect`. */
+export const safeNext = safeRedirect;

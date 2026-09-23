@@ -1,9 +1,8 @@
 import { creditPacks } from "@pluck/shared";
 import { Polar } from "@polar-sh/sdk";
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { SITE } from "@/lib/site";
+import { can, getWorkspace } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,8 +11,13 @@ export const dynamic = "force-dynamic";
 const productFor = (packId: string) => process.env[`POLAR_PRODUCT_${packId.toUpperCase()}`];
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const ctx = await getWorkspace();
+  if (!ctx) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  if (!can.manageBilling(ctx.workspace.role))
+    return NextResponse.json(
+      { error: "Only workspace owners and admins can manage billing." },
+      { status: 403 },
+    );
 
   const token = process.env.POLAR_ACCESS_TOKEN;
   const { packId } = (await request.json().catch(() => ({}))) as { packId?: string };
@@ -32,10 +36,13 @@ export async function POST(request: Request) {
   });
   const checkout = await polar.checkouts.create({
     products: [productId],
-    externalCustomerId: session.user.id,
-    customerEmail: session.user.email,
+    // The workspace is the customer. A personal workspace's id is its user's
+    // id, so accounts that bought before workspaces existed stay one customer.
+    externalCustomerId: ctx.workspace.id,
+    customerEmail: ctx.user.email,
     successUrl: `${SITE.url}/dashboard/billing?purchase=success`,
-    metadata: { userId: session.user.id, pack: pack.id },
+    // orgId decides whose credits these are; userId records who paid.
+    metadata: { orgId: ctx.workspace.id, userId: ctx.user.id, pack: pack.id },
   });
   return NextResponse.json({ url: checkout.url });
 }

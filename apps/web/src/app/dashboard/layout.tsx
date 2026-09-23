@@ -1,30 +1,32 @@
-import { users } from "@pluck/db";
-import { eq } from "drizzle-orm";
-import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { AppShell } from "@/components/dashboard/app-shell";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { SIDEBAR_COOKIE } from "@/lib/sidebar";
+import { requireWorkspace } from "@/lib/workspace";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) redirect("/login?next=/dashboard");
-
-  const [[account], jar] = await Promise.all([
-    db.select({ credits: users.credits }).from(users).where(eq(users.id, session.user.id)),
-    cookies(),
-  ]);
+  const [{ user, workspace, workspaces }, jar] = await Promise.all([requireWorkspace(), cookies()]);
 
   return (
     <AppShell
       initialCollapsed={jar.get(SIDEBAR_COOKIE)?.value === "collapsed"}
       user={{
-        name: session.user.name ?? "",
-        email: session.user.email,
-        image: session.user.image ?? null,
-        credits: account?.credits ?? 0,
+        name: user.name ?? "",
+        email: user.email,
+        image: user.image,
+        credits: workspace.credits,
       }}
+      workspace={{
+        id: workspace.id,
+        name: workspace.name,
+        personal: workspace.personal,
+        role: workspace.role,
+      }}
+      workspaces={workspaces.map((w) => ({
+        id: w.id,
+        name: w.name,
+        personal: w.personal,
+        role: w.role,
+      }))}
     >
       {children}
     </AppShell>

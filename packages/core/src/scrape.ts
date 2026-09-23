@@ -34,7 +34,7 @@ export interface ScraperDeps {
   /** The caller's own proxies, when they have configured any. */
   proxies?: ProxyPool | null;
   /** Passed to the renderer so it can resolve the same pool for a browser. */
-  userId?: string;
+  orgId?: string;
 }
 
 export interface ScrapeOutcome {
@@ -186,7 +186,7 @@ export class Scraper {
           url,
           timeout: req.timeout,
           proxy,
-          userId: this.deps.userId,
+          orgId: this.deps.orgId,
           country: req.country,
           mobile: req.mobile,
           blockAds: req.blockAds,

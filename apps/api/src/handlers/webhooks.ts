@@ -26,7 +26,7 @@ export const webhookDeliveriesList = handler("webhookDeliveries", {
       .from(webhookDeliveries)
       .where(
         and(
-          eq(webhookDeliveries.userId, caller.userId),
+          eq(webhookDeliveries.orgId, caller.orgId),
           cursor ? lt(webhookDeliveries.id, cursor) : undefined,
         ),
       )
@@ -46,7 +46,7 @@ export const webhookDeliveriesList = handler("webhookDeliveries", {
 export const webhookRedeliver = handler("webhookRedeliver", {
   estimate: () => 0,
   async run({ s, caller }, { id }) {
-    const row = await redeliverWebhook(s.db, s.queues, caller.userId, id);
+    const row = await redeliverWebhook(s.db, s.queues, caller.orgId, id);
     return { data: toDelivery(row), credits: 0, status: 202 };
   },
 });
@@ -59,7 +59,7 @@ export const webhookTest = handler("webhookTest", {
     // address is an immediate 403 and not a failed delivery minutes later.
     assertPublicUrl(url, s.config.ALLOW_PRIVATE_NETWORK);
     const id = await enqueueWebhook(s.db, s.queues, {
-      userId: caller.userId,
+      orgId: caller.orgId,
       url,
       event: "webhook.test",
       payload: {

@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignInWithGitHub } from "@/components/sign-in";
 import { auth } from "@/lib/auth";
-import { SITE } from "@/lib/site";
+import { SITE, safeNext } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
 
@@ -14,7 +14,7 @@ export default async function LoginPage({
 }) {
   const { next, error } = await searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session?.user) redirect(next && next.startsWith("/") ? next : "/dashboard");
+  if (session?.user) redirect(safeNext(next));
 
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 py-20 sm:px-6">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/dashboard/icons";
+import { type ShellWorkspace, WorkspaceSwitcher } from "@/components/dashboard/workspace-switcher";
 import { Wordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme";
 import { signOut } from "@/lib/auth-client";
@@ -40,6 +41,13 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/dashboard/invoices", label: "Invoices", icon: "invoices" },
     ],
   },
+  {
+    label: "Workspace",
+    items: [
+      { href: "/dashboard/team", label: "Team", icon: "team" },
+      { href: "/dashboard/settings", label: "Settings", icon: "settings" },
+    ],
+  },
 ];
 
 const RESOURCES: NavItem[] = [
@@ -72,10 +80,14 @@ export interface ShellUser {
 export function AppShell({
   user,
   initialCollapsed,
+  workspace,
+  workspaces,
   children,
 }: {
   user: ShellUser;
   initialCollapsed: boolean;
+  workspace: ShellWorkspace;
+  workspaces: ShellWorkspace[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -158,7 +170,13 @@ export function AppShell({
             <Icon name={collapsed ? "expand" : "collapse"} />
           </button>
         </div>
-        <SidebarBody pathname={pathname} collapsed={collapsed} user={user} />
+        <SidebarBody
+          pathname={pathname}
+          collapsed={collapsed}
+          user={user}
+          workspace={workspace}
+          workspaces={workspaces}
+        />
       </aside>
 
       {/* Phones and tablets: no bar, just a button in thumb reach that opens the sidebar. */}
@@ -211,7 +229,13 @@ export function AppShell({
               <Icon name="close" />
             </button>
           </div>
-          <SidebarBody pathname={pathname} collapsed={false} user={user} />
+          <SidebarBody
+            pathname={pathname}
+            collapsed={false}
+            user={user}
+            workspace={workspace}
+            workspaces={workspaces}
+          />
         </div>
       </div>
 
@@ -229,13 +253,18 @@ function SidebarBody({
   pathname,
   collapsed,
   user,
+  workspace,
+  workspaces,
 }: {
   pathname: string;
   collapsed: boolean;
   user: ShellUser;
+  workspace: ShellWorkspace;
+  workspaces: ShellWorkspace[];
 }) {
   return (
     <>
+      <WorkspaceSwitcher current={workspace} workspaces={workspaces} collapsed={collapsed} />
       <nav
         aria-label="Dashboard"
         // Folded, the tooltips reach past the rail, so the list must not clip them.

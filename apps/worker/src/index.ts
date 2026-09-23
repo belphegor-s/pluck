@@ -1,7 +1,16 @@
 import { credentialFromEnv } from "@pluck/ai";
 import type { RenderRequest } from "@pluck/core";
 import { assertPublicUrl, createSafeLookup, HttpClient, ProxyPool, RobotsCache } from "@pluck/core";
-import { crawls, createDb, monitorChanges, usageEvents, users, webhookDeliveries } from "@pluck/db";
+import {
+  crawls,
+  createDb,
+  members,
+  monitorChanges,
+  organizations,
+  usageEvents,
+  users,
+  webhookDeliveries,
+} from "@pluck/db";
 import {
   attemptDelivery,
   type CrawlJobData,
@@ -21,9 +30,9 @@ import {
   UsageRecorder,
   type WebhookJobData,
 } from "@pluck/runtime";
-import { BRAND } from "@pluck/shared";
+import { BRAND, OWNER_USER_ID } from "@pluck/shared";
 import { type ConnectionOptions, Worker } from "bullmq";
-import { and, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { Agent } from "undici";
 import { BrowserPool } from "./browser.js";
 import { runCrawl } from "./crawl.js";
@@ -53,7 +62,7 @@ const browser = new BrowserPool({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   log,
   // A render job carries a user id; the credentials are read here.
-  poolFor: (userId) => proxyDirectory.forUser(userId),
+  poolFor: (orgId) => proxyDirectory.forOrg(orgId),
 });
 const mailer = createMailer(config);
 const credits = new Credits(db, config.BILLING_ENABLED);
@@ -156,44 +165,61 @@ async function alertOnBacklog() {
 }
 
 /**
- * Warns accounts that are about to run out of credits.
+ * Warns the owners and admins of each workspace about to run out of credits.
  *
  * `lowBalanceNotifiedAt` is cleared whenever credits are granted, so topping up
  * re-arms the warning and nobody gets the same email twice for one dip.
  */
 async function warnLowBalances() {
   if (!config.BILLING_ENABLED || !mailer.enabled) return;
-  const rows = await db
-    .select({ id: users.id, email: users.email, name: users.name, credits: users.credits })
-    .from(users)
+  const low = await db
+    .select({
+      id: organizations.id,
+      name: organizations.name,
+      personal: organizations.personal,
+      credits: organizations.credits,
+    })
+    .from(organizations)
     .where(
       and(
-        lt(users.credits, config.LOW_BALANCE_CREDITS),
-        isNull(users.lowBalanceNotifiedAt),
-        eq(users.role, "user"),
+        lt(organizations.credits, config.LOW_BALANCE_CREDITS),
+        isNull(organizations.lowBalanceNotifiedAt),
+        // The self-hosted operator's own workspace is not a customer.
+        ne(organizations.id, OWNER_USER_ID),
       ),
     )
     .limit(200);
 
-  for (const row of rows) {
-    const sent = await mailer.send({
-      to: row.email,
-      subject: `Your ${BRAND.name} balance is running low`,
-      text: [
-        `Hi ${row.name || "there"},`,
-        "",
-        `Your account has ${row.credits.toLocaleString("en-US")} credits left, so calls will start failing with insufficient_credits once it reaches zero.`,
-        "",
-        `Top up: ${config.PUBLIC_WEB_URL}/dashboard/billing`,
-        "",
-        "Credits never expire and there is no subscription — you only pay for what you use.",
-      ].join("\n"),
-    });
-    // Mark it either way: a broken mailbox should not mean a mail every hour.
-    await db.update(users).set({ lowBalanceNotifiedAt: new Date() }).where(eq(users.id, row.id));
-    if (!sent.ok) log.warn({ userId: row.id, err: sent.error }, "low balance email failed");
+  for (const org of low) {
+    const recipients = await db
+      .select({ email: users.email, name: users.name })
+      .from(members)
+      .innerJoin(users, eq(users.id, members.userId))
+      .where(and(eq(members.orgId, org.id), inArray(members.role, ["owner", "admin"])));
+    const where = org.personal ? "Your account" : `The ${org.name} workspace`;
+    for (const person of recipients) {
+      const sent = await mailer.send({
+        to: person.email,
+        subject: `${org.personal ? "Your" : org.name} ${BRAND.name} balance is running low`,
+        text: [
+          `Hi ${person.name || "there"},`,
+          "",
+          `${where} has ${org.credits.toLocaleString("en-US")} credits left, so calls will start failing with insufficient_credits once it reaches zero.`,
+          "",
+          `Top up: ${config.PUBLIC_WEB_URL}/dashboard/billing`,
+          "",
+          "Credits never expire and there is no subscription — you only pay for what you use.",
+        ].join("\n"),
+      });
+      if (!sent.ok) log.warn({ orgId: org.id, err: sent.error }, "low balance email failed");
+    }
+    // Mark it either way: a broken mailbox should not mean a mail every six hours.
+    await db
+      .update(organizations)
+      .set({ lowBalanceNotifiedAt: new Date() })
+      .where(eq(organizations.id, org.id));
   }
-  if (rows.length) log.info({ warned: rows.length }, "low balance warnings sent");
+  if (low.length) log.info({ warned: low.length }, "low balance warnings sent");
 }
 
 if (roles.has("maintenance")) {

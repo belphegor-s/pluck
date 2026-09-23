@@ -1,12 +1,12 @@
-import { users } from "@pluck/db";
+import { organizations } from "@pluck/db";
 import { CREDIT_USD } from "@pluck/shared";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { AdminsOnly } from "@/components/dashboard/admins-only";
 import { db } from "@/lib/db";
 import { formatNumber, formatUsd } from "@/lib/format";
-import { purchasesForUser } from "@/lib/polar";
+import { purchasesForWorkspace } from "@/lib/polar";
+import { can, requireWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Invoices" };
 export const dynamic = "force-dynamic";
@@ -29,13 +29,25 @@ export default async function InvoicesPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const { workspace } = await requireWorkspace();
+  // Receipts carry billing names and addresses, so they stay with the people
+  // who pay; nothing is fetched from the payment provider for anyone else.
+  if (!can.manageBilling(workspace.role))
+    return (
+      <div className="space-y-4">
+        <h2 className="text-lg">Invoices</h2>
+        <AdminsOnly what="see invoices and payment details" />
+      </div>
+    );
   const { error } = await searchParams;
-  const userId = session!.user.id;
+  const orgId = workspace.id;
 
   const [[account], purchases] = await Promise.all([
-    db.select({ credits: users.credits }).from(users).where(eq(users.id, userId)),
-    purchasesForUser(userId),
+    db
+      .select({ credits: organizations.credits })
+      .from(organizations)
+      .where(eq(organizations.id, orgId)),
+    purchasesForWorkspace(orgId),
   ]);
 
   const spent = purchases.reduce((total, p) => total + (p.status === "paid" ? p.amount : 0), 0);

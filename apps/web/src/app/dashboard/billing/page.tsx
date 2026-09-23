@@ -1,13 +1,13 @@
-import { creditLedger, users } from "@pluck/db";
+import { creditLedger, organizations } from "@pluck/db";
 import { CREDIT_USD } from "@pluck/shared";
 import { desc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import Link from "next/link";
+import { AdminsOnly } from "@/components/dashboard/admins-only";
 import { BuyCredits } from "@/components/dashboard/buy-credits";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/format";
 import { orderIdFromReference } from "@/lib/polar";
+import { can, requireWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Credits" };
 export const dynamic = "force-dynamic";
@@ -24,16 +24,20 @@ export default async function BillingPage({
 }: {
   searchParams: Promise<{ purchase?: string }>;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const { workspace } = await requireWorkspace();
+  const billing = can.manageBilling(workspace.role);
   const { purchase } = await searchParams;
-  const userId = session!.user.id;
+  const orgId = workspace.id;
 
   const [[account], ledger] = await Promise.all([
-    db.select({ credits: users.credits }).from(users).where(eq(users.id, userId)),
+    db
+      .select({ credits: organizations.credits })
+      .from(organizations)
+      .where(eq(organizations.id, orgId)),
     db
       .select()
       .from(creditLedger)
-      .where(eq(creditLedger.userId, userId))
+      .where(eq(creditLedger.orgId, orgId))
       .orderBy(desc(creditLedger.id))
       .limit(20),
   ]);
@@ -62,9 +66,7 @@ export default async function BillingPage({
         <p className="mt-1 text-sm text-[var(--ink-soft)]">
           Bigger packs carry a bonus. Payments are handled by Polar.
         </p>
-        <div className="mt-4">
-          <BuyCredits />
-        </div>
+        <div className="mt-4">{billing ? <BuyCredits /> : <AdminsOnly what="buy credits" />}</div>
         <p className="mt-3 text-sm text-[var(--ink-soft)]">
           Need millions of credits, an invoice or a dedicated region?{" "}
           <Link href="/enterprise" className="text-[var(--accent)] underline underline-offset-4">
@@ -117,7 +119,7 @@ export default async function BillingPage({
                         {row.amountUsdCents ? `$${(row.amountUsdCents / 100).toFixed(2)}` : "—"}
                       </td>
                       <td className="px-3 py-2 text-xs">
-                        {orderId ? (
+                        {orderId && billing ? (
                           <a
                             href={`/api/invoice/${orderId}`}
                             className="text-[var(--accent)] underline underline-offset-4"

@@ -1,4 +1,4 @@
-import { users } from "@pluck/db";
+import { organizations } from "@pluck/db";
 import { rateLimit } from "@pluck/runtime";
 import {
   BRAND,
@@ -125,28 +125,33 @@ export function publicRouter(s: Services) {
       const order = event.data;
       // Checkout metadata wins: a Polar organization can already hold customers
       // whose `externalId` belongs to a different product of the same seller.
-      const userId = (order.metadata?.userId as string | undefined) ?? order.customer.externalId;
+      // orgId since workspaces; before them userId, which is the id of that
+      // user's personal workspace, so older orders still land in the right place.
+      const orgId =
+        (order.metadata?.orgId as string | undefined) ??
+        (order.metadata?.userId as string | undefined) ??
+        order.customer.externalId;
       const packId =
         (order.product?.metadata?.pack as string | undefined) ??
         (order.metadata?.pack as string | undefined);
       const pack = creditPacks.find((p) => p.id === packId);
-      if (!userId || !pack) {
-        s.log.error({ orderId: order.id, userId, packId }, "polar order without user or pack");
+      if (!orgId || !pack) {
+        s.log.error({ orderId: order.id, orgId, packId }, "polar order without workspace or pack");
         return c.json({ ok: false }, 202);
       }
-      const [user] = await s.db.select({ id: users.id }).from(users).where(eq(users.id, userId));
-      if (!user) return c.json({ ok: false, reason: "unknown user" }, 202);
+      const [org] = await s.db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.id, orgId));
+      if (!org) return c.json({ ok: false, reason: "unknown workspace" }, 202);
       const granted = await s.credits.grant(
-        userId,
+        orgId,
         pack.credits,
         "purchase",
         `polar:${order.id}`,
         order.totalAmount,
       );
-      s.log.info(
-        { orderId: order.id, userId, credits: pack.credits, granted },
-        "credits purchased",
-      );
+      s.log.info({ orderId: order.id, orgId, credits: pack.credits, granted }, "credits purchased");
     }
     return c.json({ ok: true });
   });

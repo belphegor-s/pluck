@@ -1,19 +1,23 @@
 import { creditLedger } from "@pluck/db";
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { invoiceUrl } from "@/lib/polar";
 import { siteUrl } from "@/lib/site";
+import { can, getWorkspace } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Redirects to the invoice for one order, after checking the caller owns it. */
+/** Redirects to the invoice for one order, after checking the workspace owns it. */
 export async function GET(_request: Request, { params }: { params: Promise<{ orderId: string }> }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const ctx = await getWorkspace();
+  if (!ctx) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  if (!can.manageBilling(ctx.workspace.role))
+    return NextResponse.json(
+      { error: "Only workspace owners and admins can manage billing." },
+      { status: 403 },
+    );
 
   const { orderId } = await params;
   // The ledger row is the proof of ownership: it is written from the webhook,
@@ -22,7 +26,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ord
     .select({ id: creditLedger.id })
     .from(creditLedger)
     .where(
-      and(eq(creditLedger.userId, session.user.id), eq(creditLedger.reference, `polar:${orderId}`)),
+      and(eq(creditLedger.orgId, ctx.workspace.id), eq(creditLedger.reference, `polar:${orderId}`)),
     );
   if (!row) return NextResponse.json({ error: "Order not found." }, { status: 404 });
 

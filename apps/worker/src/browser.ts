@@ -34,7 +34,7 @@ export interface BrowserPoolOptions {
    * user id, so proxy credentials are read here rather than passed through the
    * queue.
    */
-  poolFor?: (userId: string) => Promise<ProxyPool>;
+  poolFor?: (orgId: string) => Promise<ProxyPool>;
 }
 
 /**
@@ -125,8 +125,8 @@ export class BrowserPool implements Renderer {
     try {
       const browser = await this.launch();
       const pool =
-        req.userId && this.opts.poolFor
-          ? await this.opts.poolFor(req.userId).catch(() => this.opts.proxies)
+        req.orgId && this.opts.poolFor
+          ? await this.opts.poolFor(req.orgId).catch(() => this.opts.proxies)
           : this.opts.proxies;
       const proxy = req.proxy === "none" ? null : pool.pick(req.proxy, { country: req.country });
       const viewport =

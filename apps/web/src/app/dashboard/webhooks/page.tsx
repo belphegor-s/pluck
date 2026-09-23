@@ -1,17 +1,16 @@
-import { users, webhookDeliveries } from "@pluck/db";
+import { organizations, webhookDeliveries } from "@pluck/db";
 import { BRAND } from "@pluck/shared";
 import { desc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { CodeTabs } from "@/components/code-tabs";
 import {
   RedeliverButton,
   SigningSecret,
   TestWebhookForm,
 } from "@/components/dashboard/webhook-forms";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { timeAgo } from "@/lib/format";
 import { SITE } from "@/lib/site";
+import { can, requireWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Webhooks" };
 export const dynamic = "force-dynamic";
@@ -25,14 +24,17 @@ const STATUS = {
 const SIGNATURE = BRAND.header("signature");
 
 export default async function WebhooksPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session!.user.id;
+  const { workspace } = await requireWorkspace();
+  const orgId = workspace.id;
   const [[account], deliveries] = await Promise.all([
-    db.select({ secret: users.webhookSecret }).from(users).where(eq(users.id, userId)),
+    db
+      .select({ secret: organizations.webhookSecret })
+      .from(organizations)
+      .where(eq(organizations.id, orgId)),
     db
       .select()
       .from(webhookDeliveries)
-      .where(eq(webhookDeliveries.userId, userId))
+      .where(eq(webhookDeliveries.orgId, orgId))
       .orderBy(desc(webhookDeliveries.createdAt))
       .limit(100),
   ]);
@@ -136,7 +138,10 @@ export default async function WebhooksPage() {
           not match, or is more than five minutes old.
         </p>
         <div className="mt-4 max-w-2xl">
-          <SigningSecret secret={account?.secret ?? ""} />
+          <SigningSecret
+            secret={account?.secret ?? ""}
+            canRotate={can.manageCredentials(workspace.role)}
+          />
         </div>
         <div className="mt-6">
           <CodeTabs

@@ -35,7 +35,7 @@ export const scrape = handler("scrape", {
       }
     }
 
-    const scraper = await s.scraperFor(caller.userId, llm);
+    const scraper = await s.scraperFor(caller.orgId, llm);
     const { result, usage } = await scraper.scrape(req);
     if (cacheable(req) && result.metadata.statusCode < 400) {
       void s.cache.set(key, result, Math.max(maxAge, 3_600)).catch(() => {});
@@ -105,7 +105,7 @@ export const screenshot = handler("screenshot", {
         return { data: hit.value, credits: credits.scrape, cached: true };
     }
 
-    const scraper = await s.scraperFor(caller.userId);
+    const scraper = await s.scraperFor(caller.orgId);
     const { result, usage } = await scraper.scrape({
       url: req.url,
       formats: ["screenshot"],

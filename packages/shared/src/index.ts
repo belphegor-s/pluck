@@ -7,3 +7,4 @@ export * from "./identity.js";
 export * from "./jobs.js";
 export * from "./openapi.js";
 export * from "./scrape.js";
+export * from "./workspace.js";

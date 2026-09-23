@@ -38,14 +38,14 @@ export interface Purchase {
  * The account's purchases, joined from our ledger to Polar.
  *
  * The ledger is the list of what we actually granted credits for, so it — not
- * Polar's customer record — decides what belongs to this user. Polar then fills
+ * Polar's customer record — decides what belongs to this workspace. Polar then fills
  * in what only it knows: tax, invoice number, refunds.
  */
-export async function purchasesForUser(userId: string): Promise<Purchase[]> {
+export async function purchasesForWorkspace(orgId: string): Promise<Purchase[]> {
   const rows = await db
     .select()
     .from(creditLedger)
-    .where(and(eq(creditLedger.userId, userId), like(creditLedger.reference, "polar:%")))
+    .where(and(eq(creditLedger.orgId, orgId), like(creditLedger.reference, "polar:%")))
     .orderBy(desc(creditLedger.id))
     .limit(50);
 
@@ -91,15 +91,15 @@ export async function purchasesForUser(userId: string): Promise<Purchase[]> {
  * Not by `externalCustomerId`: Polar matches an existing customer by email at
  * checkout, and that customer may already carry someone else's external id —
  * which is exactly why looking it up that way always failed. The customer on an
- * order we granted credits for is the one that belongs to this user.
+ * order we granted credits for is the one that belongs to this workspace.
  */
-async function customerIdForUser(userId: string): Promise<string | null> {
+async function customerIdForWorkspace(orgId: string): Promise<string | null> {
   const polar = polarClient();
   if (!polar) return null;
   const [row] = await db
     .select()
     .from(creditLedger)
-    .where(and(eq(creditLedger.userId, userId), like(creditLedger.reference, "polar:%")))
+    .where(and(eq(creditLedger.orgId, orgId), like(creditLedger.reference, "polar:%")))
     .orderBy(desc(creditLedger.id))
     .limit(1);
   const orderId = orderIdFromReference(row?.reference ?? null);
@@ -117,10 +117,10 @@ export type PortalResult =
   | { ok: false; reason: "disabled" | "no-purchases" | "failed" };
 
 /** A session on Polar's hosted portal: payment methods and past receipts. */
-export async function customerPortal(userId: string): Promise<PortalResult> {
+export async function customerPortal(orgId: string): Promise<PortalResult> {
   const polar = polarClient();
   if (!polar) return { ok: false, reason: "disabled" };
-  const customerId = await customerIdForUser(userId);
+  const customerId = await customerIdForWorkspace(orgId);
   if (!customerId) return { ok: false, reason: "no-purchases" };
   try {
     const session = await polar.customerSessions.create({ customerId });

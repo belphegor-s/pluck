@@ -95,24 +95,24 @@ export class ProxyDirectory {
     return this.box.open(sealed);
   }
 
-  invalidate(userId: string) {
-    this.cache.delete(userId);
+  invalidate(orgId: string) {
+    this.cache.delete(orgId);
   }
 
   /** The pool for one caller, or the instance pool when they have none. */
-  async forUser(userId: string): Promise<ProxyPool> {
-    const cached = this.cache.get(userId);
+  async forOrg(orgId: string): Promise<ProxyPool> {
+    const cached = this.cache.get(orgId);
     if (cached && Date.now() - cached.at < this.ttlMs) return cached.pool ?? this.fallback;
 
     const rows = await this.db
       .select()
       .from(userProxies)
-      .where(and(eq(userProxies.userId, userId), eq(userProxies.active, true)))
+      .where(and(eq(userProxies.orgId, orgId), eq(userProxies.active, true)))
       .orderBy(asc(userProxies.id));
 
     const usable = rows.filter((row) => row.failures < FAILURE_LIMIT);
     if (usable.length === 0) {
-      this.cache.set(userId, { at: Date.now(), pool: null });
+      this.cache.set(orgId, { at: Date.now(), pool: null });
       return this.fallback;
     }
 
@@ -131,7 +131,7 @@ export class ProxyDirectory {
         ? config.residential
         : this.fallback.urls("residential"),
     });
-    this.cache.set(userId, { at: Date.now(), pool });
+    this.cache.set(orgId, { at: Date.now(), pool });
     return pool;
   }
 }

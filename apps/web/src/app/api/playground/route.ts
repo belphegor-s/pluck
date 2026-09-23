@@ -1,23 +1,22 @@
 import { type EndpointId, endpoints } from "@pluck/shared";
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { internalHeaders } from "@/lib/api";
-import { auth } from "@/lib/auth";
 import { SITE } from "@/lib/site";
+import { getWorkspace } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Runs a playground call as the signed-in user, so usage and credits are theirs. */
+/** Runs a playground call in the signed-in user's current workspace, which it bills. */
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user)
+  const ctx = await getWorkspace();
+  if (!ctx)
     return NextResponse.json(
       { error: { message: "Sign in to use the playground." } },
       { status: 401 },
     );
 
-  const trust = internalHeaders(session.user.id);
+  const trust = internalHeaders({ userId: ctx.user.id, orgId: ctx.workspace.id });
   if (!trust)
     return NextResponse.json(
       { error: { message: "The playground is not configured on this instance." } },

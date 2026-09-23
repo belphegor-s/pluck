@@ -37,7 +37,7 @@ export const search = handler("search", {
     const started = Date.now();
     if (!req.scrape) return { data: { results: hits }, credits: credits.search };
 
-    const scraper = await s.scraperFor(caller.userId);
+    const scraper = await s.scraperFor(caller.orgId);
     let spent = credits.search;
     const opts = req.scrape;
 
@@ -106,7 +106,7 @@ export const extract = handler("extract", {
   estimate: () => credits.scrape + credits.llm,
   target: (i) => i.url,
   async run({ s, llm, caller }, req) {
-    const scraper = await s.scraperFor(caller.userId, llm);
+    const scraper = await s.scraperFor(caller.orgId, llm);
     const { result, usage } = await scraper.scrape({
       url: req.url,
       formats: ["json"],
@@ -129,12 +129,12 @@ export const extract = handler("extract", {
 
 async function loadPage(
   s: Parameters<(typeof extract)["run"]>[0]["s"],
-  userId: string,
+  orgId: string,
   url: string,
   proxy: "auto" | "none" | "datacenter" | "residential",
   maxAge: number,
 ) {
-  const scraper = await s.scraperFor(userId);
+  const scraper = await s.scraperFor(orgId);
   const { result, usage } = await scraper.scrape({
     url,
     formats: ["markdown", "rawHtml"],
@@ -154,7 +154,7 @@ export const product = handler("product", {
   estimate: () => credits.extractProduct,
   target: (i) => i.url,
   async run({ s, llm, caller }, req) {
-    const { result, usage, doc } = await loadPage(s, caller.userId, req.url, req.proxy, req.maxAge);
+    const { result, usage, doc } = await loadPage(s, caller.orgId, req.url, req.proxy, req.maxAge);
     const structured = productsFromStructuredData(doc, result.metadata.finalUrl);
     const base = credits.extractProduct + scrapeCost(usage) - credits.scrape;
     if (structured[0])
@@ -180,7 +180,7 @@ export const products = handler("products", {
   estimate: () => credits.extractProduct,
   target: (i) => i.url,
   async run({ s, llm, caller }, req) {
-    const { result, usage, doc } = await loadPage(s, caller.userId, req.url, req.proxy, req.maxAge);
+    const { result, usage, doc } = await loadPage(s, caller.orgId, req.url, req.proxy, req.maxAge);
     const structured = productsFromStructuredData(doc, result.metadata.finalUrl);
     const base = credits.extractProduct + scrapeCost(usage) - credits.scrape;
     if (structured.length > 1) {

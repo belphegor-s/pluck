@@ -1,10 +1,10 @@
-import { creditLedger, type Database, usageEvents, users } from "@pluck/db";
+import { creditLedger, type Database, organizations, usageEvents } from "@pluck/db";
 import { PluckError } from "@pluck/shared";
 import { and, eq, gte, sql } from "drizzle-orm";
 import type { Logger } from "./infra.js";
 
 /**
- * Prepaid credit accounting on a single row per user.
+ * Prepaid credit accounting on a single row per workspace, shared by its members.
  *
  * `reserve` atomically debits an estimate (fails with 402 when the balance is
  * too low), `settle` applies the difference to the real cost. The balance can
@@ -17,13 +17,13 @@ export class Credits {
     readonly enabled: boolean,
   ) {}
 
-  async reserve(userId: string, amount: number): Promise<void> {
+  async reserve(orgId: string, amount: number): Promise<void> {
     if (!this.enabled || amount <= 0) return;
     const rows = await this.db
-      .update(users)
-      .set({ credits: sql`${users.credits} - ${amount}` })
-      .where(and(eq(users.id, userId), gte(users.credits, amount)))
-      .returning({ credits: users.credits });
+      .update(organizations)
+      .set({ credits: sql`${organizations.credits} - ${amount}` })
+      .where(and(eq(organizations.id, orgId), gte(organizations.credits, amount)))
+      .returning({ credits: organizations.credits });
     if (rows.length === 0) {
       throw new PluckError(
         "insufficient_credits",
@@ -35,26 +35,26 @@ export class Credits {
     }
   }
 
-  async settle(userId: string, reserved: number, actual: number): Promise<void> {
+  async settle(orgId: string, reserved: number, actual: number): Promise<void> {
     if (!this.enabled || reserved === actual) return;
     await this.db
-      .update(users)
-      .set({ credits: sql`${users.credits} + ${reserved - actual}` })
-      .where(eq(users.id, userId));
+      .update(organizations)
+      .set({ credits: sql`${organizations.credits} + ${reserved - actual}` })
+      .where(eq(organizations.id, orgId));
   }
 
-  async balance(userId: string): Promise<number | null> {
+  async balance(orgId: string): Promise<number | null> {
     if (!this.enabled) return null;
     const [row] = await this.db
-      .select({ credits: users.credits })
-      .from(users)
-      .where(eq(users.id, userId));
+      .select({ credits: organizations.credits })
+      .from(organizations)
+      .where(eq(organizations.id, orgId));
     return row?.credits ?? 0;
   }
 
   /** Idempotent grant keyed by `reference` (e.g. Polar order id). Returns false if already applied. */
   async grant(
-    userId: string,
+    orgId: string,
     amount: number,
     reason: "signup" | "purchase" | "refund" | "adjustment",
     reference?: string,
@@ -63,21 +63,21 @@ export class Credits {
     return this.db.transaction(async (tx) => {
       const inserted = await tx
         .insert(creditLedger)
-        .values({ userId, delta: amount, reason, reference, amountUsdCents })
+        .values({ orgId, delta: amount, reason, reference, amountUsdCents })
         .onConflictDoNothing({ target: creditLedger.reference })
         .returning({ id: creditLedger.id });
       if (inserted.length === 0) return false;
       await tx
-        .update(users)
-        .set({ credits: sql`${users.credits} + ${amount}`, lowBalanceNotifiedAt: null })
-        .where(eq(users.id, userId));
+        .update(organizations)
+        .set({ credits: sql`${organizations.credits} + ${amount}`, lowBalanceNotifiedAt: null })
+        .where(eq(organizations.id, orgId));
       return true;
     });
   }
 }
 
 export interface UsageRecord {
-  userId: string;
+  orgId: string;
   apiKeyId: string | null;
   requestId: string;
   endpoint: string;

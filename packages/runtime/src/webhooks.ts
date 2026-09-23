@@ -1,4 +1,4 @@
-import { type Database, newId, users, webhookDeliveries } from "@pluck/db";
+import { type Database, newId, organizations, webhookDeliveries } from "@pluck/db";
 import { BRAND, PluckError } from "@pluck/shared";
 import { and, eq, sql } from "drizzle-orm";
 import { type Dispatcher, request } from "undici";
@@ -8,7 +8,7 @@ import { type Queues, signWebhook, WEBHOOK_SIGNATURE_HEADER } from "./queues.js"
 const ERROR_SNIPPET = 300;
 
 export interface WebhookEvent {
-  userId: string;
+  orgId: string;
   url: string;
   event: string;
   payload: unknown;
@@ -28,7 +28,7 @@ export async function enqueueWebhook(
   const id = newId("whd");
   await db.insert(webhookDeliveries).values({
     id,
-    userId: event.userId,
+    orgId: event.orgId,
     event: event.event,
     url: event.url,
     payload: event.payload as object,
@@ -53,10 +53,10 @@ export const redeliveryJobId = (deliveryId: string, now = Date.now()) => `${deli
 export async function redeliverWebhook(
   db: Database,
   queues: Pick<Queues, "webhook">,
-  userId: string,
+  orgId: string,
   id: string,
 ) {
-  const owned = and(eq(webhookDeliveries.id, id), eq(webhookDeliveries.userId, userId));
+  const owned = and(eq(webhookDeliveries.id, id), eq(webhookDeliveries.orgId, orgId));
   const [before] = await db.select().from(webhookDeliveries).where(owned).limit(1);
   if (!before) throw new PluckError("not_found", "Delivery not found.");
 
@@ -102,9 +102,9 @@ export async function attemptDelivery(
   opts: { final: boolean; assertTarget: (url: string) => void },
 ): Promise<AttemptResult> {
   const [row] = await db
-    .select({ delivery: webhookDeliveries, secret: users.webhookSecret })
+    .select({ delivery: webhookDeliveries, secret: organizations.webhookSecret })
     .from(webhookDeliveries)
-    .innerJoin(users, eq(users.id, webhookDeliveries.userId))
+    .innerJoin(organizations, eq(organizations.id, webhookDeliveries.orgId))
     .where(eq(webhookDeliveries.id, deliveryId));
   // Deleted with its account: nothing to send and nothing to retry.
   if (!row) return { ok: true, status: null, error: null, durationMs: 0 };

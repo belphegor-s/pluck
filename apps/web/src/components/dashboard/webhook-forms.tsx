@@ -70,7 +70,13 @@ export function RedeliverButton({ id }: { id: string }) {
   );
 }
 
-export function SigningSecret({ secret }: { secret: string }) {
+export function SigningSecret({
+  secret,
+  canRotate = true,
+}: {
+  secret: string;
+  canRotate?: boolean;
+}) {
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
   const [state, action, pending] = useActionState(rotateWebhookSecret, empty);
@@ -103,27 +109,29 @@ export function SigningSecret({ secret }: { secret: string }) {
           </button>
         </div>
       </div>
-      <form
-        action={action}
-        onSubmit={(event) => {
-          if (
-            !confirm(
-              "Issue a new secret? Receivers still verifying with the old one will reject deliveries until they are updated.",
+      {canRotate && (
+        <form
+          action={action}
+          onSubmit={(event) => {
+            if (
+              !confirm(
+                "Issue a new secret? Receivers still verifying with the old one will reject deliveries until they are updated.",
+              )
             )
-          )
-            event.preventDefault();
-        }}
-        className="flex flex-wrap items-center gap-3"
-      >
-        <button
-          type="submit"
-          disabled={pending}
-          className="text-xs text-[var(--ink-faint)] underline underline-offset-4 hover:text-[var(--accent)] disabled:opacity-60"
+              event.preventDefault();
+          }}
+          className="flex flex-wrap items-center gap-3"
         >
-          {pending ? "Rotating…" : "Rotate secret"}
-        </button>
-        <Notice state={state} />
-      </form>
+          <button
+            type="submit"
+            disabled={pending}
+            className="text-xs text-[var(--ink-faint)] underline underline-offset-4 hover:text-[var(--accent)] disabled:opacity-60"
+          >
+            {pending ? "Rotating…" : "Rotate secret"}
+          </button>
+          <Notice state={state} />
+        </form>
+      )}
     </div>
   );
 }

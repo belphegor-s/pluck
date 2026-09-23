@@ -1,16 +1,16 @@
 import { llmCredentials } from "@pluck/db";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { CodeBlock } from "@/components/code-tabs";
+import { AdminsOnly } from "@/components/dashboard/admins-only";
 import { ProviderForm } from "@/components/dashboard/forms";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { can, requireWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Model provider" };
 export const dynamic = "force-dynamic";
 
 export default async function AiPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const { workspace } = await requireWorkspace();
   const saved = await db
     .select({
       provider: llmCredentials.provider,
@@ -19,7 +19,7 @@ export default async function AiPage() {
       isDefault: llmCredentials.isDefault,
     })
     .from(llmCredentials)
-    .where(eq(llmCredentials.userId, session!.user.id));
+    .where(eq(llmCredentials.orgId, workspace.id));
 
   return (
     <div className="space-y-8">
@@ -31,7 +31,20 @@ export default async function AiPage() {
           instead of 8. Keys are encrypted with AES-256-GCM and are never returned by the API.
         </p>
       </section>
-      <ProviderForm saved={saved} />
+      {can.manageCredentials(workspace.role) ? (
+        <ProviderForm saved={saved} />
+      ) : (
+        <div className="space-y-3">
+          <AdminsOnly what="change model provider keys" />
+          {saved.length > 0 && (
+            <p className="text-sm text-[var(--ink-soft)]">
+              In use:{" "}
+              {saved.map((row) => `${row.provider}${row.isDefault ? " (default)" : ""}`).join(", ")}
+              .
+            </p>
+          )}
+        </div>
+      )}
       <section>
         <h2 className="text-lg">Per-request override</h2>
         <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">

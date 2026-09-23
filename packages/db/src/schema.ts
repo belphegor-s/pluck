@@ -30,11 +30,6 @@ export const users = pgTable("user", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: text("role").notNull().default("user"),
-  /** Prepaid credit balance. Only meaningful when billing is enabled. */
-  credits: bigint("credits", { mode: "number" }).notNull().default(0),
-  /** HMAC secret for webhooks sent to this account. */
-  webhookSecret: text("webhook_secret").notNull().default(sql`encode(gen_random_bytes(24), 'hex')`),
-  lowBalanceNotifiedAt: timestamp("low_balance_notified_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -90,15 +85,87 @@ export const verifications = pgTable("verification", {
   updatedAt: updatedAt(),
 });
 
+/* -------------------------------------------------------------- organizations */
+
+/**
+ * The account that owns everything: keys, credits, usage, crawls, monitors,
+ * webhooks and credentials. Every user has a personal one whose id is their
+ * user id, so data from before organizations existed needed no rewrite and
+ * the payment provider's customer id (the user id) still matches. Teams get
+ * `org_` ids.
+ */
+export const organizations = pgTable("organization", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  /** A personal workspace has exactly one member and cannot invite. */
+  personal: boolean("personal").notNull().default(false),
+  /** Prepaid credit balance. Only meaningful when billing is enabled. */
+  credits: bigint("credits", { mode: "number" }).notNull().default(0),
+  /** HMAC secret for webhooks sent from this workspace. */
+  webhookSecret: text("webhook_secret").notNull().default(sql`encode(gen_random_bytes(24), 'hex')`),
+  lowBalanceNotifiedAt: timestamp("low_balance_notified_at", { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const memberRoleEnum = pgEnum("member_role", ["owner", "admin", "member"]);
+
+export const members = pgTable(
+  "member",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: memberRoleEnum("role").notNull().default("member"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("member_org_user_uidx").on(t.orgId, t.userId),
+    index("member_user_idx").on(t.userId),
+  ],
+);
+
+/**
+ * An invitation to join a workspace. Only a hash of the token is stored, so
+ * a database leak cannot be turned into a way in, and it can only be
+ * accepted by a signed-in user whose verified email matches.
+ */
+export const invitations = pgTable(
+  "invitation",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** Lowercased. */
+    email: text("email").notNull(),
+    role: memberRoleEnum("role").notNull().default("member"),
+    tokenHash: text("token_hash").notNull().unique(),
+    invitedBy: text("invited_by").references(() => users.id, { onDelete: "set null" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("invitation_org_idx").on(t.orgId, t.createdAt.desc())],
+);
+
 /* ------------------------------------------------------------------- api keys */
 
 export const apiKeys = pgTable(
   "api_key",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
+    orgId: text("org_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** The member who created it; kept when they leave, so the key's history is not lost. */
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     /** First characters of the key, safe to display. */
     prefix: text("prefix").notNull(),
@@ -108,7 +175,7 @@ export const apiKeys = pgTable(
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [index("api_key_user_idx").on(t.userId)],
+  (t) => [index("api_key_org_idx").on(t.orgId)],
 );
 
 export const llmProviderEnum = pgEnum("llm_provider", [
@@ -124,9 +191,9 @@ export const llmCredentials = pgTable(
   "llm_credential",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
+    orgId: text("org_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     provider: llmProviderEnum("provider").notNull(),
     /** AES-256-GCM ciphertext (iv:tag:data, base64). */
     encryptedKey: text("encrypted_key").notNull(),
@@ -137,7 +204,7 @@ export const llmCredentials = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("llm_credential_user_provider_uidx").on(t.userId, t.provider)],
+  (t) => [uniqueIndex("llm_credential_org_provider_uidx").on(t.orgId, t.provider)],
 );
 
 export const proxyTierEnum = pgEnum("proxy_tier", ["datacenter", "residential"]);
@@ -151,9 +218,9 @@ export const userProxies = pgTable(
   "user_proxy",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
+    orgId: text("org_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     label: text("label").notNull(),
     tier: proxyTierEnum("tier").notNull(),
     /** AES-256-GCM ciphertext: the URL carries provider credentials. */
@@ -166,7 +233,7 @@ export const userProxies = pgTable(
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [index("user_proxy_user_idx").on(t.userId, t.tier)],
+  (t) => [index("user_proxy_org_idx").on(t.orgId, t.tier)],
 );
 
 /* -------------------------------------------------------------------- billing */
@@ -183,9 +250,9 @@ export const creditLedger = pgTable(
   "credit_ledger",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    userId: text("user_id")
+    orgId: text("org_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     delta: bigint("delta", { mode: "number" }).notNull(),
     reason: ledgerReasonEnum("reason").notNull(),
     /** External id (e.g. Polar order id). Unique so webhooks are idempotent. */
@@ -193,16 +260,16 @@ export const creditLedger = pgTable(
     amountUsdCents: integer("amount_usd_cents"),
     createdAt: createdAt(),
   },
-  (t) => [index("credit_ledger_user_idx").on(t.userId, t.createdAt)],
+  (t) => [index("credit_ledger_org_idx").on(t.orgId, t.createdAt)],
 );
 
 export const usageEvents = pgTable(
   "usage_event",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    userId: text("user_id")
+    orgId: text("org_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     apiKeyId: text("api_key_id"),
     requestId: text("request_id").notNull(),
     endpoint: text("endpoint").notNull(),
@@ -213,7 +280,7 @@ export const usageEvents = pgTable(
     target: text("target"),
     createdAt: createdAt(),
   },
-  (t) => [index("usage_event_user_time_idx").on(t.userId, t.createdAt.desc())],
+  (t) => [index("usage_event_org_time_idx").on(t.orgId, t.createdAt.desc())],
 );
 
 /* ---------------------------------------------------------------------- crawl */
@@ -230,9 +297,9 @@ export const crawls = pgTable(
   "crawl",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
+    orgId: text("org_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     status: jobStatusEnum("status").notNull().default("queued"),
     url: text("url").notNull(),
     options: jsonb("options").notNull(),
@@ -246,7 +313,7 @@ export const crawls = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
   },
-  (t) => [index("crawl_user_idx").on(t.userId, t.createdAt.desc())],
+  (t) => [index("crawl_org_idx").on(t.orgId, t.createdAt.desc())],
 );
 
 export const crawlPages = pgTable(
@@ -273,9 +340,9 @@ export const monitors = pgTable(
   "monitor",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
+    orgId: text("org_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name"),
     type: monitorTypeEnum("type").notNull(),
     url: text("url").notNull(),
@@ -297,7 +364,7 @@ export const monitors = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [
-    index("monitor_user_idx").on(t.userId, t.createdAt.desc()),
+    index("monitor_org_idx").on(t.orgId, t.createdAt.desc()),
     index("monitor_due_idx").on(t.nextRunAt).where(sql`${t.active}`),
   ],
 );
@@ -334,9 +401,9 @@ export const webhookDeliveries = pgTable(
   {
     /** Also the queue job id, and sent to the receiver as the delivery id. */
     id: text("id").primaryKey(),
-    userId: text("user_id")
+    orgId: text("org_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     event: text("event").notNull(),
     url: text("url").notNull(),
     payload: jsonb("payload").notNull(),
@@ -350,7 +417,7 @@ export const webhookDeliveries = pgTable(
     createdAt: createdAt(),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
   },
-  (t) => [index("webhook_delivery_user_idx").on(t.userId, t.createdAt.desc())],
+  (t) => [index("webhook_delivery_org_idx").on(t.orgId, t.createdAt.desc())],
 );
 
 /* --------------------------------------------------------------------- brands */

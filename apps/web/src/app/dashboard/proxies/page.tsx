@@ -1,20 +1,21 @@
 import { userProxies } from "@pluck/db";
 import { asc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import Link from "next/link";
+import { AdminsOnly } from "@/components/dashboard/admins-only";
 import { AddProxyForm, ProxyRowActions } from "@/components/dashboard/proxy-forms";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { can, requireWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Proxies" };
 export const dynamic = "force-dynamic";
 
 export default async function ProxiesPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const { workspace } = await requireWorkspace();
+  const manage = can.manageCredentials(workspace.role);
   const rows = await db
     .select()
     .from(userProxies)
-    .where(eq(userProxies.userId, session!.user.id))
+    .where(eq(userProxies.orgId, workspace.id))
     .orderBy(asc(userProxies.createdAt));
 
   return (
@@ -69,7 +70,7 @@ export default async function ProxiesPage() {
                         )}
                       </td>
                       <td className="px-3 py-2">
-                        <ProxyRowActions id={row.id} active={row.active} />
+                        {manage && <ProxyRowActions id={row.id} active={row.active} />}
                       </td>
                     </tr>
                   );
@@ -88,7 +89,7 @@ export default async function ProxiesPage() {
           enable it again.
         </p>
         <div className="mt-4">
-          <AddProxyForm />
+          {manage ? <AddProxyForm /> : <AdminsOnly what="add or change proxies" />}
         </div>
         <p className="mt-4 text-sm text-[var(--ink-soft)]">
           Running Pluck yourself?{" "}

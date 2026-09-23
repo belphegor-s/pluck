@@ -1,6 +1,5 @@
 import { monitorChanges, monitors } from "@pluck/db";
 import { desc, eq, sql } from "drizzle-orm";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { CodeBlock } from "@/components/code-tabs";
 import {
@@ -8,16 +7,16 @@ import {
   intervalLabel,
   MonitorRowActions,
 } from "@/components/dashboard/monitor-forms";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatNumber, timeAgo } from "@/lib/format";
 import { SITE } from "@/lib/site";
+import { requireWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Monitors" };
 export const dynamic = "force-dynamic";
 
 export default async function MonitorsPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const { workspace } = await requireWorkspace();
   const rows = await db
     .select({
       id: monitors.id,
@@ -34,7 +33,7 @@ export default async function MonitorsPage() {
       changes: sql<number>`(select count(*) from ${monitorChanges} where ${monitorChanges.monitorId} = ${monitors.id})::int`,
     })
     .from(monitors)
-    .where(eq(monitors.userId, session!.user.id))
+    .where(eq(monitors.orgId, workspace.id))
     .orderBy(desc(monitors.createdAt))
     .limit(200);
 

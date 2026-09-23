@@ -55,15 +55,15 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
     .update(crawls)
     .set({ status: "running", startedAt: crawl.startedAt ?? new Date() })
     .where(eq(crawls.id, crawlId));
-  await emit(deps, crawl.userId, req, "started", { id: crawlId, url: req.url });
+  await emit(deps, crawl.orgId, req, "started", { id: crawlId, url: req.url });
 
   const scraper = new Scraper({
     http: deps.http,
     robots: deps.robots,
     renderer: deps.browser.background,
-    userId: crawl.userId,
-    proxies: await deps.proxies?.forUser(crawl.userId),
-    extractor: req.scrapeOptions.formats.includes("json") ? deps.llm.tasks(crawl.userId) : null,
+    orgId: crawl.orgId,
+    proxies: await deps.proxies?.forOrg(crawl.orgId),
+    extractor: req.scrapeOptions.formats.includes("json") ? deps.llm.tasks(crawl.orgId) : null,
     allowPrivateNetwork: deps.allowPrivateNetwork,
   });
   const matches = pathMatcher(req.includePaths, req.excludePaths);
@@ -143,7 +143,7 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
         });
         const cost = scrapeCost(usage);
         try {
-          await deps.credits.reserve(crawl.userId, cost);
+          await deps.credits.reserve(crawl.orgId, cost);
         } catch {
           stopReason = "insufficient_credits";
           return;
@@ -156,7 +156,7 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
         await db.insert(crawlPages).values({ crawlId, url: next.url, depth: next.depth, result });
         if (next.depth < req.maxDepth) for (const link of links) enqueue(link, next.depth + 1);
         if (req.webhook?.events.includes("page")) {
-          await emit(deps, crawl.userId, req, "page", {
+          await emit(deps, crawl.orgId, req, "page", {
             id: crawlId,
             url: next.url,
             depth: next.depth,
@@ -197,7 +197,7 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
     .where(eq(crawls.id, crawlId));
 
   deps.usage.record({
-    userId: crawl.userId,
+    orgId: crawl.orgId,
     apiKeyId: null,
     requestId: crawlId,
     endpoint: "crawl",
@@ -208,7 +208,7 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
     target: req.url,
   });
   log.info({ crawlId, completed, failed, creditsUsed, status }, "crawl finished");
-  await emit(deps, crawl.userId, req, status === "completed" ? "completed" : "failed", {
+  await emit(deps, crawl.orgId, req, status === "completed" ? "completed" : "failed", {
     id: crawlId,
     status,
     completed,
@@ -220,14 +220,14 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
 
 async function emit(
   deps: CrawlDeps,
-  userId: string,
+  orgId: string,
   req: CrawlRequest,
   event: "started" | "page" | "completed" | "failed",
   payload: unknown,
 ) {
-  if (!req.webhook || !req.webhook.events.includes(event)) return;
+  if (!req.webhook?.events.includes(event)) return;
   await enqueueWebhook(deps.db, deps.queues, {
-    userId,
+    orgId,
     url: req.webhook.url,
     event: `crawl.${event}`,
     payload,

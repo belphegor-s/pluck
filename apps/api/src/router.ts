@@ -52,6 +52,7 @@ export type AppEnv = { Variables: { requestId: string; caller?: Caller } };
 /** Dashboard-to-API trust headers, e.g. `x-pluck-internal` / `x-pluck-user`. */
 export const INTERNAL_SECRET_HEADER = `x-${BRAND.header("internal")}`;
 export const INTERNAL_USER_HEADER = `x-${BRAND.header("user")}`;
+export const INTERNAL_ORG_HEADER = `x-${BRAND.header("org")}`;
 
 export function errorResponse(
   c: Context,
@@ -112,13 +113,17 @@ export function v1Router(s: Services) {
 
       try {
         caller =
-          auth.internal(c.req.header(INTERNAL_SECRET_HEADER), c.req.header(INTERNAL_USER_HEADER)) ??
+          (await auth.internal(
+            c.req.header(INTERNAL_SECRET_HEADER),
+            c.req.header(INTERNAL_USER_HEADER),
+            c.req.header(INTERNAL_ORG_HEADER),
+          )) ??
           (await auth.authenticate(c.req.header("authorization") ?? c.req.header("x-api-key")));
         c.set("caller", caller);
 
         const limit = await rateLimit(
           s.cacheRedis,
-          caller.apiKeyId ?? caller.userId,
+          caller.apiKeyId ?? caller.orgId,
           s.config.RATE_LIMIT_PER_MINUTE,
         );
         if (Number.isFinite(limit.remaining)) {
@@ -150,9 +155,9 @@ export function v1Router(s: Services) {
         const input = raw as never;
         target = h.target?.(input);
         reserved = h.estimate(input);
-        await s.credits.reserve(caller.userId, reserved);
+        await s.credits.reserve(caller.orgId, reserved);
 
-        const llm = s.llm.tasks(caller.userId, {
+        const llm = s.llm.tasks(caller.orgId, {
           provider: c.req.header("x-llm-provider"),
           key: c.req.header("x-llm-key"),
           model: c.req.header("x-llm-model"),
@@ -163,7 +168,7 @@ export function v1Router(s: Services) {
         spent = result.credits;
         cached = result.cached ?? false;
         status = result.status ?? 200;
-        await s.credits.settle(caller.userId, reserved, spent);
+        await s.credits.settle(caller.orgId, reserved, spent);
         reserved = 0;
 
         const durationMs = Math.round(performance.now() - started);
@@ -174,11 +179,11 @@ export function v1Router(s: Services) {
         );
       } catch (err) {
         if (caller && reserved > 0)
-          await s.credits.settle(caller.userId, reserved, 0).catch(() => {});
+          await s.credits.settle(caller.orgId, reserved, 0).catch(() => {});
         spent = 0;
         const res = errorResponse(c, err, requestId, s, {
           endpoint: id,
-          userId: caller?.userId,
+          userId: caller?.userId ?? caller?.orgId,
           url: target,
         });
         status = res.status;
@@ -186,7 +191,7 @@ export function v1Router(s: Services) {
       } finally {
         if (caller) {
           s.usage.record({
-            userId: caller.userId,
+            orgId: caller.orgId,
             apiKeyId: caller.apiKeyId,
             requestId,
             endpoint: id,

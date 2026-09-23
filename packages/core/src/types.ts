@@ -9,7 +9,7 @@ export interface RenderRequest {
    * Whose proxies to use. The renderer resolves the account's own pool itself
    * rather than accepting a URL, so provider credentials never sit in a queue.
    */
-  userId?: string;
+  orgId?: string;
   country?: string;
   mobile?: boolean;
   blockAds?: boolean;

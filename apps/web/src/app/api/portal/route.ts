@@ -1,18 +1,22 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { customerPortal } from "@/lib/polar";
 import { siteUrl } from "@/lib/site";
+import { can, getWorkspace } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Sends the signed-in user to their Polar portal: payment methods and receipts. */
+/** Sends the workspace's billing admin to its Polar portal: payment methods and receipts. */
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const ctx = await getWorkspace();
+  if (!ctx) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  if (!can.manageBilling(ctx.workspace.role))
+    return NextResponse.json(
+      { error: "Only workspace owners and admins can manage billing." },
+      { status: 403 },
+    );
 
-  const result = await customerPortal(session.user.id);
+  const result = await customerPortal(ctx.workspace.id);
   if (result.ok) return NextResponse.redirect(result.url);
 
   // Back to the page they came from, with something to read: a JSON error in

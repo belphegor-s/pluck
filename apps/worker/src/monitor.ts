@@ -65,7 +65,7 @@ export async function scheduleDueMonitors(deps: MonitorDeps): Promise<number> {
 export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promise<void> {
   const { db } = deps;
   const [m] = await db.select().from(monitors).where(eq(monitors.id, monitorId));
-  if (!m || !m.active) return;
+  if (!m?.active) return;
   const started = Date.now();
   const proxy = m.proxy as "auto" | "none" | "datacenter" | "residential";
 
@@ -84,9 +84,9 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
         http: deps.http,
         robots: deps.robots,
         renderer: deps.browser.background,
-        userId: m.userId,
-        proxies: await deps.proxies?.forUser(m.userId),
-        extractor: m.type === "extract" ? deps.llm.tasks(m.userId) : null,
+        orgId: m.orgId,
+        proxies: await deps.proxies?.forOrg(m.orgId),
+        extractor: m.type === "extract" ? deps.llm.tasks(m.orgId) : null,
         allowPrivateNetwork: deps.allowPrivateNetwork,
       });
       const { result, usage } = await scraper.scrape({
@@ -114,7 +114,7 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
     }
 
     try {
-      await deps.credits.reserve(m.userId, cost);
+      await deps.credits.reserve(m.orgId, cost);
     } catch {
       await db
         .update(monitors)
@@ -160,7 +160,7 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
       await db.insert(monitorChanges).values({ id, monitorId: m.id, ...change, detectedAt: now });
       if (m.webhook) {
         await enqueueWebhook(db, deps.queues, {
-          userId: m.userId,
+          orgId: m.orgId,
           url: m.webhook,
           event: "monitor.changed",
           payload: {
@@ -189,7 +189,7 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
       .where(eq(monitors.id, m.id));
 
     deps.usage.record({
-      userId: m.userId,
+      orgId: m.orgId,
       apiKeyId: null,
       requestId: `${m.id}:${started}`,
       endpoint: "monitorCheck",

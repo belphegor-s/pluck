@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "@/lib/auth-client";
+import { safeNext } from "@/lib/site";
 
 export function SignInWithGitHub({ next }: { next?: string }) {
   const [pending, setPending] = useState(false);
@@ -18,7 +19,7 @@ export function SignInWithGitHub({ next }: { next?: string }) {
           void signIn
             .social({
               provider: "github",
-              callbackURL: next?.startsWith("/") ? next : "/dashboard",
+              callbackURL: safeNext(next),
             })
             .catch(() => {
               setPending(false);

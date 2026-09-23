@@ -40,11 +40,11 @@ export class LlmResolver {
     return this.instance !== null;
   }
 
-  tasks(userId: string | null, headers: LlmHeaders = {}): LlmTasks {
+  tasks(orgId: string | null, headers: LlmHeaders = {}): LlmTasks {
     let saved: Promise<(typeof llmCredentials.$inferSelect)[]> | null = null;
     const loadSaved = () => {
-      if (!userId) return Promise.resolve([]);
-      saved ??= this.db.select().from(llmCredentials).where(eq(llmCredentials.userId, userId));
+      if (!orgId) return Promise.resolve([]);
+      saved ??= this.db.select().from(llmCredentials).where(eq(llmCredentials.orgId, orgId));
       return saved;
     };
 

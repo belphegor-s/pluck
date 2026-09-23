@@ -68,13 +68,13 @@ export async function createServices(config: Config) {
      */
     scraper(
       extractor: ConstructorParameters<typeof Scraper>[0]["extractor"] = null,
-      caller?: { userId: string; proxies?: ProxyPool | null },
+      caller?: { orgId: string; proxies?: ProxyPool | null },
     ) {
       return new Scraper({
         http,
         robots,
         renderer,
-        userId: caller?.userId,
+        orgId: caller?.orgId,
         proxies: caller?.proxies ?? null,
         store,
         extractor,
@@ -83,15 +83,15 @@ export async function createServices(config: Config) {
     },
     /** The same, with the caller's proxy pool looked up first. */
     async scraperFor(
-      userId: string,
+      orgId: string,
       extractor: ConstructorParameters<typeof Scraper>[0]["extractor"] = null,
     ) {
       return new Scraper({
         http,
         robots,
         renderer,
-        userId,
-        proxies: await proxyDirectory.forUser(userId),
+        orgId,
+        proxies: await proxyDirectory.forOrg(orgId),
         store,
         extractor,
         allowPrivateNetwork: config.ALLOW_PRIVATE_NETWORK,

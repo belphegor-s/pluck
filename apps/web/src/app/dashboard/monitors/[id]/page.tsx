@@ -1,6 +1,5 @@
 import { monitorChanges, monitors } from "@pluck/db";
 import { and, desc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -9,9 +8,9 @@ import {
   MonitorRowActions,
 } from "@/components/dashboard/monitor-forms";
 import { DiffView } from "@/components/diff-view";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { timeAgo } from "@/lib/format";
+import { requireWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Monitor" };
 export const dynamic = "force-dynamic";
@@ -20,11 +19,11 @@ const CHANGES_SHOWN = 30;
 
 export default async function MonitorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await auth.api.getSession({ headers: await headers() });
+  const { workspace } = await requireWorkspace();
   const [monitor] = await db
     .select()
     .from(monitors)
-    .where(and(eq(monitors.id, id), eq(monitors.userId, session!.user.id)));
+    .where(and(eq(monitors.id, id), eq(monitors.orgId, workspace.id)));
   if (!monitor) notFound();
 
   const changes = await db

@@ -5,20 +5,27 @@ import { SITE } from "@/lib/site";
 /** Same names the API derives, so renaming the product renames these too. */
 const INTERNAL_SECRET_HEADER = `x-${BRAND.header("internal")}`;
 const INTERNAL_USER_HEADER = `x-${BRAND.header("user")}`;
+const INTERNAL_ORG_HEADER = `x-${BRAND.header("org")}`;
+
+/** Who is acting, and in which workspace. The API re-checks the membership. */
+export interface Actor {
+  userId: string;
+  orgId: string;
+}
 
 export type ApiResult<K extends EndpointId> =
   | { ok: true; status: number; data: EndpointOutput<K> }
   | { ok: false; status: number; error: string };
 
 /**
- * Calls one API endpoint as a signed-in user.
+ * Calls one API endpoint as a signed-in member of a workspace.
  *
  * The dashboard goes through the API rather than the database for anything
  * with rules — the monitor interval floor, account limits, SSRF checks — so
  * there is exactly one place those rules live.
  */
 export async function callApiAs<K extends EndpointId>(
-  userId: string,
+  actor: Actor,
   id: K,
   input: Record<string, unknown> = {},
   opts: { timeoutMs?: number } = {},
@@ -49,7 +56,8 @@ export async function callApiAs<K extends EndpointId>(
       headers: {
         "content-type": "application/json",
         [INTERNAL_SECRET_HEADER]: secret,
-        [INTERNAL_USER_HEADER]: userId,
+        [INTERNAL_USER_HEADER]: actor.userId,
+        [INTERNAL_ORG_HEADER]: actor.orgId,
       },
       body: isGet || definition.method === "delete" ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
@@ -78,8 +86,12 @@ export async function callApiAs<K extends EndpointId>(
 }
 
 /** Headers for code that forwards raw requests, such as the playground. */
-export function internalHeaders(userId: string): Record<string, string> | null {
+export function internalHeaders(actor: Actor): Record<string, string> | null {
   const secret = process.env.INTERNAL_API_SECRET;
   if (!secret) return null;
-  return { [INTERNAL_SECRET_HEADER]: secret, [INTERNAL_USER_HEADER]: userId };
+  return {
+    [INTERNAL_SECRET_HEADER]: secret,
+    [INTERNAL_USER_HEADER]: actor.userId,
+    [INTERNAL_ORG_HEADER]: actor.orgId,
+  };
 }

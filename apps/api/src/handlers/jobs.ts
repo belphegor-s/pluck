@@ -24,12 +24,12 @@ export const crawlStart = handler("crawlStart", {
   target: (i) => i.url,
   async run({ s, caller }, req) {
     const minimum = scrapeCost({ browser: req.scrapeOptions.render === "always" });
-    if (s.credits.enabled && ((await s.credits.balance(caller.userId)) ?? 0) < minimum) {
+    if (s.credits.enabled && ((await s.credits.balance(caller.orgId)) ?? 0) < minimum) {
       throw new PluckError("insufficient_credits", "Not enough credits to start a crawl.");
     }
     const [row] = await s.db
       .insert(crawls)
-      .values({ id: newId("crawl"), userId: caller.userId, url: req.url, options: req })
+      .values({ id: newId("crawl"), orgId: caller.orgId, url: req.url, options: req })
       .returning();
     await s.queues.crawl.add("crawl", { crawlId: row!.id }, { jobId: row!.id });
     return { data: toCrawlJob(row!), credits: 0, status: 202 };
@@ -38,13 +38,13 @@ export const crawlStart = handler("crawlStart", {
 
 async function ownCrawl(
   s: Parameters<(typeof crawlStart)["run"]>[0]["s"],
-  userId: string,
+  orgId: string,
   id: string,
 ) {
   const [row] = await s.db
     .select()
     .from(crawls)
-    .where(and(eq(crawls.id, id), eq(crawls.userId, userId)));
+    .where(and(eq(crawls.id, id), eq(crawls.orgId, orgId)));
   if (!row) throw new PluckError("not_found", "Crawl not found.");
   return row;
 }
@@ -52,7 +52,7 @@ async function ownCrawl(
 export const crawlGet = handler("crawlGet", {
   estimate: () => 0,
   async run({ s, caller }, { id, cursor, limit }) {
-    const row = await ownCrawl(s, caller.userId, id);
+    const row = await ownCrawl(s, caller.orgId, id);
     const after = cursor ? Number(cursor) : 0;
     const pages = await s.db
       .select()
@@ -82,7 +82,7 @@ export const crawlGet = handler("crawlGet", {
 export const crawlCancel = handler("crawlCancel", {
   estimate: () => 0,
   async run({ s, caller }, { id }) {
-    await ownCrawl(s, caller.userId, id);
+    await ownCrawl(s, caller.orgId, id);
     const [row] = await s.db
       .update(crawls)
       .set({
@@ -133,7 +133,7 @@ export const monitorCreate = handler("monitorCreate", {
     const [{ count } = { count: 0 }] = await s.db
       .select({ count: sql<number>`count(*)::int` })
       .from(monitors)
-      .where(eq(monitors.userId, caller.userId));
+      .where(eq(monitors.orgId, caller.orgId));
     if (count >= MAX_MONITORS)
       throw new PluckError("forbidden", `Accounts are limited to ${MAX_MONITORS} monitors.`);
 
@@ -141,7 +141,7 @@ export const monitorCreate = handler("monitorCreate", {
       .insert(monitors)
       .values({
         id: newId("mon"),
-        userId: caller.userId,
+        orgId: caller.orgId,
         name: req.name,
         type: req.type,
         url: req.url,
@@ -162,13 +162,13 @@ export const monitorCreate = handler("monitorCreate", {
 
 async function ownMonitor(
   s: Parameters<(typeof monitorCreate)["run"]>[0]["s"],
-  userId: string,
+  orgId: string,
   id: string,
 ) {
   const [row] = await s.db
     .select()
     .from(monitors)
-    .where(and(eq(monitors.id, id), eq(monitors.userId, userId)));
+    .where(and(eq(monitors.id, id), eq(monitors.orgId, orgId)));
   if (!row) throw new PluckError("not_found", "Monitor not found.");
   return row;
 }
@@ -179,7 +179,7 @@ export const monitorList = handler("monitorList", {
     const rows = await s.db
       .select()
       .from(monitors)
-      .where(and(eq(monitors.userId, caller.userId), cursor ? lt(monitors.id, cursor) : undefined))
+      .where(and(eq(monitors.orgId, caller.orgId), cursor ? lt(monitors.id, cursor) : undefined))
       .orderBy(desc(monitors.id))
       .limit(limit + 1);
     const slice = rows.slice(0, limit);
@@ -196,14 +196,14 @@ export const monitorList = handler("monitorList", {
 export const monitorGet = handler("monitorGet", {
   estimate: () => 0,
   async run({ s, caller }, { id }) {
-    return { data: toMonitor(await ownMonitor(s, caller.userId, id)), credits: 0 };
+    return { data: toMonitor(await ownMonitor(s, caller.orgId, id)), credits: 0 };
   },
 });
 
 export const monitorUpdate = handler("monitorUpdate", {
   estimate: () => 0,
   async run({ s, caller }, { id, ...patch }) {
-    await ownMonitor(s, caller.userId, id);
+    await ownMonitor(s, caller.orgId, id);
     const [row] = await s.db
       .update(monitors)
       .set({ ...patch, ...(patch.active ? { consecutiveFailures: 0 } : {}) })
@@ -216,7 +216,7 @@ export const monitorUpdate = handler("monitorUpdate", {
 export const monitorDelete = handler("monitorDelete", {
   estimate: () => 0,
   async run({ s, caller }, { id }) {
-    await ownMonitor(s, caller.userId, id);
+    await ownMonitor(s, caller.orgId, id);
     await s.db.delete(monitors).where(eq(monitors.id, id));
     return { data: { deleted: true as const }, credits: 0 };
   },
@@ -225,7 +225,7 @@ export const monitorDelete = handler("monitorDelete", {
 export const monitorChangesList = handler("monitorChanges", {
   estimate: () => 0,
   async run({ s, caller }, { id, cursor, limit }) {
-    await ownMonitor(s, caller.userId, id);
+    await ownMonitor(s, caller.orgId, id);
     const rows = await s.db
       .select()
       .from(monitorChanges)
@@ -259,9 +259,9 @@ export const usage = handler("usage", {
   estimate: () => 0,
   async run({ s, caller }, { days }) {
     const from = new Date(Date.now() - days * 86_400_000);
-    const where = and(eq(usageEvents.userId, caller.userId), gte(usageEvents.createdAt, from));
+    const where = and(eq(usageEvents.orgId, caller.orgId), gte(usageEvents.createdAt, from));
     const [balance, byEndpoint, daily] = await Promise.all([
-      s.credits.balance(caller.userId),
+      s.credits.balance(caller.orgId),
       s.db
         .select({
           endpoint: usageEvents.endpoint,
