@@ -105,6 +105,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
+          # Only runs scripts/smoke.mjs, which needs no dependencies.
+          package-manager-cache: false
 
       - name: Configure
         run: |
@@ -139,4 +141,4 @@ jobs:
 
       - name: Logs
         if: failure()
-        run: docker compose -f docker-compose.yml -f docker/compose.ci.yml logs --no-color --tail=200
+        run: test -f .env && docker compose -f docker-compose.yml -f docker/compose.ci.yml logs --no-color --tail=200
