@@ -1,24 +1,32 @@
-import { headers } from "next/headers";
+import { users } from "@pluck/db";
+import { eq } from "drizzle-orm";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { DashboardNav } from "@/components/dashboard/nav";
-import { SignOutButton } from "@/components/dashboard/sign-out";
+import { AppShell } from "@/components/dashboard/app-shell";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { SIDEBAR_COOKIE } from "@/lib/sidebar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) redirect("/login?next=/dashboard");
 
+  const [[account], jar] = await Promise.all([
+    db.select({ credits: users.credits }).from(users).where(eq(users.id, session.user.id)),
+    cookies(),
+  ]);
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-2xl">Dashboard</h1>
-        <div className="flex items-center gap-3 text-sm text-[var(--ink-soft)]">
-          <span>{session.user.email}</span>
-          <SignOutButton />
-        </div>
-      </div>
-      <DashboardNav />
-      <div className="pt-8">{children}</div>
-    </div>
+    <AppShell
+      initialCollapsed={jar.get(SIDEBAR_COOKIE)?.value === "collapsed"}
+      user={{
+        name: session.user.name ?? "",
+        email: session.user.email,
+        image: session.user.image ?? null,
+        credits: account?.credits ?? 0,
+      }}
+    >
+      {children}
+    </AppShell>
   );
 }
