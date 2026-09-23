@@ -1,13 +1,15 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { isProviderId, keyHint, SecretBox } from "@pluck/ai";
 import { assertPublicUrl } from "@pluck/core";
-import { apiKeys, contactRequests, llmCredentials, newId, userProxies } from "@pluck/db";
+import { apiKeys, contactRequests, llmCredentials, newId, userProxies, users } from "@pluck/db";
 import { checkProxyUrl, createMailer, generateApiKey } from "@pluck/runtime";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
+import { callApiAs } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { proxyDirectory } from "@/lib/proxies";
@@ -287,6 +289,124 @@ export async function testProxy(_prev: ActionState, formData: FormData): Promise
     return result.ok
       ? { ok: `Working — exit IP ${result.ip}, ${Date.now() - started} ms.` }
       : { error: result.error };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/* -------------------------------------------------------------------- monitors */
+
+/** Empty form fields mean "not set", not an empty string the API must reject. */
+const field = (formData: FormData, key: string) => {
+  const value = String(formData.get(key) ?? "").trim();
+  return value || undefined;
+};
+
+export async function createMonitor(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const type = String(formData.get("type") ?? "page");
+    const result = await callApiAs(user.id, "monitorCreate", {
+      name: field(formData, "name"),
+      type,
+      url: field(formData, "url"),
+      intervalMinutes: Number(formData.get("intervalMinutes") ?? 1440),
+      webhook: field(formData, "webhook"),
+      selector: type === "page" ? field(formData, "selector") : undefined,
+      prompt: type === "extract" ? field(formData, "prompt") : undefined,
+    });
+    if (!result.ok) return { error: result.error };
+    revalidatePath("/dashboard/monitors");
+    return { ok: `Watching ${result.data.url}. The first check runs now.` };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function updateMonitor(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const id = String(formData.get("id"));
+    const patch: Record<string, unknown> = { id };
+    if (formData.has("active")) patch.active = String(formData.get("active")) === "true";
+    if (formData.has("name")) patch.name = field(formData, "name");
+    if (formData.has("intervalMinutes"))
+      patch.intervalMinutes = Number(formData.get("intervalMinutes"));
+    // Present-but-empty clears it; absent leaves it as it is.
+    if (formData.has("webhook")) patch.webhook = field(formData, "webhook") ?? null;
+    if (formData.has("selector")) patch.selector = field(formData, "selector") ?? null;
+    const result = await callApiAs(user.id, "monitorUpdate", patch);
+    if (!result.ok) return { error: result.error };
+    revalidatePath("/dashboard/monitors");
+    revalidatePath(`/dashboard/monitors/${id}`);
+    return { ok: formData.has("active") ? (patch.active ? "Resumed." : "Paused.") : "Saved." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function deleteMonitor(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const result = await callApiAs(user.id, "monitorDelete", { id: String(formData.get("id")) });
+    if (!result.ok) return { error: result.error };
+    revalidatePath("/dashboard/monitors");
+    return { ok: "Monitor deleted." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/* -------------------------------------------------------------------- webhooks */
+
+export async function redeliverWebhook(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const result = await callApiAs(user.id, "webhookRedeliver", {
+      id: String(formData.get("id")),
+    });
+    if (!result.ok) return { error: result.error };
+    revalidatePath("/dashboard/webhooks");
+    return { ok: "Queued again." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function sendTestWebhook(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const result = await callApiAs(user.id, "webhookTest", { url: field(formData, "url") });
+    if (!result.ok) return { error: result.error };
+    revalidatePath("/dashboard/webhooks");
+    return { ok: "Test event queued — it appears below within a few seconds." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/**
+ * Issues a new signing secret. Receivers verifying the old one start rejecting
+ * deliveries immediately, which is the point when a secret has leaked.
+ */
+export async function rotateWebhookSecret(
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    await db
+      .update(users)
+      .set({ webhookSecret: randomBytes(24).toString("hex") })
+      .where(eq(users.id, user.id));
+    revalidatePath("/dashboard/webhooks");
+    return { ok: "New secret issued. Update your receivers before the next delivery." };
   } catch (err) {
     return fail(err);
   }

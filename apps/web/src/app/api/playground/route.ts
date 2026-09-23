@@ -1,14 +1,12 @@
 import { type EndpointId, endpoints } from "@pluck/shared";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { internalHeaders } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { SITE } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const INTERNAL_SECRET_HEADER = "x-pluck-internal";
-const INTERNAL_USER_HEADER = "x-pluck-user";
 
 /** Runs a playground call as the signed-in user, so usage and credits are theirs. */
 export async function POST(request: Request) {
@@ -19,8 +17,8 @@ export async function POST(request: Request) {
       { status: 401 },
     );
 
-  const secret = process.env.INTERNAL_API_SECRET;
-  if (!secret)
+  const trust = internalHeaders(session.user.id);
+  if (!trust)
     return NextResponse.json(
       { error: { message: "The playground is not configured on this instance." } },
       { status: 503 },
@@ -53,8 +51,7 @@ export async function POST(request: Request) {
     method: definition.method.toUpperCase(),
     headers: {
       "content-type": "application/json",
-      [INTERNAL_SECRET_HEADER]: secret,
-      [INTERNAL_USER_HEADER]: session.user.id,
+      ...trust,
     },
     body: definition.method === "get" ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(180_000),

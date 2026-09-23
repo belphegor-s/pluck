@@ -1,8 +1,9 @@
 import { credentialFromEnv } from "@pluck/ai";
 import type { RenderRequest } from "@pluck/core";
 import { assertPublicUrl, createSafeLookup, HttpClient, ProxyPool, RobotsCache } from "@pluck/core";
-import { crawls, createDb, monitorChanges, usageEvents, users } from "@pluck/db";
+import { crawls, createDb, monitorChanges, usageEvents, users, webhookDeliveries } from "@pluck/db";
 import {
+  attemptDelivery,
   type CrawlJobData,
   Credits,
   createErrorReporter,
@@ -17,15 +18,13 @@ import {
   type MonitorJobData,
   ProxyDirectory,
   QUEUES,
-  signWebhook,
   UsageRecorder,
-  WEBHOOK_SIGNATURE_HEADER,
   type WebhookJobData,
 } from "@pluck/runtime";
 import { BRAND } from "@pluck/shared";
 import { type ConnectionOptions, Worker } from "bullmq";
 import { and, eq, isNull, lt, sql } from "drizzle-orm";
-import { Agent, request } from "undici";
+import { Agent } from "undici";
 import { BrowserPool } from "./browser.js";
 import { runCrawl } from "./crawl.js";
 import { checkMonitor, scheduleDueMonitors } from "./monitor.js";
@@ -125,29 +124,15 @@ if (roles.has("webhook")) {
     new Worker<WebhookJobData>(
       QUEUES.webhook,
       async (job) => {
-        const { url, secret, event, payload } = job.data;
-        assertPublicUrl(url, config.ALLOW_PRIVATE_NETWORK);
-        const body = JSON.stringify({
-          event,
-          deliveredAt: new Date().toISOString(),
-          data: payload,
+        const attempts = job.opts.attempts ?? 1;
+        const result = await attemptDelivery(db, safeAgent, job.data.deliveryId, {
+          // `attemptsMade` counts finished attempts, so this one is the last
+          // when it is the attempts-th.
+          final: job.attemptsMade + 1 >= attempts,
+          assertTarget: (url) => assertPublicUrl(url, config.ALLOW_PRIVATE_NETWORK),
         });
-        const res = await request(url, {
-          method: "POST",
-          dispatcher: safeAgent,
-          headers: {
-            "content-type": "application/json",
-            "user-agent": `${BRAND.name}-Webhooks/1.0`,
-            [BRAND.header("event")]: event,
-            [BRAND.header("delivery")]: job.id ?? "",
-            [WEBHOOK_SIGNATURE_HEADER]: signWebhook(secret, body),
-          },
-          body,
-          headersTimeout: 15_000,
-          bodyTimeout: 15_000,
-        });
-        await res.body.dump();
-        if (res.statusCode >= 300) throw new Error(`Webhook responded with HTTP ${res.statusCode}`);
+        // Throwing is what makes the queue retry; the outcome is already recorded.
+        if (!result.ok) throw new Error(result.error ?? "Webhook delivery failed");
       },
       { connection, concurrency: 50 },
     ),
@@ -243,6 +228,9 @@ if (roles.has("maintenance")) {
             .delete(usageEvents)
             .where(lt(usageEvents.createdAt, new Date(Date.now() - 400 * day)));
           await db.execute(sql`DELETE FROM brand WHERE updated_at < now() - interval '90 days'`);
+          await db
+            .delete(webhookDeliveries)
+            .where(lt(webhookDeliveries.createdAt, new Date(Date.now() - 30 * day)));
           log.info("retention cleanup done");
         }
       },

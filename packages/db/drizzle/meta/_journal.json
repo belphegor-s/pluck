@@ -15,6 +15,13 @@
       "when": 1789740867831,
       "tag": "0001_curved_reavers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790135558800,
+      "tag": "0002_careless_toad",
+      "breakpoints": true
     }
   ]
 }

@@ -8,14 +8,15 @@ import {
   Scraper,
   sameSite,
 } from "@pluck/core";
-import { crawlPages, crawls, type Database, users } from "@pluck/db";
-import type {
-  Credits,
-  LlmResolver,
-  Logger,
-  ProxyDirectory,
-  Queues,
-  UsageRecorder,
+import { crawlPages, crawls, type Database } from "@pluck/db";
+import {
+  type Credits,
+  enqueueWebhook,
+  type LlmResolver,
+  type Logger,
+  type ProxyDirectory,
+  type Queues,
+  type UsageRecorder,
 } from "@pluck/runtime";
 import { type CrawlRequest, crawlRequest, isPluckError, scrapeCost } from "@pluck/shared";
 import { eq, sql } from "drizzle-orm";
@@ -225,14 +226,9 @@ async function emit(
   payload: unknown,
 ) {
   if (!req.webhook || !req.webhook.events.includes(event)) return;
-  const [user] = await deps.db
-    .select({ secret: users.webhookSecret })
-    .from(users)
-    .where(eq(users.id, userId));
-  if (!user) return;
-  await deps.queues.webhook.add(`crawl.${event}`, {
+  await enqueueWebhook(deps.db, deps.queues, {
+    userId,
     url: req.webhook.url,
-    secret: user.secret,
     event: `crawl.${event}`,
     payload,
   });

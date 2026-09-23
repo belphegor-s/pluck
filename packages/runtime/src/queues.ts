@@ -18,11 +18,13 @@ export interface CrawlJobData {
 export interface MonitorJobData {
   monitorId: string;
 }
+/**
+ * A webhook job names a delivery row and nothing else. The payload, target and
+ * signing secret are read from the database when it is sent, so secrets never
+ * sit in Redis and sending one again is just queueing the id again.
+ */
 export interface WebhookJobData {
-  url: string;
-  secret: string;
-  event: string;
-  payload: unknown;
+  deliveryId: string;
 }
 
 /** Serialised error carried across the queue boundary. */

@@ -28,6 +28,8 @@ import {
   searchResult,
   styleguide,
   styleguideRequest,
+  webhookDelivery,
+  webhookTestRequest,
 } from "./jobs.js";
 import {
   mapRequest,
@@ -57,7 +59,15 @@ export const usage = z.object({
 
 export const usageQuery = z.object({ days: z.coerce.number().int().min(1).max(90).default(30) });
 
-export type Tag = "Scrape" | "Crawl" | "Search" | "Extract" | "Brand" | "Monitors" | "Account";
+export type Tag =
+  | "Scrape"
+  | "Crawl"
+  | "Search"
+  | "Extract"
+  | "Brand"
+  | "Monitors"
+  | "Webhooks"
+  | "Account";
 
 export interface Endpoint {
   id: string;
@@ -328,6 +338,42 @@ export const endpoints = {
     params: idParam,
     query: cursorQuery,
     response: z.object({ changes: z.array(monitorChange) }).extend(pageInfo.shape),
+  }),
+  webhookDeliveries: ep({
+    id: "webhookDeliveries",
+    method: "get",
+    path: "/v1/webhooks/deliveries",
+    tag: "Webhooks",
+    summary: "List webhook deliveries",
+    description:
+      "Every webhook sent to your endpoints, newest first, with the outcome of the last attempt. Kept for 30 days.",
+    cost: "Free.",
+    query: cursorQuery,
+    response: z.object({ deliveries: z.array(webhookDelivery) }).extend(pageInfo.shape),
+  }),
+  webhookRedeliver: ep({
+    id: "webhookRedeliver",
+    method: "post",
+    path: "/v1/webhooks/deliveries/{id}/redeliver",
+    tag: "Webhooks",
+    summary: "Send a delivery again",
+    description:
+      "Queues a fresh run of attempts for a delivery, with the original payload and the same delivery id.",
+    cost: "Free.",
+    params: idParam,
+    response: webhookDelivery,
+  }),
+  webhookTest: ep({
+    id: "webhookTest",
+    method: "post",
+    path: "/v1/webhooks/test",
+    tag: "Webhooks",
+    summary: "Send a test webhook",
+    description:
+      "Sends a signed `webhook.test` event to a URL so you can check your receiver and its signature verification before relying on it.",
+    cost: "Free.",
+    body: webhookTestRequest,
+    response: webhookDelivery,
   }),
   usage: ep({
     id: "usage",

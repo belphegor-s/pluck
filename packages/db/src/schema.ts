@@ -318,6 +318,41 @@ export const monitorChanges = pgTable(
   (t) => [index("monitor_change_monitor_idx").on(t.monitorId, t.detectedAt.desc())],
 );
 
+/* ------------------------------------------------------------------- webhooks */
+
+export const deliveryStatusEnum = pgEnum("delivery_status", ["pending", "succeeded", "failed"]);
+
+/**
+ * One row per webhook we send, updated on every attempt.
+ *
+ * Without it "your webhook never fired" has no answer: the queue forgets a job
+ * once it finishes. The payload is kept so a delivery can be sent again after
+ * the receiver is fixed.
+ */
+export const webhookDeliveries = pgTable(
+  "webhook_delivery",
+  {
+    /** Also the queue job id, and sent to the receiver as the delivery id. */
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    event: text("event").notNull(),
+    url: text("url").notNull(),
+    payload: jsonb("payload").notNull(),
+    status: deliveryStatusEnum("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    /** HTTP status of the most recent attempt, when the receiver answered at all. */
+    lastStatus: integer("last_status"),
+    lastError: text("last_error"),
+    /** Milliseconds the most recent attempt took. */
+    lastDurationMs: integer("last_duration_ms"),
+    createdAt: createdAt(),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+  },
+  (t) => [index("webhook_delivery_user_idx").on(t.userId, t.createdAt.desc())],
+);
+
 /* --------------------------------------------------------------------- brands */
 
 /** Shared brand profile cache, keyed by domain. Not user data. */

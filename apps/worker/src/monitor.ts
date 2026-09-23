@@ -7,14 +7,15 @@ import {
   Scraper,
   sha256,
 } from "@pluck/core";
-import { type Database, monitorChanges, monitors, newId, users } from "@pluck/db";
-import type {
-  Credits,
-  LlmResolver,
-  Logger,
-  ProxyDirectory,
-  Queues,
-  UsageRecorder,
+import { type Database, monitorChanges, monitors, newId } from "@pluck/db";
+import {
+  type Credits,
+  enqueueWebhook,
+  type LlmResolver,
+  type Logger,
+  type ProxyDirectory,
+  type Queues,
+  type UsageRecorder,
 } from "@pluck/runtime";
 import { credits as creditPrices, isPluckError, scrapeCost } from "@pluck/shared";
 import { eq, sql } from "drizzle-orm";
@@ -158,25 +159,19 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
       const id = newId("chg");
       await db.insert(monitorChanges).values({ id, monitorId: m.id, ...change, detectedAt: now });
       if (m.webhook) {
-        const [user] = await db
-          .select({ secret: users.webhookSecret })
-          .from(users)
-          .where(eq(users.id, m.userId));
-        if (user) {
-          await deps.queues.webhook.add("monitor.changed", {
-            url: m.webhook,
-            secret: user.secret,
-            event: "monitor.changed",
-            payload: {
-              monitorId: m.id,
-              changeId: id,
-              url: m.url,
-              type: m.type,
-              detectedAt: now.toISOString(),
-              ...change,
-            },
-          });
-        }
+        await enqueueWebhook(db, deps.queues, {
+          userId: m.userId,
+          url: m.webhook,
+          event: "monitor.changed",
+          payload: {
+            monitorId: m.id,
+            changeId: id,
+            url: m.url,
+            type: m.type,
+            detectedAt: now.toISOString(),
+            ...change,
+          },
+        });
       }
     }
 

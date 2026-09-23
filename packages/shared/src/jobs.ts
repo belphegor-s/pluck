@@ -233,6 +233,12 @@ export type MonitorCreate = z.infer<typeof monitorCreate>;
 export const monitorUpdate = monitorCreate
   .omit({ type: true })
   .partial()
+  // `null` clears the field. Without it, a webhook or selector once set could
+  // never be removed — omitting a field only means "leave it alone".
+  .extend({
+    webhook: httpUrl.nullable().optional(),
+    selector: z.string().max(500).nullable().optional(),
+  })
   .meta({ id: "MonitorUpdate" });
 
 export const monitor = z
@@ -267,3 +273,29 @@ export const monitorChange = z
 export type MonitorChange = z.infer<typeof monitorChange>;
 
 export { llmOverride };
+
+/* ---------------------------------------------------------------- webhooks */
+
+export const webhookDelivery = z
+  .object({
+    id: z.string().meta({ description: "Sent to your endpoint as the delivery id header." }),
+    event: z.string().meta({ example: "monitor.changed" }),
+    url: z.string(),
+    status: z.enum(["pending", "succeeded", "failed"]),
+    attempts: z.number().int(),
+    lastStatus: z
+      .number()
+      .int()
+      .nullable()
+      .meta({ description: "HTTP status of the most recent attempt, if your endpoint answered." }),
+    lastError: z.string().nullable(),
+    lastDurationMs: z.number().int().nullable(),
+    createdAt: z.string(),
+    deliveredAt: z.string().nullable(),
+  })
+  .meta({ id: "WebhookDelivery" });
+export type WebhookDelivery = z.infer<typeof webhookDelivery>;
+
+export const webhookTestRequest = z.object({
+  url: z.url().meta({ description: "Your endpoint. A signed `webhook.test` event is sent to it." }),
+});

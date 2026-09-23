@@ -9,6 +9,7 @@ const tabs = [
   { href: "/dashboard/keys", label: "API keys" },
   { href: "/dashboard/ai", label: "Model provider" },
   { href: "/dashboard/monitors", label: "Monitors" },
+  { href: "/dashboard/webhooks", label: "Webhooks" },
   { href: "/dashboard/proxies", label: "Proxies" },
   { href: "/dashboard/billing", label: "Credits" },
   { href: "/dashboard/invoices", label: "Invoices" },

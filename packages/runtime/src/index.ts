@@ -28,3 +28,10 @@ export {
   WEBHOOK_SIGNATURE_HEADER,
   type WebhookJobData,
 } from "./queues.js";
+export {
+  type AttemptResult,
+  attemptDelivery,
+  enqueueWebhook,
+  redeliverWebhook,
+  type WebhookEvent,
+} from "./webhooks.js";

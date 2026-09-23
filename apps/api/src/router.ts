@@ -16,6 +16,7 @@ import type { HandlerMap } from "./handler.js";
 import * as intel from "./handlers/intel.js";
 import * as jobs from "./handlers/jobs.js";
 import * as scrape from "./handlers/scrape.js";
+import * as webhooks from "./handlers/webhooks.js";
 import type { Services } from "./services.js";
 
 const handlers: HandlerMap = {
@@ -40,6 +41,9 @@ const handlers: HandlerMap = {
   monitorUpdate: jobs.monitorUpdate,
   monitorDelete: jobs.monitorDelete,
   monitorChanges: jobs.monitorChangesList,
+  webhookDeliveries: webhooks.webhookDeliveriesList,
+  webhookRedeliver: webhooks.webhookRedeliver,
+  webhookTest: webhooks.webhookTest,
   usage: jobs.usage,
 };
 
