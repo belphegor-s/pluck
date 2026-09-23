@@ -4,10 +4,12 @@ import {
   DESKTOP_UA,
   isPrivateAddress,
   MOBILE_UA,
+  PrioritySlots,
   type ProxyPool,
   type Renderer,
   type RenderRequest,
   type RenderResult,
+  type SlotPriority,
   styleguideProbe,
 } from "@pluck/core";
 import type { Logger } from "@pluck/runtime";
@@ -42,11 +44,12 @@ export interface BrowserPoolOptions {
 export class BrowserPool implements Renderer {
   private browser: Promise<Browser> | null = null;
   private pagesServed = 0;
-  private active = 0;
-  private readonly waiters: (() => void)[] = [];
+  private readonly slots: PrioritySlots;
   private readonly dnsCache = new LRUCache<string, boolean>({ max: 10_000, ttl: 60_000 });
 
-  constructor(private readonly opts: BrowserPoolOptions) {}
+  constructor(private readonly opts: BrowserPoolOptions) {
+    this.slots = new PrioritySlots(opts.concurrency);
+  }
 
   private launch(): Promise<Browser> {
     this.browser ??= chromium
@@ -81,19 +84,9 @@ export class BrowserPool implements Renderer {
     return this.browser;
   }
 
-  private async acquire(): Promise<void> {
-    if (this.active < this.opts.concurrency) {
-      this.active++;
-      return;
-    }
-    await new Promise<void>((resolve) => this.waiters.push(resolve));
-    this.active++;
-  }
-
   private release(): void {
-    this.active--;
-    this.waiters.shift()?.();
-    if (++this.pagesServed >= 500 && this.active === 0 && this.browser) {
+    this.slots.release();
+    if (++this.pagesServed >= 500 && this.slots.stats.active === 0 && this.browser) {
       const old = this.browser;
       this.browser = null;
       this.pagesServed = 0;
@@ -115,11 +108,19 @@ export class BrowserPool implements Renderer {
     return ok;
   }
 
-  async render(req: RenderRequest): Promise<RenderResult> {
+  /** The same pool, as a renderer for crawls and monitors. */
+  readonly background: Renderer = { render: (req) => this.render(req, "background") };
+
+  /**
+   * Renders one page. `background` work — crawl pages, monitor checks — waits
+   * behind interactive requests for a browser slot, so a large crawl cannot
+   * hold up someone waiting on a single scrape.
+   */
+  async render(req: RenderRequest, priority: SlotPriority = "interactive"): Promise<RenderResult> {
     if (!(await this.isAllowedHost(new URL(req.url).hostname))) {
       throw new PluckError("forbidden", "Private network addresses cannot be scraped.");
     }
-    await this.acquire();
+    await this.slots.acquire(priority);
     let context: BrowserContext | null = null;
     try {
       const browser = await this.launch();

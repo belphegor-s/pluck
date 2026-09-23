@@ -36,6 +36,7 @@ export { PLUCK_BOT, RobotsCache } from "./robots.js";
 export { type ScrapeOutcome, Scraper, type ScraperDeps } from "./scrape.js";
 export * from "./search/index.js";
 export { readSitemaps } from "./sitemap.js";
+export { PrioritySlots, type SlotPriority } from "./slots.js";
 export type * from "./types.js";
 export {
   isLikelyPage,

@@ -60,7 +60,7 @@ export async function runCrawl(deps: CrawlDeps, crawlId: string): Promise<void> 
   const scraper = new Scraper({
     http: deps.http,
     robots: deps.robots,
-    renderer: deps.browser,
+    renderer: deps.browser.background,
     userId: crawl.userId,
     proxies: await deps.proxies?.forUser(crawl.userId),
     extractor: req.scrapeOptions.formats.includes("json") ? deps.llm.tasks(crawl.userId) : null,
