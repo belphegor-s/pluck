@@ -85,3 +85,58 @@ jobs:
           push: false
           cache-from: type=gha,scope=${{ matrix.target }}
           cache-to: type=gha,scope=${{ matrix.target }},mode=max
+
+  # Boots the self-hosted stack exactly as docker-compose.yml ships it and runs
+  # the same end-to-end checks used against production. Proves self-hosting
+  # works on a clean machine, and catches breakage unit tests cannot see:
+  # migrations, queues, the browser, storage, MCP and the web app together.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: docker
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Exposes the cache token that type=gha cache_from needs inside compose.
+      - uses: crazy-max/ghaction-github-runtime@v3
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
+      - name: Configure
+        run: |
+          {
+            echo "PLUCK_ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            echo "BOOTSTRAP_API_KEY=pk_live_ci$(openssl rand -hex 16)"
+            echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)"
+            echo "SEARXNG_SECRET=$(openssl rand -hex 16)"
+            echo "PUBLIC_API_URL=http://localhost:8080"
+            echo "PUBLIC_WEB_URL=http://localhost:3000"
+            echo "PUBLIC_MCP_URL=http://localhost:8081"
+          } > .env
+
+      - name: Start the stack
+        run: docker compose -f docker-compose.yml -f docker/compose.ci.yml up -d --build
+
+      - name: Wait for health
+        run: |
+          for url in http://localhost:8080/health http://localhost:8081/health http://localhost:3000/api/health; do
+            for i in $(seq 1 60); do
+              curl -fsS "$url" > /dev/null && echo "up: $url" && break
+              [ "$i" = 60 ] && echo "never came up: $url" && exit 1
+              sleep 5
+            done
+          done
+
+      - name: End-to-end checks
+        env:
+          PLUCK_WEB_URL: http://localhost:3000
+          PLUCK_MCP_URL: http://localhost:8081
+        run: node scripts/smoke.mjs
+
+      - name: Logs
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker/compose.ci.yml logs --no-color --tail=200

@@ -217,6 +217,18 @@ await check("monitor create → delete", async () => {
   return id;
 });
 
+await check("GET /v1/webhooks/deliveries", async () => {
+  const { res, json } = await call("/v1/webhooks/deliveries?limit=1", { method: "GET" });
+  assert(res.ok, `status ${res.status}`);
+  assert(Array.isArray(json.data.deliveries), "no deliveries array");
+  return `${json.data.deliveries.length} shown`;
+});
+
+await check("POST /v1/webhooks/test refuses private targets", async () => {
+  const { res } = await call("/v1/webhooks/test", { body: { url: "http://127.0.0.1:9/hook" } });
+  assert(res.status === 403, `expected 403, got ${res.status}`);
+});
+
 await check("GET /v1/usage", async () => {
   const { res, json } = await call("/v1/usage?days=1", { method: "GET" });
   assert(res.ok, `status ${res.status}`);
@@ -250,6 +262,8 @@ if (WEB) {
     "/pricing",
     "/docs",
     "/docs/mcp",
+    "/trust",
+    "/.well-known/security.txt",
     "/sitemap.xml",
     "/robots.txt",
     "/opengraph-image",
