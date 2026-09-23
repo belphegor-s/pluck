@@ -51,7 +51,7 @@ const pages = {
       ],
       [
         "Retention",
-        "Cached pages expire within hours. Crawl results are deleted after 7 days, the webhook delivery log after 30 days, screenshots after 30 days, monitor history after 90 days, usage records after 400 days and backups after 35 days. Ask us to delete your account and we remove everything tied to it.",
+        "Cached pages expire within hours. Crawl results are deleted after 7 days, the webhook delivery log after 30 days, screenshots after 30 days, monitor history after 90 days, usage records after 400 days and backups after 35 days. Delete your account from the dashboard and everything tied to it is removed at once, and from backups within 35 days.",
       ],
       [
         "Subprocessors",
