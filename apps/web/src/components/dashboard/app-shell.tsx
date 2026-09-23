@@ -59,7 +59,14 @@ const RESOURCES: NavItem[] = [
 const isActive = (pathname: string, href: string) =>
   href === "/dashboard" ? pathname === href : pathname.startsWith(href);
 
+/** Pages reached from elsewhere than the sidebar list. */
+const EXTRA_TITLES: Record<string, string> = {
+  "/dashboard/profile": "Profile",
+  "/dashboard/workspaces/new": "New workspace",
+};
+
 const titleFor = (pathname: string) =>
+  EXTRA_TITLES[pathname] ??
   GROUPS.flatMap((g) => g.items).find((item) => isActive(pathname, item.href))?.label ??
   "Dashboard";
 
@@ -398,21 +405,37 @@ function UserRow({ user, collapsed }: { user: ShellUser; collapsed: boolean }) {
           type="button"
           onClick={leave}
           aria-label="Sign out"
-          title={`Sign out ${user.email}`}
+          title="Sign out"
+          className="flex size-9 items-center justify-center text-[var(--ink-soft)] transition-colors hover:text-[var(--accent)]"
+        >
+          <Icon name="signout" className="size-4" />
+        </button>
+        <Link
+          href="/dashboard/profile"
+          aria-label="Your profile"
+          title={`${user.name || user.email}: profile`}
           className="flex size-9 items-center justify-center"
         >
           {avatar}
-        </button>
+        </Link>
       </div>
     );
 
   return (
     <div className="flex items-center gap-2">
-      {avatar}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm">{user.name || user.email}</p>
-        {user.name && <p className="truncate text-xs text-[var(--ink-faint)]">{user.email}</p>}
-      </div>
+      <Link
+        href="/dashboard/profile"
+        title="Your profile"
+        className="-m-1 flex min-w-0 flex-1 items-center gap-2 p-1 transition-colors hover:bg-[var(--paper)]"
+      >
+        {avatar}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm">{user.name || user.email}</span>
+          {user.name && (
+            <span className="block truncate text-xs text-[var(--ink-faint)]">{user.email}</span>
+          )}
+        </span>
+      </Link>
       <ThemeToggle />
       <button
         type="button"

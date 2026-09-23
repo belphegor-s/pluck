@@ -3,6 +3,7 @@ import {
   bigint,
   bigserial,
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -82,6 +83,27 @@ export const verifications = pgTable("verification", {
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** Raw bytes; Postgres `bytea`. */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
+
+/**
+ * A profile picture someone uploaded. Kept in the database rather than object
+ * storage so self-hosted instances need nothing extra; after re-encoding it
+ * is a 256px WebP of a few kilobytes.
+ */
+export const userAvatars = pgTable("user_avatar", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  data: bytea("data").notNull(),
+  contentType: text("content_type").notNull(),
+  /** Content hash; also the cache-busting version in the avatar URL. */
+  hash: text("hash").notNull(),
+  /** The picture before the first upload (the GitHub one), restored on removal. */
+  previousImage: text("previous_image"),
   updatedAt: updatedAt(),
 });
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { members, organizations } from "@pluck/db";
+import { members, organizations, users } from "@pluck/db";
 import type { Role } from "@pluck/shared";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
@@ -71,7 +71,14 @@ export const getWorkspace = cache(async (): Promise<WorkspaceContext | null> => 
   if (!session?.user) return null;
   const user = session.user;
 
-  let workspaces = await listWorkspaces(user.id);
+  // Name and picture are read fresh: the session cache would show an old one
+  // for minutes after a profile edit.
+  const [[profile], initial] = await Promise.all([
+    db.select({ name: users.name, image: users.image }).from(users).where(eq(users.id, user.id)),
+    listWorkspaces(user.id),
+  ]);
+  if (!profile) return null;
+  let workspaces = initial;
   if (!workspaces.some((w) => w.personal)) {
     await ensurePersonalWorkspace(user.id);
     workspaces = await listWorkspaces(user.id);
@@ -84,10 +91,10 @@ export const getWorkspace = cache(async (): Promise<WorkspaceContext | null> => 
   return {
     user: {
       id: user.id,
-      name: user.name,
+      name: profile.name,
       email: user.email,
       emailVerified: user.emailVerified,
-      image: user.image ?? null,
+      image: profile.image ?? null,
     },
     workspace,
     workspaces,

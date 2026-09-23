@@ -8,7 +8,7 @@ const config: NextConfig = {
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   poweredByHeader: false,
   transpilePackages: ["@pluck/shared", "@pluck/db", "@pluck/ai"],
-  serverExternalPackages: ["postgres"],
+  serverExternalPackages: ["postgres", "sharp"],
   experimental: { optimizePackageImports: ["@pluck/shared"] },
   async headers() {
     return [

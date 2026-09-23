@@ -1,5 +1,4 @@
 import { CopyButton } from "@/components/copy-button";
-import { DeleteAccount } from "@/components/dashboard/delete-account";
 import {
   DeleteWorkspace,
   LeaveWorkspace,
@@ -11,8 +10,7 @@ export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const { user, workspace, workspaces } = await requireWorkspace("/dashboard/settings");
-  const personal = workspaces.find((w) => w.personal);
+  const { workspace } = await requireWorkspace("/dashboard/settings");
   const role = roleLabel[workspace.role].toLowerCase();
 
   return (
@@ -61,18 +59,6 @@ export default async function SettingsPage() {
           )}
         </section>
       )}
-
-      <section className="space-y-4 border-t border-[var(--line)] pt-6">
-        <div>
-          <h2 className="text-lg">Your account</h2>
-          <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
-            Signed in with GitHub as <span className="text-[var(--ink)]">{user.email}</span>.
-            Deleting your account removes your personal workspace and any team you are the only
-            member of. Teams with other people carry on without you.
-          </p>
-        </div>
-        <DeleteAccount email={user.email} credits={personal?.credits ?? 0} />
-      </section>
     </div>
   );
 }
