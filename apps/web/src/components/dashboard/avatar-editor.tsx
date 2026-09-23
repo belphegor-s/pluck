@@ -378,10 +378,26 @@ export function AvatarEditor({
             />
           </div>
 
-          <div className="flex items-center gap-3">
-            <span aria-hidden="true" className="text-xs text-[var(--ink-faint)]">
-              −
-            </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Zoom out"
+              disabled={view.zoom <= 1}
+              onClick={() => zoomTo(view.zoom - 0.25)}
+              className="flex size-8 shrink-0 items-center justify-center text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)] disabled:opacity-40"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              >
+                <path d="M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM20 20l-4.8-4.8M7.5 10.5h6" />
+              </svg>
+            </button>
             <input
               type="range"
               min={1}
@@ -389,11 +405,37 @@ export function AvatarEditor({
               step={0.01}
               value={view.zoom}
               aria-label="Zoom"
+              aria-valuetext={`${Math.round(view.zoom * 100)}%`}
               onChange={(event) => zoomTo(Number(event.target.value))}
-              className="flex-1 accent-[var(--accent)]"
+              style={
+                { "--fill": `${((view.zoom - 1) / (MAX_ZOOM - 1)) * 100}%` } as React.CSSProperties
+              }
+              className="range min-w-0 flex-1"
             />
-            <span aria-hidden="true" className="text-xs text-[var(--ink-faint)]">
-              +
+            <button
+              type="button"
+              aria-label="Zoom in"
+              disabled={view.zoom >= MAX_ZOOM}
+              onClick={() => zoomTo(view.zoom + 0.25)}
+              className="flex size-8 shrink-0 items-center justify-center text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)] disabled:opacity-40"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              >
+                <path d="M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM20 20l-4.8-4.8M7.5 10.5h6M10.5 7.5v6" />
+              </svg>
+            </button>
+            <span
+              className="mono w-11 shrink-0 text-right text-xs text-[var(--ink-faint)]"
+              aria-hidden="true"
+            >
+              {Math.round(view.zoom * 100)}%
             </span>
           </div>
 
@@ -401,17 +443,43 @@ export function AvatarEditor({
             <button
               type="button"
               onClick={() => update((v) => ({ ...v, turns: (v.turns + 1) % 4 }))}
-              className="border border-[var(--line)] px-3 py-1.5 hover:border-[var(--ink-faint)]"
+              className="flex items-center gap-1.5 border border-[var(--line)] px-3 py-1.5 transition-colors hover:border-[var(--ink-faint)]"
             >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              >
+                <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" />
+              </svg>
               Rotate
             </button>
             <button
               type="button"
               onClick={() => update(() => START)}
-              className="border border-[var(--line)] px-3 py-1.5 hover:border-[var(--ink-faint)]"
+              disabled={view.zoom === 1 && view.x === 0 && view.y === 0 && view.turns === 0}
+              className="flex items-center gap-1.5 border border-[var(--line)] px-3 py-1.5 transition-colors hover:border-[var(--ink-faint)] disabled:opacity-40"
             >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              >
+                <path d="M4 12a8 8 0 1 0 2.34-5.66M4 4v4h4" />
+              </svg>
               Reset
             </button>
+            <span className="ml-auto hidden text-xs text-[var(--ink-faint)] sm:inline">
+              Drag to move
+            </span>
           </div>
 
           {(error || uploadState.error) && (

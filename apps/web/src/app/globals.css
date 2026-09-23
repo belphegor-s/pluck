@@ -411,3 +411,74 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+@layer components {
+  /*
+   * A range input drawn by us. The native one fills its track independently
+   * of the thumb in some browsers, so the filled part is a gradient stop set
+   * from the value (`--fill`, 0%–100%) by whoever renders it.
+   */
+  .range {
+    appearance: none;
+    height: 1.25rem;
+    background: transparent;
+    cursor: pointer;
+    --fill: 0%;
+  }
+  .range:focus {
+    outline: none;
+  }
+  .range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      var(--accent) 0 var(--fill),
+      var(--line) var(--fill) 100%
+    );
+  }
+  .range::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+  .range::-moz-range-progress {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .range::-webkit-slider-thumb {
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    margin-top: calc((4px - 1rem) / 2);
+    border-radius: 999px;
+    background: var(--paper);
+    border: 2px solid var(--accent);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+    transition: transform 120ms ease;
+  }
+  .range::-moz-range-thumb {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    background: var(--paper);
+    border: 2px solid var(--accent);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+    transition: transform 120ms ease;
+  }
+  .range:hover::-webkit-slider-thumb,
+  .range:active::-webkit-slider-thumb {
+    transform: scale(1.15);
+  }
+  .range:hover::-moz-range-thumb,
+  .range:active::-moz-range-thumb {
+    transform: scale(1.15);
+  }
+  .range:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px var(--accent-wash), 0 1px 3px rgb(0 0 0 / 0.35);
+  }
+  .range:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 3px var(--accent-wash), 0 1px 3px rgb(0 0 0 / 0.35);
+  }
+}
