@@ -5,9 +5,11 @@ import { isProviderId, keyHint, SecretBox } from "@pluck/ai";
 import { assertPublicUrl } from "@pluck/core";
 import { apiKeys, contactRequests, llmCredentials, newId, userProxies, users } from "@pluck/db";
 import { checkProxyUrl, createMailer, generateApiKey } from "@pluck/runtime";
+import { OWNER_USER_ID } from "@pluck/shared";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { callApiAs } from "@/lib/api";
 import { auth } from "@/lib/auth";
@@ -410,4 +412,34 @@ export async function rotateWebhookSecret(
   } catch (err) {
     return fail(err);
   }
+}
+
+/**
+ * Deletes the signed-in account and everything tied to it.
+ *
+ * Every user table cascades from `user`, so one delete removes keys, usage,
+ * monitors, crawls, deliveries and sessions together. The email must be typed
+ * back, because this cannot be undone and remaining credits go with it.
+ * Payment records stay with the payment provider, which must keep them.
+ */
+export async function deleteAccount(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  let deleted = false;
+  try {
+    const user = await requireUser();
+    const typed = String(formData.get("confirm") ?? "")
+      .trim()
+      .toLowerCase();
+    if (!user.email || typed !== user.email.toLowerCase())
+      return { error: "Type your account email exactly to confirm." };
+    // The self-hosted owner is recreated from BOOTSTRAP_API_KEY on every boot,
+    // so deleting it would look like it worked and then quietly undo itself.
+    if (user.id === OWNER_USER_ID)
+      return { error: "The instance owner cannot be deleted. Unset BOOTSTRAP_API_KEY instead." };
+    const removed = await db.delete(users).where(eq(users.id, user.id)).returning({ id: users.id });
+    deleted = removed.length > 0;
+    if (!deleted) return { error: "Account not found." };
+  } catch (err) {
+    return fail(err);
+  }
+  redirect("/");
 }

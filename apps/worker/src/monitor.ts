@@ -83,7 +83,7 @@ export async function checkMonitor(deps: MonitorDeps, monitorId: string): Promis
       const scraper = new Scraper({
         http: deps.http,
         robots: deps.robots,
-        renderer: deps.browser,
+        renderer: deps.browser.background,
         userId: m.userId,
         proxies: await deps.proxies?.forUser(m.userId),
         extractor: m.type === "extract" ? deps.llm.tasks(m.userId) : null,

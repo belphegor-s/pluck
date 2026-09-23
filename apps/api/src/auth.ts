@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { apiKeys, users } from "@pluck/db";
 import { hashApiKey } from "@pluck/runtime";
-import { BRAND, PluckError } from "@pluck/shared";
+import { BRAND, OWNER_USER_ID, PluckError } from "@pluck/shared";
 import { and, eq, isNull } from "drizzle-orm";
 import { LRUCache } from "lru-cache";
 import type { Services } from "./services.js";
@@ -10,8 +10,6 @@ export interface Caller {
   userId: string;
   apiKeyId: string | null;
 }
-
-export const OWNER_USER_ID = "usr_owner";
 
 /** One-time credit grant for the instance owner, applied idempotently. */
 const OWNER_GRANT = 250_000;

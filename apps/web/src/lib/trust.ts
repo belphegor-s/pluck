@@ -145,7 +145,7 @@ export const RETENTION: [string, string][] = [
   ["Backups", "35 days"],
   [
     "Your account",
-    "Until you ask us to delete it; then everything tied to it is removed within 30 days",
+    "Until you delete it from the dashboard; removed at once, and from backups within 35 days",
   ],
 ];
 

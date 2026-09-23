@@ -3,6 +3,7 @@ import { CREDIT_USD } from "@pluck/shared";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import Link from "next/link";
+import { DeleteAccount } from "@/components/dashboard/delete-account";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/format";
@@ -136,6 +137,14 @@ export default async function DashboardOverview() {
             </table>
           </div>
         )}
+      </section>
+
+      <section className="border-t border-[var(--line)] pt-6">
+        <h2 className="text-lg">Delete account</h2>
+        <p className="mt-1 mb-4 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+          Removes the account and everything tied to it, straight away.
+        </p>
+        <DeleteAccount email={session!.user.email} credits={account?.credits ?? 0} />
       </section>
     </div>
   );

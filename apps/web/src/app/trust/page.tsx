@@ -166,15 +166,11 @@ export default function TrustPage() {
           <section id="retention" className="scroll-mt-24">
             <h2 className="text-2xl">Retention</h2>
             <p className="mt-2 max-w-[65ch] text-sm text-[var(--ink-soft)]">
-              Deleted automatically, not by hand. To remove your account and everything in it, write
-              to{" "}
-              <a
-                href={`mailto:${SITE.contactEmail}`}
-                className="text-[var(--accent)] underline underline-offset-4"
-              >
-                {SITE.contactEmail}
-              </a>{" "}
-              from the address on the account.
+              Deleted automatically, not by hand. Delete your account from the{" "}
+              <Link href="/dashboard" className="text-[var(--accent)] underline underline-offset-4">
+                dashboard
+              </Link>{" "}
+              and everything in it goes at once.
             </p>
             <dl className="mt-5 divide-y divide-[var(--line)] border-y border-[var(--line)] text-sm">
               {RETENTION.map(([what, how]) => (
