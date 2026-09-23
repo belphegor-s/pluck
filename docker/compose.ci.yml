@@ -1,0 +1,13 @@
+# CI overlay for docker-compose.yml: reuse the layer cache the `docker` job
+# writes, so the end-to-end job does not rebuild every image from scratch.
+services:
+  api:
+    build: { cache_from: ["type=gha,scope=api"] }
+  worker:
+    build: { cache_from: ["type=gha,scope=worker"] }
+    environment:
+      BROWSER_CONCURRENCY: "2"
+  mcp:
+    build: { cache_from: ["type=gha,scope=mcp"] }
+  web:
+    build: { cache_from: ["type=gha,scope=web"] }

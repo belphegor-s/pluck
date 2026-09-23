@@ -35,7 +35,7 @@ cp .env.example .env          # set PLUCK_ENCRYPTION_KEY and BOOTSTRAP_API_KEY
 docker compose up -d
 ```
 
-That starts Postgres, two Redis instances, SearXNG, MinIO, the API, a browser worker, the MCP server and the dashboard.
+That starts Postgres, two Redis instances, SearXNG, SeaweedFS object storage, the API, a browser worker, the MCP server and the dashboard.
 
 ```bash
 curl -X POST http://localhost:8080/v1/scrape \

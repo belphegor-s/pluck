@@ -146,9 +146,11 @@ await check("POST /v1/screenshot", async () => {
     typeof json.data.screenshot === "string" && json.data.screenshot.length > 0,
     "no screenshot",
   );
-  return json.data.screenshot.startsWith("http")
-    ? "stored in object storage"
-    : "returned as data URI";
+  if (!json.data.screenshot.startsWith("http")) return "returned as data URI";
+  // Stored: the public URL must actually serve the image, not just exist.
+  const image = await fetch(json.data.screenshot, { signal: AbortSignal.timeout(15_000) });
+  assert(image.ok, `stored screenshot not readable: ${image.status}`);
+  return `stored in object storage (${image.headers.get("content-type")})`;
 });
 
 await check("POST /v1/parse (pdf)", async () => {
@@ -217,6 +219,18 @@ await check("monitor create → delete", async () => {
   return id;
 });
 
+await check("GET /v1/webhooks/deliveries", async () => {
+  const { res, json } = await call("/v1/webhooks/deliveries?limit=1", { method: "GET" });
+  assert(res.ok, `status ${res.status}`);
+  assert(Array.isArray(json.data.deliveries), "no deliveries array");
+  return `${json.data.deliveries.length} shown`;
+});
+
+await check("POST /v1/webhooks/test refuses private targets", async () => {
+  const { res } = await call("/v1/webhooks/test", { body: { url: "http://127.0.0.1:9/hook" } });
+  assert(res.status === 403, `expected 403, got ${res.status}`);
+});
+
 await check("GET /v1/usage", async () => {
   const { res, json } = await call("/v1/usage?days=1", { method: "GET" });
   assert(res.ok, `status ${res.status}`);
@@ -250,6 +264,8 @@ if (WEB) {
     "/pricing",
     "/docs",
     "/docs/mcp",
+    "/trust",
+    "/.well-known/security.txt",
     "/sitemap.xml",
     "/robots.txt",
     "/opengraph-image",

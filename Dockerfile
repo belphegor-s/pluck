@@ -74,6 +74,9 @@ FROM node:${NODE_VERSION}-bookworm-slim AS mcp
 ENV NODE_ENV=production PORT=8081
 WORKDIR /app
 COPY --from=build --chown=node:node /out/mcp ./
+# `pnpm deploy` copies what the package publishes, which is the npm bundle
+# rather than the server build, so the server is copied across by hand.
+COPY --from=build --chown=node:node /repo/apps/mcp/dist ./dist
 USER node
 EXPOSE 8081
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s CMD node -e "fetch('http://127.0.0.1:8081/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
