@@ -21,7 +21,7 @@ const SAMPLES = [
 ];
 
 export function HeroDemo() {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(SAMPLES[1]);
   const [tab, setTab] = useState<Tab>("markdown");
   const [state, setState] = useState<"idle" | "working" | "done" | "error">("idle");
   const [result, setResult] = useState<DemoResult | null>(null);

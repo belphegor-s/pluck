@@ -5,7 +5,7 @@
  * `pnpm lint`, so CI fails on any tracked file that contains one.
  *
  * Code that must match an em dash in input (a page title, say) writes it as
- * the escape —.
+ * the escape \u2014.
  */
 import { execFileSync } from "node:child_process";
 

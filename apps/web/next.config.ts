@@ -7,6 +7,8 @@ const config: NextConfig = {
   // Monorepo root, so standalone output traces workspace packages too.
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   poweredByHeader: false,
+  // AGENTS.md is ours to keep in house style; next dev would rewrite it.
+  agentRules: false,
   transpilePackages: ["@pluck/shared", "@pluck/db", "@pluck/ai"],
   serverExternalPackages: ["postgres", "sharp"],
   experimental: { optimizePackageImports: ["@pluck/shared"] },
