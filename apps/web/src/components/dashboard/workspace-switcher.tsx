@@ -9,21 +9,28 @@ import { switchWorkspace } from "@/lib/team-actions";
 export interface ShellWorkspace {
   id: string;
   name: string;
-  personal: boolean;
+  image: string | null;
   role: "owner" | "admin" | "member";
 }
 
 const ROLE = { owner: "Owner", admin: "Admin", member: "Member" } as const;
 
 function Badge({ ws, size = "size-7" }: { ws: ShellWorkspace; size?: string }) {
+  if (ws.image)
+    return (
+      // A small uploaded picture, already sized; not worth the image optimiser.
+      // biome-ignore lint/performance/noImgElement: see above.
+      <img
+        src={ws.image}
+        alt=""
+        aria-hidden="true"
+        className={`${size} shrink-0 rounded-[22%] border border-[var(--line)] object-cover`}
+      />
+    );
   return (
     <span
       aria-hidden="true"
-      className={`flex ${size} shrink-0 items-center justify-center text-xs font-semibold ${
-        ws.personal
-          ? "rounded-full bg-[var(--accent-wash)] text-[var(--accent)]"
-          : "bg-[var(--ink)] text-[var(--paper)]"
-      }`}
+      className={`flex ${size} shrink-0 items-center justify-center rounded-[22%] bg-[var(--ink)] text-xs font-semibold text-[var(--paper)]`}
     >
       {ws.name.trim().charAt(0).toUpperCase() || "?"}
     </span>
@@ -98,7 +105,7 @@ export function WorkspaceSwitcher({
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm">{current.name}</span>
               <span className="block text-[11px] text-[var(--ink-faint)]">
-                {current.personal ? "Just you" : ROLE[current.role]}
+                {ROLE[current.role]}
               </span>
             </span>
             <Icon name="chevrons" className="size-4 text-[var(--ink-faint)]" />
@@ -135,7 +142,7 @@ export function WorkspaceSwitcher({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{ws.name}</span>
                     <span className="block text-[11px] text-[var(--ink-faint)]">
-                      {ws.personal ? "Personal" : ROLE[ws.role]}
+                      {ROLE[ws.role]}
                     </span>
                   </span>
                   {active && <Icon name="check" className="size-4 text-[var(--accent)]" />}
@@ -152,7 +159,7 @@ export function WorkspaceSwitcher({
               <span className="flex size-6 items-center justify-center border border-dashed border-[var(--line)]">
                 <Icon name="plus" className="size-3.5" />
               </span>
-              Create a team workspace
+              Create a workspace
             </Link>
           </div>
           {error && (

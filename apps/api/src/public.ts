@@ -123,14 +123,10 @@ export function publicRouter(s: Services) {
 
     if (event.type === "order.paid") {
       const order = event.data;
-      // Checkout metadata wins: a Polar organization can already hold customers
-      // whose `externalId` belongs to a different product of the same seller.
-      // orgId since workspaces; before them userId, which is the id of that
-      // user's personal workspace, so older orders still land in the right place.
-      const orgId =
-        (order.metadata?.orgId as string | undefined) ??
-        (order.metadata?.userId as string | undefined) ??
-        order.customer.externalId;
+      // Only checkout metadata decides whose credits these are. A Polar
+      // organization can already hold customers whose `externalId` belongs to
+      // a different product of the same seller, so that is never trusted.
+      const orgId = order.metadata?.orgId as string | undefined;
       const packId =
         (order.product?.metadata?.pack as string | undefined) ??
         (order.metadata?.pack as string | undefined);

@@ -1,6 +1,5 @@
 import { invitations, members, users } from "@pluck/db";
 import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
-import Link from "next/link";
 import { InviteForm, MemberControls, RevokeInvitation } from "@/components/dashboard/team-forms";
 import { db } from "@/lib/db";
 import { timeAgo } from "@/lib/format";
@@ -20,24 +19,6 @@ const ROLES = [
 
 export default async function TeamPage() {
   const { user, workspace } = await requireWorkspace("/dashboard/team");
-
-  if (workspace.personal)
-    return (
-      <div className="max-w-2xl space-y-4">
-        <h2 className="text-lg">Team</h2>
-        <p className="text-sm text-[var(--ink-soft)]">
-          This is your personal workspace, just for you. To work with other people, create a team
-          workspace: it has its own keys, credits, monitors and members, and you can switch between
-          the two from the top of the sidebar.
-        </p>
-        <Link
-          href="/dashboard/workspaces/new"
-          className="inline-block bg-[var(--ink)] px-4 py-2 text-sm text-[var(--paper)] transition-opacity hover:opacity-85"
-        >
-          Create a team workspace
-        </Link>
-      </div>
-    );
 
   const manage = can.manageMembers(workspace.role);
   const [people, pending] = await Promise.all([
@@ -168,11 +149,11 @@ export default async function TeamPage() {
         <>
           <section>
             <h2 className="text-lg">Invite someone</h2>
-            <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+            <p className="mt-1 text-sm text-[var(--ink-soft)]">
               They get an email with a link that works for 7 days, and only for the GitHub account
               whose verified email matches.
             </p>
-            <div className="mt-4 max-w-3xl">
+            <div className="mt-4">
               <InviteForm />
             </div>
           </section>

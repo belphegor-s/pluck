@@ -10,7 +10,7 @@ const empty: ActionState = {};
  *
  * Collapsed by default so the button is never one stray click from firing.
  */
-export function DeleteAccount({ email, credits }: { email: string; credits: number }) {
+export function DeleteAccount({ email }: { email: string }) {
   const [state, action, pending] = useActionState(deleteAccount, empty);
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
@@ -28,18 +28,10 @@ export function DeleteAccount({ email, credits }: { email: string; credits: numb
     );
 
   return (
-    <form action={action} className="sheet max-w-xl space-y-4 border-[var(--accent)] p-4">
+    <form action={action} className="sheet space-y-4 border-[var(--accent)] p-4">
       <p className="text-sm text-[var(--ink-soft)]">
-        This removes your API keys, usage history, monitors, crawls and webhook log at once, and
-        cannot be undone.
-        {credits > 0 && (
-          <>
-            {" "}
-            Your remaining{" "}
-            <span className="mono text-[var(--ink)]">{credits.toLocaleString()}</span> credits are
-            forfeited.
-          </>
-        )}{" "}
+        This removes your account and every workspace you are the only member of, with their keys,
+        usage history, monitors, crawls, webhook log and remaining credits. It cannot be undone.
         Invoices stay with the payment provider, which is required to keep them.
       </p>
       <label className="block text-sm">

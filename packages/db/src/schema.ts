@@ -110,24 +110,33 @@ export const userAvatars = pgTable("user_avatar", {
 /* -------------------------------------------------------------- organizations */
 
 /**
- * The account that owns everything: keys, credits, usage, crawls, monitors,
- * webhooks and credentials. Every user has a personal one whose id is their
- * user id, so data from before organizations existed needed no rewrite and
- * the payment provider's customer id (the user id) still matches. Teams get
- * `org_` ids.
+ * A workspace: the account that owns everything — keys, credits, usage,
+ * crawls, monitors, webhooks and credentials. People belong to workspaces
+ * through `member`; every user names their first one when they sign up.
  */
 export const organizations = pgTable("organization", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  /** A personal workspace has exactly one member and cannot invite. */
-  personal: boolean("personal").notNull().default(false),
+  /** The workspace picture's URL, when one has been uploaded. */
+  image: text("image"),
   /** Prepaid credit balance. Only meaningful when billing is enabled. */
   credits: bigint("credits", { mode: "number" }).notNull().default(0),
   /** HMAC secret for webhooks sent from this workspace. */
   webhookSecret: text("webhook_secret").notNull().default(sql`encode(gen_random_bytes(24), 'hex')`),
   lowBalanceNotifiedAt: timestamp("low_balance_notified_at", { withTimezone: true }),
   createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** A workspace's uploaded picture; the same shape as a user's, deleted with the workspace. */
+export const organizationAvatars = pgTable("organization_avatar", {
+  orgId: text("org_id")
+    .primaryKey()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  data: bytea("data").notNull(),
+  contentType: text("content_type").notNull(),
+  hash: text("hash").notNull(),
   updatedAt: updatedAt(),
 });
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { invitations, organizations } from "@pluck/db";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 
 /** Invitation tokens are stored only as this hash. */
@@ -23,4 +23,25 @@ export async function describeInvitation(token: string) {
     .where(eq(invitations.tokenHash, hashInviteToken(token)))
     .limit(1);
   return row ?? null;
+}
+
+/** Open invitations to one address, for the onboarding page. */
+export async function openInvitationsFor(email: string) {
+  return db
+    .select({
+      id: invitations.id,
+      role: invitations.role,
+      orgName: organizations.name,
+      expiresAt: invitations.expiresAt,
+    })
+    .from(invitations)
+    .innerJoin(organizations, eq(organizations.id, invitations.orgId))
+    .where(
+      and(
+        eq(invitations.email, email.toLowerCase()),
+        isNull(invitations.acceptedAt),
+        isNull(invitations.revokedAt),
+        gt(invitations.expiresAt, new Date()),
+      ),
+    );
 }

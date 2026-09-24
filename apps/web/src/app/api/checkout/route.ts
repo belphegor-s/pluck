@@ -36,8 +36,7 @@ export async function POST(request: Request) {
   });
   const checkout = await polar.checkouts.create({
     products: [productId],
-    // The workspace is the customer. A personal workspace's id is its user's
-    // id, so accounts that bought before workspaces existed stay one customer.
+    // The workspace is the customer.
     externalCustomerId: ctx.workspace.id,
     customerEmail: ctx.user.email,
     successUrl: `${SITE.url}/dashboard/billing?purchase=success`,

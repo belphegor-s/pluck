@@ -52,7 +52,7 @@ export default async function MonitorsPage() {
             </p>
           )}
         </div>
-        <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
           A monitor re-reads a page, a sitemap or an extraction on a schedule and records every
           change, optionally calling your webhook. Each check costs the credits of the read it
           performs.

@@ -71,7 +71,7 @@ export default async function InvoicesPage({
             Payment methods and billing details
           </a>
         </div>
-        <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
           Every credit purchase, with its invoice. Polar issues invoices once it has your billing
           name and address — add them in the portal if a download is missing.
         </p>

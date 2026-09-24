@@ -173,24 +173,32 @@ export function MemberControls({
   );
 }
 
-export function CreateWorkspaceForm() {
+export function CreateWorkspaceForm({
+  defaultName = "",
+  submitLabel = "Create workspace",
+}: {
+  defaultName?: string;
+  submitLabel?: string;
+}) {
   const [state, action, pending] = useActionState(createWorkspace, empty);
   return (
-    <form action={action} className="max-w-md space-y-3">
+    <form action={action} className="space-y-3">
       <label className="block text-sm">
-        <span className="block text-[var(--ink-soft)]">Name</span>
+        <span className="block text-[var(--ink-soft)]">Workspace name</span>
         <input
           name="name"
           required
           minLength={2}
           maxLength={60}
+          defaultValue={defaultName}
           placeholder="Acme research"
+          autoComplete="organization"
           className={input}
         />
       </label>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <button type="submit" disabled={pending} className={primary}>
-          {pending ? "Creating…" : "Create workspace"}
+          {pending ? "Creating…" : submitLabel}
         </button>
         <Notice state={state} />
       </div>
@@ -201,7 +209,7 @@ export function CreateWorkspaceForm() {
 export function RenameWorkspaceForm({ name }: { name: string }) {
   const [state, action, pending] = useActionState(renameWorkspace, empty);
   return (
-    <form action={action} className="max-w-md space-y-3">
+    <form action={action} className="space-y-3">
       <label className="block text-sm">
         <span className="block text-[var(--ink-soft)]">Name</span>
         <input
@@ -262,7 +270,7 @@ export function DeleteWorkspace({ name, credits }: { name: string; credits: numb
     );
 
   return (
-    <form action={action} className="sheet max-w-xl space-y-4 border-[var(--accent)] p-4">
+    <form action={action} className="sheet space-y-4 border-[var(--accent)] p-4">
       <p className="text-sm text-[var(--ink-soft)]">
         Deletes {name} for everyone: its keys stop working, monitors stop, and its usage history,
         crawls and webhook log are removed.

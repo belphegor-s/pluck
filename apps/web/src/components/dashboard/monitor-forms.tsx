@@ -47,7 +47,7 @@ export function CreateMonitorForm() {
   const [type, setType] = useState<(typeof TYPES)[number]["id"]>("page");
 
   return (
-    <form action={action} className="max-w-2xl space-y-4">
+    <form action={action} className="space-y-4">
       <fieldset>
         <legend className="text-sm text-[var(--ink-soft)]">What to watch</legend>
         <div className="mt-1 grid gap-2 sm:grid-cols-3">
@@ -221,7 +221,7 @@ export function EditMonitorForm({
   const known = INTERVALS.some((i) => i.minutes === monitor.intervalMinutes);
 
   return (
-    <form action={action} className="max-w-2xl space-y-4">
+    <form action={action} className="space-y-4">
       <input type="hidden" name="id" value={monitor.id} />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm">

@@ -35,7 +35,7 @@ export function AddProxyForm() {
   const [tier, setTier] = useState<"datacenter" | "residential">("datacenter");
 
   return (
-    <form action={action} className="max-w-xl space-y-4">
+    <form action={action} className="space-y-4">
       <label className="block text-sm">
         <span className="block text-[var(--ink-soft)]">Name</span>
         <input

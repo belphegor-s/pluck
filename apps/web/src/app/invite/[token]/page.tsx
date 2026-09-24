@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { describeInvitation } from "@/lib/invitations";
-import { getWorkspace, roleLabel } from "@/lib/workspace";
+import { getSessionUser, roleLabel } from "@/lib/workspace";
 import { AcceptInvitation } from "./accept";
 
 export const metadata: Metadata = {
@@ -53,10 +53,10 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       </Card>
     );
 
-  const ctx = await getWorkspace();
+  const user = await getSessionUser();
   const next = `/invite/${token}`;
 
-  if (!ctx)
+  if (!user)
     return (
       <Card title={`Join ${invite.orgName}`}>
         <p>
@@ -73,12 +73,12 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       </Card>
     );
 
-  if (ctx.user.email.toLowerCase() !== invite.email)
+  if (user.email.toLowerCase() !== invite.email)
     return (
       <Card title="This invitation is for someone else">
         <p>
           It was sent to <span className="text-[var(--ink)]">{invite.email}</span>, and you are
-          signed in as <span className="text-[var(--ink)]">{ctx.user.email}</span>. Sign in with the
+          signed in as <span className="text-[var(--ink)]">{user.email}</span>. Sign in with the
           GitHub account for that address, or ask for an invite to yours.
         </p>
       </Card>

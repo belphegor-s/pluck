@@ -1,21 +1,35 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { apiKeys, invitations, members, newId, organizations, users } from "@pluck/db";
+import {
+  apiKeys,
+  creditLedger,
+  invitations,
+  members,
+  newId,
+  organizationAvatars,
+  organizations,
+  users,
+} from "@pluck/db";
 import { createMailer } from "@pluck/runtime";
+import { SIGNUP_GRANT } from "@pluck/shared";
 import { and, count, eq, gt, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { encodeAvatar } from "@/lib/avatars";
 import { db } from "@/lib/db";
 import { hashInviteToken } from "@/lib/invitations";
 import { SITE } from "@/lib/site";
 import {
   can,
+  getSessionUser,
   getWorkspace,
+  listWorkspaces,
   type Role,
   roleLabel,
+  type SessionUser,
   WORKSPACE_COOKIE,
   type WorkspaceContext,
 } from "@/lib/workspace";
@@ -24,7 +38,7 @@ export type TeamState = { ok?: string; error?: string; link?: string };
 
 const INVITE_DAYS = 7;
 const MAX_PENDING_INVITES = 50;
-const MAX_OWNED_TEAMS = 10;
+const MAX_OWNED_WORKSPACES = 10;
 
 const fail = (error: unknown): TeamState => ({
   error: error instanceof Error ? error.message : "Something went wrong.",
@@ -36,14 +50,29 @@ async function context(): Promise<WorkspaceContext> {
   return ctx;
 }
 
-async function setWorkspaceCookie(orgId: string) {
-  (await cookies()).set(WORKSPACE_COOKIE, orgId, {
+/** For the actions a user without any workspace yet can take. */
+async function signedIn(): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user) throw new Error("Sign in to continue.");
+  return user;
+}
+
+async function setWorkspaceCookie(orgId: string | null) {
+  const jar = await cookies();
+  // Leaving the last workspace clears the choice; the dashboard then asks for a new one.
+  if (!orgId) return void jar.delete(WORKSPACE_COOKIE);
+  jar.set(WORKSPACE_COOKIE, orgId, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
+}
+
+/** After leaving or deleting one, the next workspace to show, if there is any. */
+async function nextWorkspace(userId: string, except: string) {
+  return (await listWorkspaces(userId)).find((w) => w.id !== except)?.id ?? null;
 }
 
 /** Owners in a workspace, read inside the transaction making a change. */
@@ -84,15 +113,21 @@ const slugify = (name: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 40) || "team";
 
+/**
+ * Creates a workspace with the caller as its owner. This is also how everyone
+ * starts: after signing up they name their first workspace, and that one
+ * receives the sign-up credits. The grant is keyed on the user, so it lands
+ * once however many workspaces they go on to create.
+ */
 export async function createWorkspace(_prev: TeamState, formData: FormData): Promise<TeamState> {
   let id: string;
   try {
-    const ctx = await context();
+    const user = await signedIn();
     const parsed = nameSchema.safeParse(formData.get("name"));
     if (!parsed.success) return { error: parsed.error.issues[0]?.message };
-    const owned = ctx.workspaces.filter((w) => !w.personal && w.role === "owner").length;
-    if (owned >= MAX_OWNED_TEAMS)
-      return { error: `You can own up to ${MAX_OWNED_TEAMS} team workspaces.` };
+    const owned = (await listWorkspaces(user.id)).filter((w) => w.role === "owner").length;
+    if (owned >= MAX_OWNED_WORKSPACES)
+      return { error: `You can own up to ${MAX_OWNED_WORKSPACES} workspaces.` };
 
     id = newId("org");
     const orgId = id;
@@ -102,24 +137,31 @@ export async function createWorkspace(_prev: TeamState, formData: FormData): Pro
         name: parsed.data,
         // A short random suffix keeps slugs unique without a lookup race.
         slug: `${slugify(parsed.data)}-${randomBytes(3).toString("hex")}`,
-        personal: false,
       });
-      await tx
-        .insert(members)
-        .values({ id: newId("mem"), orgId, userId: ctx.user.id, role: "owner" });
+      await tx.insert(members).values({ id: newId("mem"), orgId, userId: user.id, role: "owner" });
+      if (SIGNUP_GRANT <= 0) return;
+      const granted = await tx
+        .insert(creditLedger)
+        .values({ orgId, delta: SIGNUP_GRANT, reason: "signup", reference: `signup:${user.id}` })
+        .onConflictDoNothing({ target: creditLedger.reference })
+        .returning({ id: creditLedger.id });
+      if (granted.length)
+        await tx
+          .update(organizations)
+          .set({ credits: sql`${organizations.credits} + ${SIGNUP_GRANT}` })
+          .where(eq(organizations.id, orgId));
     });
     await setWorkspaceCookie(id);
   } catch (err) {
     return fail(err);
   }
   revalidatePath("/dashboard", "layout");
-  redirect("/dashboard/team");
+  redirect("/dashboard");
 }
 
 export async function renameWorkspace(_prev: TeamState, formData: FormData): Promise<TeamState> {
   try {
     const { workspace } = await context();
-    if (workspace.personal) return { error: "Your personal workspace cannot be renamed." };
     if (!can.manageSettings(workspace.role))
       return { error: "Only owners and admins can rename the workspace." };
     const parsed = nameSchema.safeParse(formData.get("name"));
@@ -135,22 +177,71 @@ export async function renameWorkspace(_prev: TeamState, formData: FormData): Pro
   }
 }
 
+/** A new workspace picture, re-encoded by `encodeAvatar`. Owners and admins only. */
+export async function uploadWorkspaceAvatar(
+  _prev: TeamState,
+  formData: FormData,
+): Promise<TeamState> {
+  try {
+    const { workspace } = await context();
+    if (!can.manageSettings(workspace.role))
+      return { error: "Only owners and admins can change the workspace picture." };
+    const encoded = await encodeAvatar(formData.get("avatar"));
+    if (!encoded.ok) return { error: encoded.error };
+    const { data, hash } = encoded;
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(organizationAvatars)
+        .values({ orgId: workspace.id, data, contentType: "image/webp", hash })
+        .onConflictDoUpdate({
+          target: organizationAvatars.orgId,
+          set: { data, contentType: "image/webp", hash, updatedAt: new Date() },
+        });
+      await tx
+        .update(organizations)
+        .set({ image: `/api/workspace-avatar/${workspace.id}?v=${hash}` })
+        .where(eq(organizations.id, workspace.id));
+    });
+    revalidatePath("/dashboard", "layout");
+    return { ok: "Picture updated." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function removeWorkspaceAvatar(
+  _prev: TeamState,
+  _formData: FormData,
+): Promise<TeamState> {
+  try {
+    const { workspace } = await context();
+    if (!can.manageSettings(workspace.role))
+      return { error: "Only owners and admins can change the workspace picture." };
+    await db.transaction(async (tx) => {
+      await tx.delete(organizationAvatars).where(eq(organizationAvatars.orgId, workspace.id));
+      await tx.update(organizations).set({ image: null }).where(eq(organizations.id, workspace.id));
+    });
+    revalidatePath("/dashboard", "layout");
+    return { ok: "Picture removed." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
 /**
- * Deletes a team workspace and everything in it: keys stop working, monitors
- * stop, remaining credits are forfeited. The name must be typed back.
+ * Deletes a workspace and everything in it: keys stop working, monitors stop,
+ * remaining credits are forfeited. The name must be typed back.
  */
 export async function deleteWorkspace(_prev: TeamState, formData: FormData): Promise<TeamState> {
   try {
     const ctx = await context();
     const { workspace } = ctx;
-    if (workspace.personal)
-      return { error: "Your personal workspace goes only with your account." };
     if (!can.deleteWorkspace(workspace.role))
       return { error: "Only an owner can delete the workspace." };
     if (String(formData.get("confirm") ?? "").trim() !== workspace.name)
       return { error: "Type the workspace name exactly to confirm." };
     await db.delete(organizations).where(eq(organizations.id, workspace.id));
-    await setWorkspaceCookie(ctx.user.id);
+    await setWorkspaceCookie(await nextWorkspace(ctx.user.id, workspace.id));
   } catch (err) {
     return fail(err);
   }
@@ -158,12 +249,11 @@ export async function deleteWorkspace(_prev: TeamState, formData: FormData): Pro
   redirect("/dashboard");
 }
 
-/** Leaves a team. The last owner cannot leave: hand it over or delete it. */
+/** Leaves a workspace. The last owner cannot leave: hand it over or delete it. */
 export async function leaveWorkspace(_prev: TeamState, _formData: FormData): Promise<TeamState> {
   try {
     const ctx = await context();
     const { workspace, user } = ctx;
-    if (workspace.personal) return { error: "You cannot leave your personal workspace." };
     const blocked = await db.transaction(async (tx) => {
       if (workspace.role === "owner" && (await ownerCount(tx, workspace.id)) <= 1)
         return "You are the only owner. Make someone else an owner, or delete the workspace.";
@@ -174,7 +264,7 @@ export async function leaveWorkspace(_prev: TeamState, _formData: FormData): Pro
       return null;
     });
     if (blocked) return { error: blocked };
-    await setWorkspaceCookie(user.id);
+    await setWorkspaceCookie(await nextWorkspace(user.id, workspace.id));
   } catch (err) {
     return fail(err);
   }
@@ -206,8 +296,6 @@ const inviteSchema = z.object({
 export async function inviteMember(_prev: TeamState, formData: FormData): Promise<TeamState> {
   try {
     const { workspace, user } = await context();
-    if (workspace.personal)
-      return { error: "Personal workspaces are just for you. Create a team to invite people." };
     if (!can.manageMembers(workspace.role))
       return { error: "Only owners and admins can invite people." };
     const parsed = inviteSchema.safeParse({
@@ -392,24 +480,32 @@ export async function removeMember(_prev: TeamState, formData: FormData): Promis
  * second use of the same link a no-op rather than a second membership.
  */
 export async function acceptInvitation(token: string): Promise<TeamState> {
+  return accept(eq(invitations.tokenHash, hashInviteToken(token)));
+}
+
+/**
+ * The same, from the onboarding page, where invitations to the signed-in
+ * user's verified email are listed. The id alone is not a secret: the email
+ * check below is what makes it theirs.
+ */
+export async function acceptInvitationById(id: string): Promise<TeamState> {
+  return accept(eq(invitations.id, id));
+}
+
+async function accept(match: ReturnType<typeof eq>): Promise<TeamState> {
   let orgId: string;
   try {
-    const ctx = await context();
-    const hash = hashInviteToken(token);
-    const [invite] = await db
-      .select()
-      .from(invitations)
-      .where(eq(invitations.tokenHash, hash))
-      .limit(1);
+    const user = await signedIn();
+    const [invite] = await db.select().from(invitations).where(match).limit(1);
     if (!invite || invite.revokedAt) return { error: "This invitation is no longer valid." };
     if (invite.expiresAt < new Date()) return { error: "This invitation has expired." };
-    if (!ctx.user.emailVerified || ctx.user.email.toLowerCase() !== invite.email)
+    if (!user.emailVerified || user.email.toLowerCase() !== invite.email)
       return {
         error: `This invitation is for ${invite.email}. Sign in with the GitHub account whose verified email that is.`,
       };
     orgId = invite.orgId;
 
-    const already = ctx.workspaces.some((w) => w.id === invite.orgId);
+    const already = (await listWorkspaces(user.id)).some((w) => w.id === invite.orgId);
     const error = await db.transaction(async (tx) => {
       const claimed = await tx
         .update(invitations)
@@ -420,7 +516,7 @@ export async function acceptInvitation(token: string): Promise<TeamState> {
       if (!already)
         await tx
           .insert(members)
-          .values({ id: newId("mem"), orgId: invite.orgId, userId: ctx.user.id, role: invite.role })
+          .values({ id: newId("mem"), orgId: invite.orgId, userId: user.id, role: invite.role })
           .onConflictDoNothing();
       return null;
     });

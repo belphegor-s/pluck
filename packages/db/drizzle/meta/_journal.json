@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1789665323845,
-      "tag": "0000_thick_changeling",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1789740867831,
-      "tag": "0001_curved_reavers",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1790135558800,
-      "tag": "0002_careless_toad",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1790171777618,
-      "tag": "0003_organizations",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1790175221114,
-      "tag": "0004_user_avatar",
+      "when": 1790238614423,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

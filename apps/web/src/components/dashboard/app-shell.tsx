@@ -247,7 +247,7 @@ export function AppShell({
       </div>
 
       <div className="min-w-0">
-        <main id="main" className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:py-8">
+        <main id="main" className="px-4 pb-24 pt-6 sm:px-6 lg:px-10 lg:py-8">
           <h1 className="sr-only">{titleFor(pathname)}</h1>
           {children}
         </main>

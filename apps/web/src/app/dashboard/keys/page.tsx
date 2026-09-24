@@ -33,11 +33,9 @@ export default async function KeysPage() {
     <div className="space-y-8">
       <section>
         <h2 className="text-lg">Create a key</h2>
-        <p className="mt-1 max-w-[60ch] text-sm text-[var(--ink-soft)]">
-          {workspace.personal
-            ? "Keys carry the full permissions of your account."
-            : `Keys act for the whole ${workspace.name} workspace and spend its credits.`}{" "}
-          Use a separate key per app so you can revoke one without touching the others.
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
+          Keys act for the whole {workspace.name} workspace and spend its credits. Use a separate
+          key per app so you can revoke one without touching the others.
         </p>
         <div className="mt-4">
           <CreateKeyForm />
@@ -45,7 +43,7 @@ export default async function KeysPage() {
       </section>
 
       <section>
-        <h2 className="text-lg">{workspace.personal ? "Your keys" : "Workspace keys"}</h2>
+        <h2 className="text-lg">Workspace keys</h2>
         {keys.length === 0 ? (
           <p className="mt-2 text-sm text-[var(--ink-soft)]">No keys yet.</p>
         ) : (
@@ -53,14 +51,7 @@ export default async function KeysPage() {
             <table className="w-full min-w-[34rem] text-sm">
               <thead className="text-left text-xs text-[var(--ink-faint)]">
                 <tr>
-                  {[
-                    "Name",
-                    "Key",
-                    ...(workspace.personal ? [] : ["Created by"]),
-                    "Created",
-                    "Last used",
-                    "",
-                  ].map((h) => (
+                  {["Name", "Key", "Created by", "Created", "Last used", ""].map((h) => (
                     <th key={h} className="border-b border-[var(--line)] px-3 py-2 font-medium">
                       {h}
                     </th>
@@ -72,13 +63,11 @@ export default async function KeysPage() {
                   <tr key={key.id} className="border-b border-[var(--line)] last:border-0">
                     <td className="px-3 py-2">{key.name}</td>
                     <td className="mono px-3 py-2 text-xs text-[var(--ink-soft)]">{key.prefix}…</td>
-                    {!workspace.personal && (
-                      <td className="px-3 py-2 text-xs text-[var(--ink-soft)]">
-                        {key.createdBy === user.id
-                          ? "You"
-                          : (key.creator ?? key.creatorEmail ?? "A former member")}
-                      </td>
-                    )}
+                    <td className="px-3 py-2 text-xs text-[var(--ink-soft)]">
+                      {key.createdBy === user.id
+                        ? "You"
+                        : (key.creator ?? key.creatorEmail ?? "A former member")}
+                    </td>
                     <td className="mono px-3 py-2 text-xs text-[var(--ink-faint)]">
                       {key.createdAt.toISOString().slice(0, 10)}
                     </td>

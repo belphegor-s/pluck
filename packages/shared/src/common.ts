@@ -64,5 +64,6 @@ export const cursorQuery = z.object({
 
 export const pageInfo = z.object({ nextCursor: z.string().nullable() });
 
-/** The self-hosted owner account, created from BOOTSTRAP_API_KEY on boot. */
+/** The self-hosted operator and their workspace, created from BOOTSTRAP_API_KEY on boot. */
 export const OWNER_USER_ID = "usr_owner";
+export const OWNER_ORG_ID = "org_owner";

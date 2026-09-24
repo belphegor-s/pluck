@@ -1,19 +1,9 @@
 import "server-only";
-import {
-  accounts,
-  creditLedger,
-  members,
-  organizations,
-  sessions,
-  users,
-  verifications,
-} from "@pluck/db";
-import { SIGNUP_GRANT } from "@pluck/shared";
+import { accounts, sessions, users, verifications } from "@pluck/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { SITE } from "@/lib/site";
 
@@ -149,43 +139,6 @@ export const auth = betterAuth({
             });
           }
           return { data: user };
-        },
-        // A personal workspace (id = user id) with its owner, then the sign-up
-        // grant, all at once, so a new account is never left without somewhere
-        // for its keys and credits to live.
-        after: async (user) => {
-          await db.transaction(async (tx) => {
-            await tx
-              .insert(organizations)
-              .values({
-                id: user.id,
-                name: "Personal",
-                slug: user.id.toLowerCase(),
-                personal: true,
-              })
-              .onConflictDoNothing();
-            await tx
-              .insert(members)
-              .values({ id: `mem_${user.id}`, orgId: user.id, userId: user.id, role: "owner" })
-              .onConflictDoNothing();
-            if (SIGNUP_GRANT <= 0) return;
-            const inserted = await tx
-              .insert(creditLedger)
-              .values({
-                orgId: user.id,
-                delta: SIGNUP_GRANT,
-                reason: "signup",
-                reference: `signup:${user.id}`,
-              })
-              .onConflictDoNothing({ target: creditLedger.reference })
-              .returning({ id: creditLedger.id });
-            if (inserted.length) {
-              await tx
-                .update(organizations)
-                .set({ credits: sql`${organizations.credits} + ${SIGNUP_GRANT}` })
-                .where(eq(organizations.id, user.id));
-            }
-          });
         },
       },
     },

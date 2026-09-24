@@ -53,7 +53,7 @@ export default async function WebhooksPage() {
             </p>
           )}
         </div>
-        <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
           Every webhook sent from this account — crawl progress and monitor changes — with what your
           endpoint answered. A failed delivery is tried eight times in all, over about 20 minutes,
           then stops — resend it once the receiver is fixed. Kept for 30 days.
@@ -120,24 +120,24 @@ export default async function WebhooksPage() {
 
       <section>
         <h2 className="text-lg">Test an endpoint</h2>
-        <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
           Sends a signed <code className="mono">webhook.test</code> event, so you can check a
           receiver and its signature check before a real event depends on it.
         </p>
-        <div className="mt-4 max-w-2xl">
+        <div className="mt-4">
           <TestWebhookForm />
         </div>
       </section>
 
       <section>
         <h2 className="text-lg">Signing secret</h2>
-        <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
           Every delivery carries a <code className="mono">{SIGNATURE}</code> header:{" "}
           <code className="mono">t=&lt;timestamp&gt;,v1=&lt;hmac&gt;</code>, an HMAC-SHA256 of{" "}
           <code className="mono">timestamp.body</code> with this secret. Reject anything that does
           not match, or is more than five minutes old.
         </p>
-        <div className="mt-4 max-w-2xl">
+        <div className="mt-4">
           <SigningSecret
             secret={account?.secret ?? ""}
             canRotate={can.manageCredentials(workspace.role)}

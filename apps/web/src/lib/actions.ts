@@ -457,10 +457,9 @@ export async function rotateWebhookSecret(
 /**
  * Deletes the signed-in account and everything tied to it.
  *
- * Their personal workspace goes with them, and so does any team workspace
- * they are the only member of. A team other people still rely on is not taken
- * down with one account: if they are its only owner, they must hand it over
- * or delete it first. The email must be typed back, because none of this can
+ * Every workspace they are the only member of goes with them. A workspace
+ * other people still rely on is not taken down with one account: if they are
+ * its only owner, they must hand it over or delete it first. The email must be typed back, because none of this can
  * be undone.
  */
 export async function deleteAccount(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -481,7 +480,7 @@ export async function deleteAccount(_prev: ActionState, formData: FormData): Pro
         .select({ id: organizations.id, name: organizations.name, role: members.role })
         .from(members)
         .innerJoin(organizations, eq(organizations.id, members.orgId))
-        .where(and(eq(members.userId, user.id), eq(organizations.personal, false)));
+        .where(eq(members.userId, user.id));
 
       const solo: string[] = [];
       for (const team of teams) {
@@ -493,9 +492,6 @@ export async function deleteAccount(_prev: ActionState, formData: FormData): Pro
         else if (team.role === "owner" && !others.some((o) => o.role === "owner")) return team.name;
       }
       if (solo.length) await tx.delete(organizations).where(inArray(organizations.id, solo));
-      await tx
-        .delete(organizations)
-        .where(and(eq(organizations.id, user.id), eq(organizations.personal, true)));
       await tx.delete(users).where(eq(users.id, user.id));
       return null;
     });

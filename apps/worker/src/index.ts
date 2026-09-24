@@ -30,7 +30,7 @@ import {
   UsageRecorder,
   type WebhookJobData,
 } from "@pluck/runtime";
-import { BRAND, OWNER_USER_ID } from "@pluck/shared";
+import { BRAND, OWNER_ORG_ID } from "@pluck/shared";
 import { type ConnectionOptions, Worker } from "bullmq";
 import { and, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { Agent } from "undici";
@@ -176,7 +176,6 @@ async function warnLowBalances() {
     .select({
       id: organizations.id,
       name: organizations.name,
-      personal: organizations.personal,
       credits: organizations.credits,
     })
     .from(organizations)
@@ -185,7 +184,7 @@ async function warnLowBalances() {
         lt(organizations.credits, config.LOW_BALANCE_CREDITS),
         isNull(organizations.lowBalanceNotifiedAt),
         // The self-hosted operator's own workspace is not a customer.
-        ne(organizations.id, OWNER_USER_ID),
+        ne(organizations.id, OWNER_ORG_ID),
       ),
     )
     .limit(200);
@@ -196,15 +195,14 @@ async function warnLowBalances() {
       .from(members)
       .innerJoin(users, eq(users.id, members.userId))
       .where(and(eq(members.orgId, org.id), inArray(members.role, ["owner", "admin"])));
-    const where = org.personal ? "Your account" : `The ${org.name} workspace`;
     for (const person of recipients) {
       const sent = await mailer.send({
         to: person.email,
-        subject: `${org.personal ? "Your" : org.name} ${BRAND.name} balance is running low`,
+        subject: `${org.name} is running low on ${BRAND.name} credits`,
         text: [
           `Hi ${person.name || "there"},`,
           "",
-          `${where} has ${org.credits.toLocaleString("en-US")} credits left, so calls will start failing with insufficient_credits once it reaches zero.`,
+          `The ${org.name} workspace has ${org.credits.toLocaleString("en-US")} credits left, so calls will start failing with insufficient_credits once it reaches zero.`,
           "",
           `Top up: ${config.PUBLIC_WEB_URL}/dashboard/billing`,
           "",

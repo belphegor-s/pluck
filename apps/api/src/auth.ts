@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { apiKeys, members, organizations, users } from "@pluck/db";
 import { hashApiKey } from "@pluck/runtime";
-import { BRAND, OWNER_USER_ID, PluckError } from "@pluck/shared";
+import { BRAND, OWNER_ORG_ID, OWNER_USER_ID, PluckError } from "@pluck/shared";
 import { and, eq, isNull } from "drizzle-orm";
 import { LRUCache } from "lru-cache";
 import type { Services } from "./services.js";
@@ -36,7 +36,7 @@ export class KeyAuthenticator {
       : null;
   }
 
-  /** Creates the owner account used by BOOTSTRAP_API_KEY on self-hosted instances. */
+  /** Creates the operator and their workspace, used by BOOTSTRAP_API_KEY on self-hosted instances. */
   async ensureOwner(): Promise<void> {
     if (!this.bootstrapHash) return;
     await this.s.db
@@ -51,20 +51,20 @@ export class KeyAuthenticator {
       .onConflictDoNothing();
     await this.s.db
       .insert(organizations)
-      .values({ id: OWNER_USER_ID, name: "Personal", slug: OWNER_USER_ID, personal: true })
+      .values({ id: OWNER_ORG_ID, name: "Owner", slug: "owner" })
       .onConflictDoNothing();
     await this.s.db
       .insert(members)
       .values({
-        id: `mem_${OWNER_USER_ID}`,
-        orgId: OWNER_USER_ID,
+        id: "mem_owner",
+        orgId: OWNER_ORG_ID,
         userId: OWNER_USER_ID,
         role: "owner",
       })
       .onConflictDoNothing();
     // The operator's own key should work on a metered instance too.
     if (this.s.credits.enabled) {
-      await this.s.credits.grant(OWNER_USER_ID, OWNER_GRANT, "adjustment", "bootstrap:owner");
+      await this.s.credits.grant(OWNER_ORG_ID, OWNER_GRANT, "adjustment", "bootstrap:owner");
     }
   }
 
@@ -72,7 +72,6 @@ export class KeyAuthenticator {
    * Trusted internal call from the dashboard: the web app has authenticated
    * the session and names the workspace. Membership is checked here as well,
    * so a bug in the web app cannot act on a workspace the user is not in.
-   * Without a workspace the user's personal one is used.
    */
   async internal(
     secret: string | undefined,
@@ -84,7 +83,8 @@ export class KeyAuthenticator {
     const a = Buffer.from(createHash("sha256").update(secret).digest());
     const b = Buffer.from(createHash("sha256").update(expected).digest());
     if (!timingSafeEqual(a, b)) return null;
-    const org = orgId || userId;
+    if (!orgId) throw new PluckError("bad_request", "Choose a workspace first.");
+    const org = orgId;
     if (!(await this.isMember(userId, org)))
       throw new PluckError("forbidden", "You are not a member of this workspace.");
     return { orgId: org, userId, apiKeyId: null };
@@ -114,7 +114,7 @@ export class KeyAuthenticator {
     if (this.bootstrapHash) {
       const candidate = createHash("sha256").update(key).digest();
       if (timingSafeEqual(candidate, this.bootstrapHash))
-        return { orgId: OWNER_USER_ID, userId: OWNER_USER_ID, apiKeyId: null };
+        return { orgId: OWNER_ORG_ID, userId: OWNER_USER_ID, apiKeyId: null };
     }
 
     if (!key.startsWith(BRAND.apiKeyFamily) || key.length > 128)

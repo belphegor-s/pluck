@@ -1,9 +1,12 @@
 "use client";
 
+import { RotateCcw, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
 import { startTransition, useActionState, useCallback, useEffect, useRef, useState } from "react";
-import { type ProfileState, removeAvatar, uploadAvatar } from "@/lib/profile-actions";
 
-const empty: ProfileState = {};
+type ActionResult = { ok?: string; error?: string };
+type Action = (prev: ActionResult, data: FormData) => Promise<ActionResult>;
+
+const empty: ActionResult = {};
 
 /** What the browser can decode for us here; HEIC and friends are not reliable. */
 const ACCEPT = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"];
@@ -95,18 +98,33 @@ function exportBlob(img: ImageBitmap, view: View, size: number): Promise<Blob | 
   });
 }
 
+/**
+ * Picks, crops and saves a picture: a person's (a circle) or a workspace's
+ * (a rounded square). The server actions that store and remove it come in as
+ * props, so both share one editor.
+ */
 export function AvatarEditor({
   name,
   image,
   custom,
+  upload: uploadAction,
+  remove: removeAction,
+  shape = "circle",
+  disabled = false,
 }: {
   name: string;
   image: string | null;
   /** Whether the current picture is one uploaded here (and so can be removed). */
   custom: boolean;
+  upload: Action;
+  remove: Action;
+  shape?: "circle" | "square";
+  /** Read-only: shows the picture without the controls. */
+  disabled?: boolean;
 }) {
-  const [uploadState, upload, uploading] = useActionState(uploadAvatar, empty);
-  const [removeState, remove, removing] = useActionState(removeAvatar, empty);
+  const [uploadState, upload, uploading] = useActionState(uploadAction, empty);
+  const [removeState, remove, removing] = useActionState(removeAction, empty);
+  const round = shape === "circle" ? "rounded-full" : "rounded-[22%]";
   const [source, setSource] = useState<ImageBitmap | null>(null);
   const [view, setView] = useState<View>(START);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +137,7 @@ export function AvatarEditor({
   const pinch = useRef<{ distance: number; zoom: number } | null>(null);
 
   // The outcome of whichever action ran last, not both at once.
-  const [notice, setNotice] = useState<ProfileState>({});
+  const [notice, setNotice] = useState<ActionResult>({});
   useEffect(() => setNotice(uploadState), [uploadState]);
   useEffect(() => setNotice(removeState), [removeState]);
   const initial = (name || "?").trim().charAt(0).toUpperCase();
@@ -291,15 +309,17 @@ export function AvatarEditor({
           width={80}
           height={80}
           referrerPolicy="no-referrer"
-          className="size-20 shrink-0 rounded-full border border-[var(--line)] object-cover"
+          className={`size-20 shrink-0 ${round} border border-[var(--line)] object-cover`}
         />
       ) : (
-        <span className="flex size-20 shrink-0 items-center justify-center rounded-full bg-[var(--accent-wash)] text-2xl text-[var(--accent)]">
+        <span
+          className={`flex size-20 shrink-0 items-center justify-center ${round} bg-[var(--accent-wash)] text-2xl text-[var(--accent)]`}
+        >
           {initial}
         </span>
       )}
 
-      <div className="space-y-2">
+      <div className={disabled ? "hidden" : "space-y-2"}>
         <div className="flex flex-wrap items-center gap-3">
           <label className="cursor-pointer bg-[var(--ink)] px-4 py-2 text-sm text-[var(--paper)] transition-opacity hover:opacity-85 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--accent)]">
             Upload a picture
@@ -374,7 +394,7 @@ export function AvatarEditor({
             {/* The circle is what shows everywhere; outside it is dimmed. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] ring-1 ring-white/70"
+              className={`pointer-events-none absolute inset-0 ${round} shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] ring-1 ring-white/70`}
             />
           </div>
 
@@ -386,17 +406,7 @@ export function AvatarEditor({
               onClick={() => zoomTo(view.zoom - 0.25)}
               className="flex size-8 shrink-0 items-center justify-center text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)] disabled:opacity-40"
             >
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-              >
-                <path d="M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM20 20l-4.8-4.8M7.5 10.5h6" />
-              </svg>
+              <ZoomOut aria-hidden="true" className="size-4" strokeWidth={1.75} />
             </button>
             <input
               type="range"
@@ -419,17 +429,7 @@ export function AvatarEditor({
               onClick={() => zoomTo(view.zoom + 0.25)}
               className="flex size-8 shrink-0 items-center justify-center text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)] disabled:opacity-40"
             >
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-              >
-                <path d="M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM20 20l-4.8-4.8M7.5 10.5h6M10.5 7.5v6" />
-              </svg>
+              <ZoomIn aria-hidden="true" className="size-4" strokeWidth={1.75} />
             </button>
             <span
               className="mono w-11 shrink-0 text-right text-xs text-[var(--ink-faint)]"
@@ -445,17 +445,7 @@ export function AvatarEditor({
               onClick={() => update((v) => ({ ...v, turns: (v.turns + 1) % 4 }))}
               className="flex items-center gap-1.5 border border-[var(--line)] px-3 py-1.5 transition-colors hover:border-[var(--ink-faint)]"
             >
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-              >
-                <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" />
-              </svg>
+              <RotateCw aria-hidden="true" className="size-4" strokeWidth={1.75} />
               Rotate
             </button>
             <button
@@ -464,17 +454,7 @@ export function AvatarEditor({
               disabled={view.zoom === 1 && view.x === 0 && view.y === 0 && view.turns === 0}
               className="flex items-center gap-1.5 border border-[var(--line)] px-3 py-1.5 transition-colors hover:border-[var(--ink-faint)] disabled:opacity-40"
             >
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-              >
-                <path d="M4 12a8 8 0 1 0 2.34-5.66M4 4v4h4" />
-              </svg>
+              <RotateCcw aria-hidden="true" className="size-4" strokeWidth={1.75} />
               Reset
             </button>
             <span className="ml-auto hidden text-xs text-[var(--ink-faint)] sm:inline">

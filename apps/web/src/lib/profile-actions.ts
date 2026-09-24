@@ -1,19 +1,14 @@
 "use server";
 
-import { createHash } from "node:crypto";
 import { userAvatars, users } from "@pluck/db";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import sharp from "sharp";
 import { auth } from "@/lib/auth";
+import { encodeAvatar } from "@/lib/avatars";
 import { db } from "@/lib/db";
 
 export type ProfileState = { ok?: string; error?: string };
-
-/** The editor sends a 512px crop of a few dozen kilobytes; anything bigger is not from it. */
-const MAX_UPLOAD_BYTES = 1_000_000;
-const AVATAR_SIZE = 256;
 
 const fail = (error: unknown): ProfileState => ({
   error: error instanceof Error ? error.message : "Something went wrong.",
@@ -44,33 +39,14 @@ export async function updateName(_prev: ProfileState, formData: FormData): Promi
 }
 
 /**
- * Stores a new profile picture.
- *
- * Whatever the browser sent is decoded and re-encoded here, never stored as
- * given: that drops EXIF (including GPS), rejects anything that is not really
- * an image, and fixes the size, whatever the client did.
+ * Stores a new profile picture, re-encoded by `encodeAvatar`.
  */
 export async function uploadAvatar(_prev: ProfileState, formData: FormData): Promise<ProfileState> {
   try {
     const user = await requireUser();
-    const file = formData.get("avatar");
-    if (!(file instanceof File) || file.size === 0) return { error: "Choose an image first." };
-    if (file.size > MAX_UPLOAD_BYTES) return { error: "That image is too large." };
-
-    let data: Buffer;
-    try {
-      data = await sharp(Buffer.from(await file.arrayBuffer()), {
-        limitInputPixels: 4096 * 4096,
-        failOn: "error",
-      })
-        .rotate()
-        .resize(AVATAR_SIZE, AVATAR_SIZE, { fit: "cover" })
-        .webp({ quality: 82, effort: 4 })
-        .toBuffer();
-    } catch {
-      return { error: "That file is not an image we can read. Try a PNG, JPEG or WebP." };
-    }
-    const hash = createHash("sha256").update(data).digest("hex").slice(0, 16);
+    const encoded = await encodeAvatar(formData.get("avatar"));
+    if (!encoded.ok) return { error: encoded.error };
+    const { data, hash } = encoded;
 
     await db.transaction(async (tx) => {
       const [current] = await tx

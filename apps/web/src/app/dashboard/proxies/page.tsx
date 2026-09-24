@@ -22,7 +22,7 @@ export default async function ProxiesPage() {
     <div className="space-y-8">
       <section>
         <h2 className="text-lg">Your proxies</h2>
-        <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
           Requests you send go out through these instead of our shared pool, so a provider you
           already pay for does the egress and the sites you scrape see your addresses. Set{" "}
           <code className="mono text-[var(--ink)]">proxy</code> on a request to{" "}
@@ -83,7 +83,7 @@ export default async function ProxiesPage() {
 
       <section>
         <h2 className="text-lg">Add a proxy</h2>
-        <p className="mt-1 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
           The URL is encrypted before it is stored and never shown again — only the gateway host
           stays visible. A proxy that fails five checks in a row drops out of rotation until you
           enable it again.

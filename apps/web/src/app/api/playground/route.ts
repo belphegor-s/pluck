@@ -2,7 +2,7 @@ import { type EndpointId, endpoints } from "@pluck/shared";
 import { NextResponse } from "next/server";
 import { internalHeaders } from "@/lib/api";
 import { SITE } from "@/lib/site";
-import { getWorkspace } from "@/lib/workspace";
+import { getSessionUser, getWorkspace } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,11 +10,19 @@ export const dynamic = "force-dynamic";
 /** Runs a playground call in the signed-in user's current workspace, which it bills. */
 export async function POST(request: Request) {
   const ctx = await getWorkspace();
-  if (!ctx)
+  if (!ctx) {
+    const signedIn = Boolean(await getSessionUser());
     return NextResponse.json(
-      { error: { message: "Sign in to use the playground." } },
-      { status: 401 },
+      {
+        error: {
+          message: signedIn
+            ? "Create a workspace first: open the dashboard to name one."
+            : "Sign in to use the playground.",
+        },
+      },
+      { status: signedIn ? 409 : 401 },
     );
+  }
 
   const trust = internalHeaders({ userId: ctx.user.id, orgId: ctx.workspace.id });
   if (!trust)

@@ -8,7 +8,7 @@ const empty: ProfileState = {};
 export function NameForm({ name }: { name: string }) {
   const [state, action, pending] = useActionState(updateName, empty);
   return (
-    <form action={action} className="max-w-md space-y-3">
+    <form action={action} className="space-y-3">
       <label className="block text-sm">
         <span className="block text-[var(--ink-soft)]">Name</span>
         <input

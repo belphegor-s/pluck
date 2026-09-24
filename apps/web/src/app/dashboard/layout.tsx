@@ -18,13 +18,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
       workspace={{
         id: workspace.id,
         name: workspace.name,
-        personal: workspace.personal,
+        image: workspace.image,
         role: workspace.role,
       }}
       workspaces={workspaces.map((w) => ({
         id: w.id,
         name: w.name,
-        personal: w.personal,
+        image: w.image,
         role: w.role,
       }))}
     >
