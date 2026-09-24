@@ -292,8 +292,11 @@ function SidebarBody({
       <WorkspaceSwitcher current={workspace} workspaces={workspaces} collapsed={collapsed} />
       <nav
         aria-label="Dashboard"
-        // Folded, the tooltips reach past the rail, so the list must not clip them.
-        className={`flex-1 py-3 ${collapsed ? "overflow-visible" : "overflow-y-auto overflow-x-hidden [scrollbar-width:thin]"}`}
+        // Scrolls in both states so the footer below never leaves the screen. On
+        // the rail the scrollbar is hidden: it would push the icons off centre.
+        className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3 ${
+          collapsed ? "[scrollbar-width:none]" : "[scrollbar-width:thin]"
+        }`}
       >
         {GROUPS.map((group) => (
           <div key={group.label || "home"} className="px-3 pb-3">
@@ -370,11 +373,23 @@ function NavLink({
   collapsed: boolean;
   active: boolean;
 }) {
+  // The tooltip is fixed-position so the scrolling list cannot clip it; it is
+  // placed from the link's own box whenever the pointer or focus arrives.
+  const [tip, setTip] = useState<{ top: number; left: number } | null>(null);
+  const place = (event: React.SyntheticEvent<HTMLAnchorElement>) => {
+    if (!collapsed) return;
+    const box = event.currentTarget.getBoundingClientRect();
+    const rail = event.currentTarget.closest("aside")?.getBoundingClientRect().right ?? box.right;
+    setTip({ top: box.top + box.height / 2, left: rail + 10 });
+  };
+
   return (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
+      onPointerEnter={place}
+      onFocus={place}
       // 12px group padding plus 11px here puts the 18px icon on the rail's centre line.
       className={`group relative flex items-center gap-3 px-[11px] py-2 text-sm transition-colors ${
         active
@@ -395,11 +410,12 @@ function NavLink({
       >
         {item.label}
       </span>
-      {collapsed && (
+      {collapsed && tip && (
         // Folded, the label moves into a tooltip on hover and keyboard focus.
         <span
           role="tooltip"
-          className="pointer-events-none absolute left-full z-50 ml-3 -translate-x-1 whitespace-nowrap border border-[var(--line)] bg-[var(--ink)] px-2 py-1 text-xs text-[var(--paper)] opacity-0 shadow-md transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
+          style={{ top: tip.top, left: tip.left }}
+          className="pointer-events-none fixed z-50 -translate-x-1 -translate-y-1/2 whitespace-nowrap border border-[var(--line)] bg-[var(--ink)] px-2 py-1 text-xs text-[var(--paper)] opacity-0 shadow-md transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
         >
           {item.label}
         </span>
