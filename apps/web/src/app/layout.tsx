@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
-import { NavigationProgress } from "@/components/navigation-progress";
+import NextTopLoader from "nextjs-toploader";
 import { SiteChrome } from "@/components/site-chrome";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -74,7 +74,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-dvh flex flex-col">
         <ThemeProvider>
-          <NavigationProgress />
+          <NextTopLoader
+            color="var(--accent)"
+            height={2}
+            showSpinner={false}
+            shadow="0 0 8px color-mix(in srgb, var(--accent) 60%, transparent)"
+          />
           <a
             href="#main"
             className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-[var(--accent)] focus:px-3 focus:py-2 focus:text-[var(--paper)]"
