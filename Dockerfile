@@ -29,16 +29,18 @@ COPY packages/shared/package.json packages/shared/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm fetch --frozen-lockfile
 
-# --------------------------------------------------------------- build
-FROM deps AS build
+# --------------------------------------------------------------- source
+FROM deps AS source
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --offline
-ARG NEXT_PUBLIC_API_URL=https://pluck-api.procd.cc
-ARG NEXT_PUBLIC_SITE_URL=https://pluck.procd.cc
-ARG NEXT_PUBLIC_MCP_URL=https://pluck-mcp.procd.cc
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_MCP_URL=$NEXT_PUBLIC_MCP_URL
-RUN pnpm turbo run build && pnpm --filter @pluckai/mcp build:npm
+
+# --------------------------------------------------------------- build
+# The services only: api, worker and mcp images never wait on (or break with)
+# the Next.js build. `...` in a turbo filter includes each app's packages.
+FROM source AS build
+RUN pnpm turbo run build --filter=@pluck/api... --filter=@pluck/worker... --filter=@pluckai/mcp... && \
+    pnpm --filter @pluckai/mcp build:npm
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --filter @pluck/api deploy --prod --prefer-offline /out/api && \
     pnpm --filter @pluck/worker deploy --prod --prefer-offline /out/worker && \
@@ -81,13 +83,22 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=20s CMD node -e "fetch('h
 # package that `pnpm deploy --prod` leaves out; real dependencies are installed.
 CMD ["node", "npm/http.js"]
 
+# ----------------------------------------------------------- web-build
+# Only the web target reaches this stage.
+FROM source AS web-build
+ARG NEXT_PUBLIC_API_URL=https://pluck-api.procd.cc
+ARG NEXT_PUBLIC_SITE_URL=https://pluck.procd.cc
+ARG NEXT_PUBLIC_MCP_URL=https://pluck-mcp.procd.cc
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_MCP_URL=$NEXT_PUBLIC_MCP_URL
+RUN pnpm turbo run build --filter=@pluck/web...
+
 # ----------------------------------------------------------------- web
 FROM node:${NODE_VERSION}-bookworm-slim AS web
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
-COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
-COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
-COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
+COPY --from=web-build --chown=node:node /repo/apps/web/.next/standalone ./
+COPY --from=web-build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
+COPY --from=web-build --chown=node:node /repo/apps/web/public ./apps/web/public
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=45s CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import NextTopLoader from "nextjs-toploader";
 import { SiteChrome } from "@/components/site-chrome";
 import { SiteFooter } from "@/components/site-footer";
@@ -8,23 +8,30 @@ import { ThemeProvider } from "@/components/theme";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
+// Self-hosted (Latin subset, from Fontsource) so a build never depends on
+// reaching Google Fonts. Licences sit beside the files in src/fonts.
+const display = localFont({
+  src: "../fonts/bricolage-grotesque-latin-wght.woff2",
+  weight: "200 800",
   variable: "--font-display-loaded",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
 });
-const sans = IBM_Plex_Sans({
-  subsets: ["latin"],
+const sans = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-sans-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-sans-latin-500.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/ibm-plex-sans-latin-600.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-sans-loaded",
   display: "swap",
-  weight: ["400", "500", "600"],
 });
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
+const mono = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-mono-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-mono-latin-500.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-mono-loaded",
   display: "swap",
-  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
