@@ -3,23 +3,11 @@
 import { useActionState, useState } from "react";
 import { SelectMenu } from "@/components/select-menu";
 import { type ActionState, createMonitor, deleteMonitor, updateMonitor } from "@/lib/actions";
+import { INTERVALS, intervalLabel } from "@/lib/monitors";
 
 const empty: ActionState = {};
 
-export const INTERVALS = [
-  { minutes: 15, label: "Every 15 minutes" },
-  { minutes: 60, label: "Hourly" },
-  { minutes: 360, label: "Every 6 hours" },
-  { minutes: 720, label: "Twice a day" },
-  { minutes: 1440, label: "Daily" },
-  { minutes: 10_080, label: "Weekly" },
-] as const;
-
 const intervalOptions = INTERVALS.map((i) => ({ value: i.minutes as number, label: i.label }));
-
-export const intervalLabel = (minutes: number) =>
-  INTERVALS.find((i) => i.minutes === minutes)?.label ??
-  (minutes < 60 ? `Every ${minutes} min` : `Every ${Math.round(minutes / 60)} h`);
 
 const TYPES = [
   { id: "page", label: "Page", note: "The page's text. Optionally one CSS selector." },

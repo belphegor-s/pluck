@@ -2,13 +2,10 @@ import { monitorChanges, monitors } from "@pluck/db";
 import { desc, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import { CodeBlock } from "@/components/code-tabs";
-import {
-  CreateMonitorForm,
-  intervalLabel,
-  MonitorRowActions,
-} from "@/components/dashboard/monitor-forms";
+import { CreateMonitorForm, MonitorRowActions } from "@/components/dashboard/monitor-forms";
 import { db } from "@/lib/db";
 import { formatNumber, timeAgo } from "@/lib/format";
+import { intervalLabel } from "@/lib/monitors";
 import { SITE } from "@/lib/site";
 import { requireWorkspace } from "@/lib/workspace";
 

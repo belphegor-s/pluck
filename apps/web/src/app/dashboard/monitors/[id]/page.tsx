@@ -2,14 +2,11 @@ import { monitorChanges, monitors } from "@pluck/db";
 import { and, desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  EditMonitorForm,
-  intervalLabel,
-  MonitorRowActions,
-} from "@/components/dashboard/monitor-forms";
+import { EditMonitorForm, MonitorRowActions } from "@/components/dashboard/monitor-forms";
 import { DiffView } from "@/components/diff-view";
 import { db } from "@/lib/db";
 import { timeAgo } from "@/lib/format";
+import { intervalLabel } from "@/lib/monitors";
 import { requireWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Monitor" };
