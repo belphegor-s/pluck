@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -199,19 +200,11 @@ export function SelectMenu<V extends string | number>({
         className="mt-1 flex w-full items-center gap-2 border border-[var(--line)] bg-[var(--sheet)] px-3 py-2 text-left text-sm transition-colors hover:border-[var(--ink-faint)] focus-visible:border-[var(--accent)]"
       >
         <span className="flex-1 truncate">{selected?.label}</span>
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
+        <ChevronDown
           aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          className={`shrink-0 text-[var(--ink-faint)] transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <path d="m5 9 7 7 7-7" />
-        </svg>
+          strokeWidth={2.5}
+          className={`size-3 shrink-0 text-[var(--ink-faint)] transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open &&
@@ -257,20 +250,11 @@ export function SelectMenu<V extends string | number>({
                     )}
                   </span>
                   {isSelected && (
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
+                    <Check
                       aria-hidden="true"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="shrink-0 text-[var(--accent)]"
-                    >
-                      <path d="m5 13 4 4L19 7" />
-                    </svg>
+                      strokeWidth={3}
+                      className="size-3.5 shrink-0 text-[var(--accent)]"
+                    />
                   )}
                 </button>
               );

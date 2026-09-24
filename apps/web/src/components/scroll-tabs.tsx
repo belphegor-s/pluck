@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -125,19 +126,11 @@ function Edge({
           shown ? "" : "pointer-events-none"
         }`}
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d={isLeft ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} />
-        </svg>
+        {isLeft ? (
+          <ChevronLeft aria-hidden="true" className="size-3.5" strokeWidth={2.5} />
+        ) : (
+          <ChevronRight aria-hidden="true" className="size-3.5" strokeWidth={2.5} />
+        )}
       </button>
     </div>
   );

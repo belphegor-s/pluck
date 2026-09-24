@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
@@ -52,18 +53,11 @@ export function MobileNav() {
         onClick={() => setOpen((o) => !o)}
         className="-mr-1 flex size-9 items-center justify-center border border-[var(--line)] text-[var(--ink)] transition-colors hover:border-[var(--ink)]"
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
-          {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M3 7h18M3 12h18M3 17h18" />}
-        </svg>
+        {open ? (
+          <X aria-hidden="true" className="size-[18px]" />
+        ) : (
+          <Menu aria-hidden="true" className="size-[18px]" />
+        )}
       </button>
 
       {open && (
@@ -97,19 +91,10 @@ export function MobileNav() {
                       >
                         {item.label}
                         {external && (
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
+                          <ArrowUpRight
                             aria-hidden="true"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            className="text-[var(--ink-faint)]"
-                          >
-                            <path d="M7 17 17 7M9 7h8v8" />
-                          </svg>
+                            className="size-3.5 text-[var(--ink-faint)]"
+                          />
                         )}
                       </Link>
                     </li>

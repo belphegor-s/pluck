@@ -1,6 +1,7 @@
 "use client";
 
 import { DEFAULT_MODELS, PROVIDER_LABELS, PROVIDERS } from "@pluck/ai";
+import { Check, ChevronDown, Shuffle, Sparkles, SquareTerminal, Zap } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 type Provider = (typeof PROVIDERS)[number];
@@ -22,47 +23,13 @@ function ProviderIcon({ provider }: { provider: Provider }) {
         </svg>
       );
     case "google":
-      return (
-        <svg {...common} aria-hidden="true" fill="currentColor">
-          <path d="M12 2c.6 4.6 5.4 9.4 10 10-4.6.6-9.4 5.4-10 10-.6-4.6-5.4-9.4-10-10C6.6 11.4 11.4 6.6 12 2Z" />
-        </svg>
-      );
+      return <Sparkles aria-hidden="true" className="size-4" strokeWidth={1.75} />;
     case "groq":
-      return (
-        <svg {...common} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="8" />
-          <path d="M12 8v8M8 12h8" strokeLinecap="round" />
-        </svg>
-      );
+      return <Zap aria-hidden="true" className="size-4" strokeWidth={1.75} />;
     case "openrouter":
-      return (
-        <svg
-          {...common}
-          aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        >
-          <path d="M3 8h4l5 8h4" />
-          <path d="M3 16h4l5-8h4" />
-          <path d="m18 5 3 3-3 3M18 13l3 3-3 3" />
-        </svg>
-      );
+      return <Shuffle aria-hidden="true" className="size-4" strokeWidth={1.75} />;
     default:
-      return (
-        <svg
-          {...common}
-          aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        >
-          <rect x="3" y="4" width="18" height="16" rx="2" />
-          <path d="m8 10 2 2-2 2M13 14h3" />
-        </svg>
-      );
+      return <SquareTerminal aria-hidden="true" className="size-4" strokeWidth={1.75} />;
   }
 }
 
@@ -179,19 +146,11 @@ export function ProviderSelect({
           <ProviderIcon provider={value} />
         </span>
         <span className="flex-1 truncate">{PROVIDER_LABELS[value]}</span>
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
+        <ChevronDown
           aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          className={`shrink-0 text-[var(--ink-faint)] transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <path d="m5 9 7 7 7-7" />
-        </svg>
+          strokeWidth={2.5}
+          className={`size-3 shrink-0 text-[var(--ink-faint)] transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
@@ -232,20 +191,11 @@ export function ProviderSelect({
                   </span>
                 </span>
                 {selected && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
+                  <Check
                     aria-hidden="true"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="mt-0.5 shrink-0 text-[var(--accent)]"
-                  >
-                    <path d="m5 13 4 4L19 7" />
-                  </svg>
+                    strokeWidth={3}
+                    className="size-3.5 shrink-0 text-[var(--accent)]"
+                  />
                 )}
               </button>
             );

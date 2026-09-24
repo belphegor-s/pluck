@@ -1,6 +1,7 @@
 "use client";
 
 import { type EndpointId, endpoints } from "@pluck/shared";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 const ids = Object.keys(endpoints) as EndpointId[];
@@ -126,19 +127,11 @@ export function EndpointSelect({
           {selected.method.toUpperCase()}
         </span>
         <span className="mono flex-1 truncate">{selected.path}</span>
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
+        <ChevronDown
           aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          className={`shrink-0 text-[var(--ink-faint)] transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <path d="m5 9 7 7 7-7" />
-        </svg>
+          strokeWidth={2.5}
+          className={`size-3 shrink-0 text-[var(--ink-faint)] transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
