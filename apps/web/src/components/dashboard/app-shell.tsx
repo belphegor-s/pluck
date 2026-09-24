@@ -55,6 +55,23 @@ const RESOURCES: NavItem[] = [
   { href: "/docs", label: "Docs", icon: "docs" },
 ];
 
+/**
+ * Folding is one motion: only the width moves. Every icon, the workspace
+ * badge, the toggle and the avatar sit on the rail's centre line in both
+ * states, so nothing jumps; labels are clipped by the narrowing column and
+ * fade, out quickly when folding and in just behind the width when opening.
+ */
+const EASE = "ease-[cubic-bezier(0.32,0.72,0,1)]";
+const fade = (collapsed: boolean) =>
+  `transition-opacity motion-reduce:transition-none ${
+    collapsed ? "opacity-0 duration-100" : "opacity-100 delay-100 duration-300"
+  }`;
+/** Height folds to nothing (and back) without measuring anything. */
+const fold = (hidden: boolean) =>
+  `grid transition-[grid-template-rows,opacity] duration-300 motion-reduce:transition-none ${EASE} ${
+    hidden ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+  }`;
+
 // "/dashboard" must not light up for every page beneath it.
 const isActive = (pathname: string, href: string) =>
   href === "/dashboard" ? pathname === href : pathname.startsWith(href);
@@ -148,31 +165,32 @@ export function AppShell({
 
   return (
     <div
-      className="min-h-dvh lg:grid lg:grid-cols-[var(--sidebar)_minmax(0,1fr)] lg:transition-[grid-template-columns] lg:duration-200"
-      style={{ "--sidebar": collapsed ? "4.25rem" : "15.5rem" } as React.CSSProperties}
+      className={`min-h-dvh lg:grid lg:grid-cols-[var(--sidebar)_minmax(0,1fr)] lg:transition-[grid-template-columns] lg:duration-300 lg:motion-reduce:transition-none ${EASE}`}
+      style={{ "--sidebar": collapsed ? "4rem" : "15.5rem" } as React.CSSProperties}
     >
       {/* Wide screens: the sidebar sits in the grid and stays put while the page scrolls. */}
       <aside
         aria-label="App"
-        className="sticky top-0 hidden h-dvh flex-col border-r border-[var(--line)] bg-[var(--sheet)] lg:flex"
+        className="sticky top-0 z-30 hidden h-dvh min-w-0 flex-col border-r border-[var(--line)] bg-[var(--sheet)] lg:flex"
       >
-        <div
-          className={`flex h-14 shrink-0 items-center border-b border-[var(--line)] ${
-            collapsed ? "justify-center" : "justify-between px-4"
-          }`}
-        >
-          {!collapsed && (
-            <Link href="/" aria-label="Pluck home" className="shrink-0">
-              <Wordmark />
-            </Link>
-          )}
+        <div className="relative flex h-14 shrink-0 items-center overflow-hidden border-b border-[var(--line)]">
+          <Link
+            href="/"
+            aria-label="Pluck home"
+            tabIndex={collapsed ? -1 : undefined}
+            aria-hidden={collapsed || undefined}
+            className={`ml-4 shrink-0 ${fade(collapsed)} ${collapsed ? "pointer-events-none" : ""}`}
+          >
+            <Wordmark />
+          </Link>
+          {/* 16px from the right edge is also dead centre on the 64px rail. */}
           <button
             type="button"
             onClick={toggle}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed}
             title={`${collapsed ? "Expand" : "Collapse"} sidebar (Ctrl+B)`}
-            className="flex size-8 items-center justify-center text-[var(--ink-faint)] transition-colors hover:bg-[var(--paper)] hover:text-[var(--ink)]"
+            className="absolute right-4 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center text-[var(--ink-faint)] transition-colors hover:bg-[var(--paper)] hover:text-[var(--ink)]"
           >
             <Icon name={collapsed ? "expand" : "collapse"} />
           </button>
@@ -209,7 +227,7 @@ export function AppShell({
           tabIndex={-1}
           aria-hidden
           onClick={() => setDrawer(false)}
-          className={`absolute inset-0 cursor-default bg-[color-mix(in_srgb,var(--ink)_35%,transparent)] transition-opacity duration-200 ${
+          className={`absolute inset-0 cursor-default bg-[color-mix(in_srgb,var(--ink)_35%,transparent)] backdrop-blur-[2px] transition-opacity duration-300 motion-reduce:transition-none ${
             drawer ? "opacity-100" : "opacity-0"
           }`}
         />
@@ -218,7 +236,7 @@ export function AppShell({
           role="dialog"
           aria-modal="true"
           aria-label="Navigation"
-          className={`absolute inset-y-0 left-0 flex w-[min(18rem,86vw)] flex-col border-r border-[var(--line)] bg-[var(--sheet)] shadow-xl transition-transform duration-200 ease-out motion-reduce:transition-none ${
+          className={`absolute inset-y-0 left-0 flex w-[min(18rem,86vw)] flex-col border-r border-[var(--line)] bg-[var(--sheet)] shadow-xl transition-transform duration-300 motion-reduce:transition-none ${EASE} ${
             drawer ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -275,18 +293,11 @@ function SidebarBody({
       <nav
         aria-label="Dashboard"
         // Folded, the tooltips reach past the rail, so the list must not clip them.
-        className={`flex-1 py-3 ${collapsed ? "overflow-visible" : "overflow-y-auto overflow-x-hidden"}`}
+        className={`flex-1 py-3 ${collapsed ? "overflow-visible" : "overflow-y-auto overflow-x-hidden [scrollbar-width:thin]"}`}
       >
         {GROUPS.map((group) => (
           <div key={group.label || "home"} className="px-3 pb-3">
-            {group.label &&
-              (collapsed ? (
-                <div className="mx-2 mb-2 border-t border-[var(--line)]" aria-hidden="true" />
-              ) : (
-                <p className="mono mb-1 px-2 text-[10px] uppercase tracking-wider text-[var(--ink-faint)]">
-                  {group.label}
-                </p>
-              ))}
+            {group.label && <GroupLabel label={group.label} collapsed={collapsed} />}
             <ul className="space-y-0.5">
               {group.items.map((item) => (
                 <li key={item.href}>
@@ -301,13 +312,7 @@ function SidebarBody({
           </div>
         ))}
         <div className="px-3 pt-1">
-          {collapsed ? (
-            <div className="mx-2 mb-2 border-t border-[var(--line)]" aria-hidden="true" />
-          ) : (
-            <p className="mono mb-1 px-2 text-[10px] uppercase tracking-wider text-[var(--ink-faint)]">
-              Resources
-            </p>
-          )}
+          <GroupLabel label="Resources" collapsed={collapsed} />
           <ul className="space-y-0.5">
             {RESOURCES.map((item) => (
               <li key={item.href}>
@@ -319,18 +324,40 @@ function SidebarBody({
       </nav>
 
       <div className="shrink-0 border-t border-[var(--line)] p-3">
-        {!collapsed && (
-          <Link
-            href="/dashboard/billing"
-            className="mb-3 flex items-baseline justify-between border border-[var(--line)] bg-[var(--paper)] px-3 py-2 transition-colors hover:border-[var(--ink-faint)]"
-          >
-            <span className="text-xs text-[var(--ink-soft)]">Credits</span>
-            <span className="mono text-sm">{formatNumber(user.credits)}</span>
-          </Link>
-        )}
+        <div className={fold(collapsed)} inert={collapsed}>
+          <div className="min-h-0 overflow-hidden">
+            <Link
+              href="/dashboard/billing"
+              className="mb-3 flex items-baseline justify-between whitespace-nowrap border border-[var(--line)] bg-[var(--paper)] px-3 py-2 transition-colors hover:border-[var(--ink-faint)]"
+            >
+              <span className="text-xs text-[var(--ink-soft)]">Credits</span>
+              <span className="mono text-sm">{formatNumber(user.credits)}</span>
+            </Link>
+          </div>
+        </div>
         <UserRow user={user} collapsed={collapsed} />
       </div>
     </>
+  );
+}
+
+/** A group heading that becomes a hairline on the rail, in the same height. */
+function GroupLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  return (
+    <div className="relative mb-1 h-5">
+      <p
+        aria-hidden={collapsed || undefined}
+        className={`mono overflow-hidden whitespace-nowrap px-2 text-[10px] uppercase leading-5 tracking-wider text-[var(--ink-faint)] ${fade(collapsed)}`}
+      >
+        {label}
+      </p>
+      <div
+        aria-hidden="true"
+        className={`absolute inset-x-2 top-1/2 border-t border-[var(--line)] transition-opacity duration-300 motion-reduce:transition-none ${
+          collapsed ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </div>
   );
 }
 
@@ -348,9 +375,8 @@ function NavLink({
       href={item.href}
       aria-current={active ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
-      className={`group relative flex items-center gap-3 px-2 py-2 text-sm transition-colors ${
-        collapsed ? "justify-center" : ""
-      } ${
+      // 12px group padding plus 11px here puts the 18px icon on the rail's centre line.
+      className={`group relative flex items-center gap-3 px-[11px] py-2 text-sm transition-colors ${
         active
           ? "bg-[var(--accent-wash)] text-[var(--ink)]"
           : "text-[var(--ink-soft)] hover:bg-[var(--paper)] hover:text-[var(--ink)]"
@@ -359,17 +385,24 @@ function NavLink({
       {active && (
         <span className="absolute inset-y-1 left-0 w-0.5 bg-[var(--accent)]" aria-hidden="true" />
       )}
-      <Icon name={item.icon} className={`size-[18px] ${active ? "text-[var(--accent)]" : ""}`} />
-      {collapsed ? (
+      <Icon
+        name={item.icon}
+        className={`size-[18px] shrink-0 ${active ? "text-[var(--accent)]" : ""}`}
+      />
+      <span
+        aria-hidden={collapsed || undefined}
+        className={`min-w-0 overflow-hidden whitespace-nowrap ${fade(collapsed)}`}
+      >
+        {item.label}
+      </span>
+      {collapsed && (
         // Folded, the label moves into a tooltip on hover and keyboard focus.
         <span
           role="tooltip"
-          className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap border border-[var(--line)] bg-[var(--ink)] px-2 py-1 text-xs text-[var(--paper)] opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="pointer-events-none absolute left-full z-50 ml-3 -translate-x-1 whitespace-nowrap border border-[var(--line)] bg-[var(--ink)] px-2 py-1 text-xs text-[var(--paper)] opacity-0 shadow-md transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
         >
           {item.label}
         </span>
-      ) : (
-        <span className="truncate">{item.label}</span>
       )}
     </Link>
   );
@@ -397,55 +430,55 @@ function UserRow({ user, collapsed }: { user: ShellUser; collapsed: boolean }) {
     </span>
   );
 
-  if (collapsed)
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <ThemeToggle />
-        <button
-          type="button"
-          onClick={leave}
-          aria-label="Sign out"
-          title="Sign out"
-          className="flex size-9 items-center justify-center text-[var(--ink-soft)] transition-colors hover:text-[var(--accent)]"
-        >
-          <Icon name="signout" className="size-4" />
-        </button>
-        <Link
-          href="/dashboard/profile"
-          aria-label="Your profile"
-          title={`${user.name || user.email}: profile`}
-          className="flex size-9 items-center justify-center"
-        >
-          {avatar}
-        </Link>
-      </div>
-    );
+  const signOutButton = (framed: boolean) => (
+    <button
+      type="button"
+      onClick={leave}
+      aria-label="Sign out"
+      title="Sign out"
+      className={`flex size-9 shrink-0 items-center justify-center text-[var(--ink-soft)] transition-colors hover:text-[var(--accent)] ${
+        framed ? "border border-[var(--line)] hover:border-[var(--accent)]" : ""
+      }`}
+    >
+      <Icon name="signout" className="size-4" />
+    </button>
+  );
 
   return (
-    <div className="flex items-center gap-2">
-      <Link
-        href="/dashboard/profile"
-        title="Your profile"
-        className="-m-1 flex min-w-0 flex-1 items-center gap-2 p-1 transition-colors hover:bg-[var(--paper)]"
-      >
-        {avatar}
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm">{user.name || user.email}</span>
-          {user.name && (
-            <span className="block truncate text-xs text-[var(--ink-faint)]">{user.email}</span>
-          )}
-        </span>
-      </Link>
-      <ThemeToggle />
-      <button
-        type="button"
-        onClick={leave}
-        aria-label="Sign out"
-        title="Sign out"
-        className="flex size-9 shrink-0 items-center justify-center border border-[var(--line)] text-[var(--ink-soft)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-      >
-        <Icon name="signout" className="size-4" />
-      </button>
-    </div>
+    <>
+      {/* On the rail the theme and sign-out buttons stack above the avatar. */}
+      <div className={fold(!collapsed)} inert={!collapsed}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex w-10 flex-col items-center gap-2 pb-2">
+            <ThemeToggle />
+            {signOutButton(false)}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 overflow-hidden">
+        <Link
+          href="/dashboard/profile"
+          aria-label={collapsed ? "Your profile" : undefined}
+          title={collapsed ? `${user.name || user.email}: profile` : "Your profile"}
+          // The left padding puts the 28px avatar on the rail's centre line.
+          className="flex min-w-0 flex-1 items-center gap-2 py-1 pl-1.5 transition-colors hover:bg-[var(--paper)]"
+        >
+          {avatar}
+          <span
+            aria-hidden={collapsed || undefined}
+            className={`min-w-0 flex-1 whitespace-nowrap ${fade(collapsed)}`}
+          >
+            <span className="block truncate text-sm">{user.name || user.email}</span>
+            {user.name && (
+              <span className="block truncate text-xs text-[var(--ink-faint)]">{user.email}</span>
+            )}
+          </span>
+        </Link>
+        <div className={`flex shrink-0 items-center gap-2 ${fade(collapsed)}`} inert={collapsed}>
+          <ThemeToggle />
+          {signOutButton(true)}
+        </div>
+      </div>
+    </>
   );
 }

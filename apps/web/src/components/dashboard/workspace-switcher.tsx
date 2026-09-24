@@ -86,7 +86,9 @@ export function WorkspaceSwitcher({
   };
 
   return (
-    <div ref={root} className={`relative ${collapsed ? "px-2" : "px-3"} pt-3`}>
+    <div ref={root} className="relative px-3 pt-3">
+      {/* On the 64px rail the button is exactly the badge plus its padding,
+          so the badge stays on the centre line while the sidebar folds. */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -95,22 +97,23 @@ export function WorkspaceSwitcher({
         aria-controls={listId}
         aria-label={`Workspace: ${current.name}. Switch workspace`}
         title={collapsed ? current.name : undefined}
-        className={`flex w-full items-center gap-2.5 border border-[var(--line)] bg-[var(--paper)] text-left transition-colors hover:border-[var(--ink-faint)] ${
-          collapsed ? "justify-center p-1.5" : "px-2 py-1.5"
-        } ${pending ? "opacity-60" : ""}`}
+        className={`flex w-full items-center gap-2.5 overflow-hidden border border-[var(--line)] bg-[var(--paper)] px-[5px] py-1.5 text-left transition-colors hover:border-[var(--ink-faint)] ${
+          pending ? "opacity-60" : ""
+        }`}
       >
         <Badge ws={current} />
-        {!collapsed && (
-          <>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm">{current.name}</span>
-              <span className="block text-[11px] text-[var(--ink-faint)]">
-                {ROLE[current.role]}
-              </span>
-            </span>
-            <Icon name="chevrons" className="size-4 text-[var(--ink-faint)]" />
-          </>
-        )}
+        <span
+          aria-hidden="true"
+          className={`flex min-w-0 flex-1 items-center gap-2.5 whitespace-nowrap transition-opacity motion-reduce:transition-none ${
+            collapsed ? "opacity-0 duration-100" : "opacity-100 delay-100 duration-300"
+          }`}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm">{current.name}</span>
+            <span className="block text-[11px] text-[var(--ink-faint)]">{ROLE[current.role]}</span>
+          </span>
+          <Icon name="chevrons" className="size-4 shrink-0 text-[var(--ink-faint)]" />
+        </span>
       </button>
 
       {open && (
