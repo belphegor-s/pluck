@@ -118,7 +118,7 @@ export default function HomePage() {
         <HeroField />
         <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-20">
           <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-            <div data-hero-copy>
+            <div>
               <h1 className="max-w-[17ch] text-4xl sm:text-[3.3rem]">
                 Give your model the page, not the HTML.
               </h1>
