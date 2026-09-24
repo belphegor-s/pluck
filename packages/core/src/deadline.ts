@@ -4,7 +4,7 @@ import { PluckError } from "@pluck/shared";
  * Time budgets that actually hold.
  *
  * Checking a clock between steps bounds nothing: the step in progress runs as
- * long as it likes. These helpers make the budget part of the work — a promise
+ * long as it likes. These helpers make the budget part of the work: a promise
  * that loses the race is abandoned, and an abort signal lets the work stop
  * itself at the next opportunity.
  */
@@ -18,7 +18,7 @@ export function throwIfAborted(signal: AbortSignal | undefined, what = "request"
 
 /**
  * Settles with `promise`, or with the result of `onTimeout` once `ms` has
- * passed — whichever comes first. The losing promise is left to settle on its
+ * passed, whichever comes first. The losing promise is left to settle on its
  * own; pair this with an abort signal when the work can be stopped.
  */
 export async function withDeadline<T>(

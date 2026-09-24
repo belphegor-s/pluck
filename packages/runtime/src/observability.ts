@@ -8,7 +8,7 @@ import type { Logger } from "./infra.js";
  * Error reporting without an SDK.
  *
  * Sentry's ingest API is a three-line envelope over HTTP, so a direct POST
- * costs ~100 lines and no dependency tree — worth it for a self-hostable
+ * costs ~100 lines and no dependency tree, which is worth it for a self-hostable
  * service where observability must stay optional. With no DSN the reporter
  * is inert and only logs, which is exactly what a self-hoster wants.
  */

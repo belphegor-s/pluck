@@ -73,7 +73,7 @@ export default async function InvoicesPage({
         </div>
         <p className="mt-1 text-sm text-[var(--ink-soft)]">
           Every credit purchase, with its invoice. Polar issues invoices once it has your billing
-          name and address — add them in the portal if a download is missing.
+          name and address; add them in the portal if a download is missing.
         </p>
       </section>
 
@@ -131,7 +131,9 @@ export default async function InvoicesPage({
                       {date.format(purchase.createdAt)}
                     </td>
                     <td className="mono px-3 py-2.5 text-xs">
-                      {purchase.invoiceNumber ?? <span className="text-[var(--ink-faint)]">—</span>}
+                      {purchase.invoiceNumber ?? (
+                        <span className="text-[var(--ink-faint)]">Pending</span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5">
                       {purchase.productName ?? `${formatNumber(purchase.credits)} credits`}

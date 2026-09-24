@@ -26,7 +26,7 @@ export default async function PlaygroundPage() {
       ) : (
         <div className="sheet mt-8 max-w-md p-6">
           <p className="text-sm text-[var(--ink-soft)]">
-            Sign in to run requests — the playground spends credits from your account.
+            Sign in to run requests. The playground spends credits from your account.
           </p>
           <div className="mt-4">
             <SignInWithGitHub next="/playground" />

@@ -12,7 +12,7 @@ export const formatUsd = (value: number): string =>
 
 const relative = new Intl.RelativeTimeFormat("en-US", { numeric: "auto" });
 
-/** "3 minutes ago", "in 2 hours" — for timestamps where recency is the point. */
+/** "3 minutes ago", "in 2 hours": for timestamps where recency is the point. */
 export function timeAgo(value: Date | string | null | undefined): string {
   if (!value) return "never";
   const date = typeof value === "string" ? new Date(value) : value;

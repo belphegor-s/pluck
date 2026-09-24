@@ -9,10 +9,10 @@ curl "https://pluck-api.procd.cc/v1/brand?domain=stripe.com" \
 
 Look a company up by exactly one of:
 
-- `domain` — `stripe.com`
-- `email` — a work address; personal providers are rejected
-- `name` — resolved through web search to the official site
-- `ticker` — a stock symbol
+- `domain`: `stripe.com`
+- `email`: a work address; personal providers are rejected
+- `name`: resolved through web search to the official site
+- `ticker`: a stock symbol
 
 You get back the name, description, slogan, logos (favicons, apple-touch icons, manifest icons and the header logo), brand colors ranked by prominence, fonts, social profiles, postal address, contact email and phone where published, and NAICS/SIC industry codes.
 

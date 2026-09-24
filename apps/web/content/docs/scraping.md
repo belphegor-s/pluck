@@ -16,14 +16,14 @@ Ask for one or many. Each is a key on the response.
 | `images` | Image URLs with alt text and dimensions |
 | `metadata` | Title, description, canonical, Open Graph, favicon (always included) |
 | `screenshot` | PNG, JPEG or WebP, viewport or full page |
-| `json` | Structured data matching your schema — see [Extraction](/docs/extraction) |
+| `json` | Structured data matching your schema; see [Extraction](/docs/extraction) |
 
 ## JavaScript rendering
 
 `render` is `auto` by default: Pluck fetches over HTTP first and only starts a browser when the page turns out to be an empty shell, an interstitial or a client-side redirect. That keeps the common case around 300–800 ms and 1 credit.
 
-- `render: "always"` — always use the browser (+2 credits)
-- `render: "never"` — never use the browser; fails rather than rendering
+- `render: "always"`: always use the browser (+2 credits)
+- `render: "never"`: never use the browser; fails rather than rendering
 
 ## Getting the part you want
 
@@ -53,7 +53,7 @@ Actions imply a browser render.
 
 ### Your own proxies
 
-Add proxies under [Dashboard → Proxies](/dashboard/proxies) and every request on your account goes out through them — scrapes, crawls, monitors and browser renders alike. Paste the gateway URL your provider gave you:
+Add proxies under [Dashboard → Proxies](/dashboard/proxies) and every request on your account goes out through them: scrapes, crawls, monitors and browser renders alike. Paste the gateway URL your provider gave you:
 
 ```
 http://user:pass@gateway.provider.io:7777
@@ -62,7 +62,7 @@ socks5://user-country-{country}-session-{session}:pass@pool.example.net:1080
 
 `{country}` and `{session}` are substituted per request, which is how most providers do geo-targeting and sticky sessions. `http`, `https` and `socks5` all work.
 
-A tier you have not configured falls back to ours, so adding one residential proxy keeps our datacenter pool for the cheaper hops. URLs are encrypted before storage and never shown again — only the gateway host stays visible — and a proxy that fails five checks in a row leaves the rotation until you re-enable it. **Test** on each row makes a real connection and reports the exit IP, which is the quickest way to find an expired password or an allowlist that is missing this server's address.
+A tier you have not configured falls back to ours, so adding one residential proxy keeps our datacenter pool for the cheaper hops. URLs are encrypted before storage and never shown again (only the gateway host stays visible), and a proxy that fails five checks in a row leaves the rotation until you re-enable it. **Test** on each row makes a real connection and reports the exit IP, which is the quickest way to find an expired password or an allowlist that is missing this server's address.
 
 Proxies on private or loopback addresses are refused: the server makes these connections on your behalf, so they would be a way into networks you should not reach.
 
@@ -70,7 +70,7 @@ Self-hosting sets them for the whole instance instead, with `PROXY_DATACENTER_UR
 
 ## Caching
 
-`maxAge` (seconds, default 3600) serves a recent copy if one exists — those responses cost 1 credit and return in milliseconds, with `meta.cached: true`. Set `maxAge: 0` for a guaranteed fresh fetch. Requests with custom `headers` or `actions` are never served from, or written to, the shared cache.
+`maxAge` (seconds, default 3600) serves a recent copy if one exists; those responses cost 1 credit and return in milliseconds, with `meta.cached: true`. Set `maxAge: 0` for a guaranteed fresh fetch. Requests with custom `headers` or `actions` are never served from, or written to, the shared cache.
 
 ## robots.txt
 

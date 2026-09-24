@@ -22,7 +22,7 @@ import { BrandService } from "../services/brand.js";
 
 /** Reading search results, all of them together. */
 const SEARCH_READ_BUDGET_MS = 30_000;
-/** Results read at once — enough to overlap network waits, not enough to flood the render pool. */
+/** Results read at once: enough to overlap network waits, not enough to flood the render pool. */
 const SEARCH_READ_CONCURRENCY = 4;
 
 /** What is left of a budget that started at `started`, never negative. */
@@ -47,7 +47,7 @@ export const search = handler("search", {
       at once against a small render pool. Now the reading phase has one budget,
       a bounded number in flight, and an abort signal that stops the work rather
       than merely abandoning it. A result that runs out of time comes back
-      without `page` — the caller still gets every hit, just not every page.
+      without `page`: the caller still gets every hit, just not every page.
     */
     const budget = AbortSignal.any([signal, AbortSignal.timeout(SEARCH_READ_BUDGET_MS)]);
     let unread = 0;

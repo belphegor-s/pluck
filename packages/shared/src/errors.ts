@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 /**
- * Failures caused by a third party — the page we were asked to read, or the
- * model provider — answer 424 Failed Dependency rather than 502/504. A CDN in
+ * Failures caused by a third party (the page we were asked to read, or the
+ * model provider) answer 424 Failed Dependency rather than 502/504. A CDN in
  * front of the API replaces gateway statuses with its own error page, which
  * would hide the `code` and `message` the caller needs.
  */

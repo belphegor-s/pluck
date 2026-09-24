@@ -17,9 +17,9 @@ curl -X POST https://pluck-api.procd.cc/v1/monitors \
 
 ## Types
 
-- `page` — watches the page's markdown. Add `selector` to watch one part of it.
-- `sitemap` — watches the site's URL list, and reports added and removed URLs.
-- `extract` — runs an extraction and watches the JSON, so wording changes are ignored but values are not.
+- `page`: watches the page's markdown. Add `selector` to watch one part of it.
+- `sitemap`: watches the site's URL list, and reports added and removed URLs.
+- `extract`: runs an extraction and watches the JSON, so wording changes are ignored but values are not.
 
 The first check records a baseline and reports nothing. After that, every change is stored with a unified diff and delivered to your webhook.
 

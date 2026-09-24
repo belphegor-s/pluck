@@ -234,7 +234,7 @@ export const monitorUpdate = monitorCreate
   .omit({ type: true })
   .partial()
   // `null` clears the field. Without it, a webhook or selector once set could
-  // never be removed — omitting a field only means "leave it alone".
+  // never be removed; omitting a field only means "leave it alone".
   .extend({
     webhook: httpUrl.nullable().optional(),
     selector: z.string().max(500).nullable().optional(),

@@ -126,7 +126,7 @@ export default function PricingPage() {
             ))}
           </ul>
           <p className="mt-5 text-sm text-[var(--ink-soft)]">
-            Cached responses cost 1 credit. Failed calls cost nothing — credits are refunded
+            Cached responses cost 1 credit. Failed calls cost nothing: credits are refunded
             automatically.
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function PricingPage() {
           <h3 className="text-lg">Enterprise</h3>
           <p className="mt-2 text-sm text-[var(--ink-soft)]">
             Millions of credits, higher rate limits, a dedicated region or an invoice instead of a
-            card — we can do all four.
+            card. We can do all four.
           </p>
           <Link
             href="/enterprise"

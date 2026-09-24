@@ -1,8 +1,8 @@
 # Pluck worker, anywhere.
 #
 # The worker owns no state: it takes jobs from Redis, writes results to
-# Postgres, and needs nothing else. Run this on any machine — a second VPS, an
-# EC2 instance, an ECS task — and browser capacity scales horizontally.
+# Postgres, and needs nothing else. Run this on any machine (a second VPS, an
+# EC2 instance, an ECS task) and browser capacity scales horizontally.
 #
 #   DATABASE_URL=… REDIS_URL=… docker compose -f deploy/worker-remote.yml up -d
 #

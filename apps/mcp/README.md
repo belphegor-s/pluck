@@ -1,6 +1,6 @@
 # @pluckai/mcp
 
-The [Pluck](https://pluck.procd.cc) MCP server: give any MCP client — Claude Code, Claude Desktop, Cursor, or your own agent — the ability to read the live web as clean markdown, crawl a site, search, extract structured JSON, and watch pages for changes.
+The [Pluck](https://pluck.procd.cc) MCP server: give any MCP client (Claude Code, Claude Desktop, Cursor, or your own agent) the ability to read the live web as clean markdown, crawl a site, search, extract structured JSON, and watch pages for changes.
 
 ## Add it to a client
 

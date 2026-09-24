@@ -1,6 +1,6 @@
 # Brand assets
 
-Everything needed to register Pluck with a provider — GitHub, npm, Polar, OpenRouter, an app store listing — without regenerating anything.
+Everything needed to register Pluck with a provider (GitHub, npm, Polar, OpenRouter, an app store listing) without regenerating anything.
 
 | File | Use |
 | --- | --- |
@@ -31,6 +31,6 @@ The wordmark files reference Bricolage Grotesque by name rather than embedding o
 
 ## Using the mark
 
-Keep clear space of at least the berry's diameter on every side. The berry is the only element that may be recolored, and only to the dark-mode accent. Do not rotate the mark, add effects, or place the light version on a dark background — `mark-dark.svg` exists for that.
+Keep clear space of at least the berry's diameter on every side. The berry is the only element that may be recolored, and only to the dark-mode accent. Do not rotate the mark, add effects, or place the light version on a dark background; `mark-dark.svg` exists for that.
 
 Regenerate the PNGs after editing any SVG; they are rasterized from these sources at 600 DPI.

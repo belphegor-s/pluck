@@ -116,7 +116,7 @@ export default async function BillingPage({
                         {formatNumber(row.delta)}
                       </td>
                       <td className="mono px-3 py-2 text-xs text-[var(--ink-faint)]">
-                        {row.amountUsdCents ? `$${(row.amountUsdCents / 100).toFixed(2)}` : "—"}
+                        {row.amountUsdCents ? `$${(row.amountUsdCents / 100).toFixed(2)}` : "Free"}
                       </td>
                       <td className="px-3 py-2 text-xs">
                         {orderId && billing ? (
@@ -127,7 +127,7 @@ export default async function BillingPage({
                             Download
                           </a>
                         ) : (
-                          <span className="text-[var(--ink-faint)]">—</span>
+                          <span className="text-[var(--ink-faint)]">None</span>
                         )}
                       </td>
                     </tr>

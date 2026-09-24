@@ -34,11 +34,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ord
   if (url) return NextResponse.redirect(url);
 
   // Polar issues an invoice only once it holds a billing name and address, and
-  // the portal is where those are entered — so say that rather than 503.
+  // the portal is where those are entered, so say that rather than 503.
   return NextResponse.redirect(
     siteUrl("/dashboard/invoices", {
       error:
-        "That invoice needs your billing name and address first — add them under payment methods, then download again.",
+        "That invoice needs your billing name and address first. Add them under payment methods, then download again.",
     }),
   );
 }

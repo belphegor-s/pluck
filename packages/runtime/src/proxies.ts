@@ -69,7 +69,7 @@ export interface StoredProxy {
 
 /**
  * Resolves which proxies a request may use: an account's own first, the
- * instance's environment pool second. Nothing is cached for long — a proxy
+ * instance's environment pool second. Nothing is cached for long: a proxy
  * removed in the dashboard stops being used within a minute.
  */
 export class ProxyDirectory {
@@ -139,8 +139,8 @@ export class ProxyDirectory {
 /**
  * Sends one request through a proxy and reports the exit address.
  *
- * Providers fail in ways that only show up on a real connection — wrong port,
- * expired credentials, an IP allowlist that does not include this server — so
+ * Providers fail in ways that only show up on a real connection (wrong port,
+ * expired credentials, an IP allowlist that does not include this server), so
  * the dashboard's "test" button makes the connection rather than parsing the
  * URL again.
  */
@@ -196,7 +196,7 @@ type Nested = { code?: string; message?: string; cause?: Nested };
 function explain(err: unknown): string {
   let node = err as Nested | undefined;
   if ((err as { name?: string }).name === "TimeoutError")
-    return "timed out — the gateway did not answer";
+    return "timed out: the gateway did not answer";
   const messages: string[] = [];
   for (let depth = 0; node && depth < 4; depth++) {
     if (node.code) {
@@ -216,16 +216,16 @@ function explain(err: unknown): string {
 }
 
 const CONNECT_ERRORS: Record<string, string> = {
-  ECONNREFUSED: "connection refused — check the port",
-  ENOTFOUND: "host not found — check the gateway address",
-  EAI_AGAIN: "host not found — check the gateway address",
-  ETIMEDOUT: "timed out — the gateway did not answer",
-  ABORT_ERR: "timed out — the gateway did not answer",
-  TimeoutError: "timed out — the gateway did not answer",
-  UND_ERR_CONNECT_TIMEOUT: "timed out — the gateway did not answer",
-  UND_ERR_HEADERS_TIMEOUT: "timed out — the gateway did not answer",
+  ECONNREFUSED: "connection refused: check the port",
+  ENOTFOUND: "host not found: check the gateway address",
+  EAI_AGAIN: "host not found: check the gateway address",
+  ETIMEDOUT: "timed out: the gateway did not answer",
+  ABORT_ERR: "timed out: the gateway did not answer",
+  TimeoutError: "timed out: the gateway did not answer",
+  UND_ERR_CONNECT_TIMEOUT: "timed out: the gateway did not answer",
+  UND_ERR_HEADERS_TIMEOUT: "timed out: the gateway did not answer",
   ECONNRESET: "the gateway closed the connection",
-  EPROTO: "the gateway spoke a different protocol — check http vs https",
+  EPROTO: "the gateway spoke a different protocol: check http vs https",
   ERR_TLS_CERT_ALTNAME_INVALID: "the certificate did not match the gateway",
   CERT_HAS_EXPIRED: "the gateway's certificate has expired",
 };

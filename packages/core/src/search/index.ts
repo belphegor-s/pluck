@@ -19,7 +19,7 @@ const PROVIDER_TIMEOUT_MS = 9_000;
 export const SEARCH_BUDGET_MS = 30_000;
 /**
  * The most any one provider may take. Without a per-provider cap, a first
- * provider that hangs spends the entire budget and the fallbacks never run —
+ * provider that hangs spends the entire budget and the fallbacks never run,
  * which is the one situation a fallback chain exists for.
  */
 export const SEARCH_PROVIDER_SLICE_MS = 12_000;

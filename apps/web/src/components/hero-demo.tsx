@@ -31,7 +31,7 @@ export function HeroDemo() {
   const output = useRef<HTMLDivElement | null>(null);
 
   // The one piece of unprompted motion on the page: the plucked text arriving.
-  // Keyed on the result alone — switching tabs must not replay it.
+  // Keyed on the result alone: switching tabs must not replay it.
   useEffect(() => {
     if (!result) return;
     const full = result.markdown;

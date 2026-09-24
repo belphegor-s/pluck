@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  Pluck design tokens — "pressed specimen": cool paper, forest ink, berry accent.
+  Pluck design tokens: "pressed specimen": cool paper, forest ink, berry accent.
   Light is the default; dark redefines only what must change.
 */
 @theme {
@@ -27,7 +27,7 @@
   /*
     Display sizes are fluid: the same markup has to set a 44ch measure on a
     desktop and stay readable on a 360px phone, so the scale interpolates on
-    viewport width rather than snapping at a breakpoint. Body sizes are fixed —
+    viewport width rather than snapping at a breakpoint. Body sizes are fixed:
     text people read line by line should not depend on how wide the window is.
   */
   --text-xl: clamp(1.25rem, 1.1rem + 0.8vw, 1.4rem);

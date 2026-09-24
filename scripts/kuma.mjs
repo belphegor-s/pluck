@@ -6,7 +6,7 @@
  *
  *   node scripts/kuma.mjs
  *
- * Kuma has no REST API — the UI talks socket.io — so this speaks engine.io
+ * Kuma has no REST API (the UI talks socket.io), so this speaks engine.io
  * over the WebSocket built into Node. That is less code than it sounds: four
  * frame types, and every call is one emit with an acknowledgement.
  */

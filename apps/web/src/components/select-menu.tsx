@@ -15,8 +15,8 @@ export interface SelectOption<V extends string | number> {
  *
  * Styled selects cannot match the rest of the interface on every platform, and
  * on a phone the native one opens a system wheel. This keeps the native
- * keyboard behaviour — arrows move, Home/End jump, typing seeks, Enter picks,
- * Escape closes — and writes the choice to a hidden input, so it drops into a
+ * keyboard behaviour (arrows move, Home/End jump, typing seeks, Enter picks,
+ * Escape closes) and writes the choice to a hidden input, so it drops into a
  * server-action form like any other field.
  *
  * The list is drawn in its own layer, positioned against the button, so a

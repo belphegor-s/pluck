@@ -225,7 +225,7 @@ const num = (v: string | null) => (v && /^\d+$/.test(v) ? Number(v) : null);
 
 function guessNameFromTitle(title: string | null): string | null {
   if (!title) return null;
-  const parts = title.split(/\s[|\-–—:·]\s/);
+  const parts = title.split(/\s[|\-\u2013\u2014:·]\s/);
   return (
     (parts.length > 1 ? parts.sort((a, b) => a.length - b.length)[0] : parts[0])?.trim() ?? null
   );
@@ -234,7 +234,7 @@ function guessNameFromTitle(title: string | null): string | null {
 function sloganFromTitle(title: string | null, name: string | null): string | null {
   if (!title || !name) return null;
   const rest = title
-    .split(/\s[|\-–—:·]\s/)
+    .split(/\s[|\-\u2013\u2014:·]\s/)
     .map((s) => s.trim())
     .filter((s) => s.toLowerCase() !== name.toLowerCase());
   return rest.length ? rest.join(" - ") : null;

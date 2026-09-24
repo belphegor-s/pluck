@@ -6,8 +6,8 @@
  * follows: site copy, page titles, docs, API key prefix (`pk_live_…`), webhook
  * signature header, crawler user agent, MCP tool names and SDK defaults.
  *
- * Internal identifiers — the `@pluck/*` package names, the `PLUCK_` env var
- * prefix and the repository folder — are deliberately not derived from this.
+ * Internal identifiers (the `@pluck/*` package names, the `PLUCK_` env var
+ * prefix and the repository folder) are deliberately not derived from this.
  * Nobody outside the codebase sees them, and keeping them fixed means a rename
  * never breaks a running deployment's configuration.
  */

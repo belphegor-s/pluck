@@ -269,7 +269,7 @@ export function EditMonitorForm({
           type="url"
           inputMode="url"
           defaultValue={monitor.webhook ?? ""}
-          placeholder="None — leave empty to stop sending"
+          placeholder="None (leave empty to stop sending)"
           className={`mono ${input}`}
         />
       </label>

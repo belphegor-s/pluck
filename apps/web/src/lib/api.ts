@@ -21,7 +21,7 @@ export type ApiResult<K extends EndpointId> =
  * Calls one API endpoint as a signed-in member of a workspace.
  *
  * The dashboard goes through the API rather than the database for anything
- * with rules — the monitor interval floor, account limits, SSRF checks — so
+ * with rules (the monitor interval floor, account limits, SSRF checks), so
  * there is exactly one place those rules live.
  */
 export async function callApiAs<K extends EndpointId>(

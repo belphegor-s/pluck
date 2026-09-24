@@ -20,9 +20,9 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const path = slug?.[0] ? `/docs/${slug[0]}` : "/docs";
   return {
     title: doc.title,
-    description: `${doc.title} — ${SITE.name} documentation.`,
+    description: `${doc.title}: ${SITE.name} documentation.`,
     alternates: { canonical: path },
-    openGraph: { title: `${doc.title} — ${SITE.name}`, url: path },
+    openGraph: { title: `${doc.title} · ${SITE.name}`, url: path },
   };
 }
 

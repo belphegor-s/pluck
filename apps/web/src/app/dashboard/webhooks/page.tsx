@@ -54,9 +54,9 @@ export default async function WebhooksPage() {
           )}
         </div>
         <p className="mt-1 text-sm text-[var(--ink-soft)]">
-          Every webhook sent from this account — crawl progress and monitor changes — with what your
+          Every webhook sent from this workspace (crawl progress and monitor changes) with what your
           endpoint answered. A failed delivery is tried eight times in all, over about 20 minutes,
-          then stops — resend it once the receiver is fixed. Kept for 30 days.
+          then stops; resend it once the receiver is fixed. Kept for 30 days.
         </p>
 
         {deliveries.length === 0 ? (
@@ -160,7 +160,7 @@ app.post("/hooks/pluck", express.text({ type: "*/*" }), async (req, res) => {
   if (!ok) return res.sendStatus(401);
 
   const { id, event, data } = JSON.parse(req.body);
-  // \`id\` is stable across retries — use it to ignore duplicates.
+  // \`id\` is stable across retries: use it to ignore duplicates.
   res.sendStatus(200);
 });`,
               },
@@ -183,7 +183,7 @@ def hook():
     except WebhookVerificationError:
         return "", 401
 
-    # event.id is stable across retries — use it to ignore duplicates.
+    # event.id is stable across retries: use it to ignore duplicates.
     return "", 200`,
               },
             ]}

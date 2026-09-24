@@ -4,9 +4,9 @@
  *
  *   node scripts/observability.mjs            # create or update both services
  *
- * - Bugsink at pluck-errors.procd.cc — speaks the Sentry ingest protocol, so
+ * - Bugsink at pluck-errors.procd.cc speaks the Sentry ingest protocol, so
  *   the reporter in @pluck/runtime needs only a DSN, no SDK and no vendor.
- * - Uptime Kuma at pluck-status.procd.cc — probes and a public status page.
+ * - Uptime Kuma at pluck-status.procd.cc: probes and a public status page.
  *
  * Kuma runs on the same host it watches, which cannot report its own death;
  * pair it with one external check (UptimeRobot and friends) against /health.
@@ -79,7 +79,7 @@ const bugsinkAdminEmail = env.BUGSINK_ADMIN_EMAIL || "hello@ayushsharma.me";
 /*
   An error tracker that cannot email is a dashboard nobody opens, so Bugsink
   gets SMTP when a Resend key is present and falls back to the console backend
-  when it is not — which is also what a self-hoster without mail wants.
+  when it is not, which is also what a self-hoster without mail wants.
   Resend authenticates with the literal username "resend" and the API key as
   the password.
 */

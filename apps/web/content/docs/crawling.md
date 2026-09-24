@@ -26,13 +26,13 @@ Each page comes back in the same shape as a scrape, plus the `depth` it was foun
 
 ## Rules
 
-- `limit` — hard cap on pages. Crawls stop there.
-- `maxDepth` — link distance from the start URL.
-- `includePaths` / `excludePaths` — glob patterns matched against the path, e.g. `/blog/**`.
-- `allowSubdomains` — follow `docs.example.com` from `example.com`.
-- `allowExternal` — follow links off the site entirely. Use with a small `limit`.
-- `useSitemap` — seed the queue from sitemaps (on by default), which is usually faster and more complete than following links.
-- `scrapeOptions` — any scrape option, applied to every page.
+- `limit`: hard cap on pages. Crawls stop there.
+- `maxDepth`: link distance from the start URL.
+- `includePaths` / `excludePaths`: glob patterns matched against the path, e.g. `/blog/**`.
+- `allowSubdomains`: follow `docs.example.com` from `example.com`.
+- `allowExternal`: follow links off the site entirely. Use with a small `limit`.
+- `useSitemap`: seed the queue from sitemaps (on by default), which is usually faster and more complete than following links.
+- `scrapeOptions`: any scrape option, applied to every page.
 
 ## Cost and control
 
@@ -42,4 +42,4 @@ Crawl results are stored for 7 days.
 
 ## Mapping first
 
-For large sites, `POST /v1/map` returns every URL Pluck can discover in about a second and costs 1 credit. Filter that list yourself, then scrape only what you need — usually much cheaper than crawling.
+For large sites, `POST /v1/map` returns every URL Pluck can discover in about a second and costs 1 credit. Filter that list yourself, then scrape only what you need. That is usually much cheaper than crawling.

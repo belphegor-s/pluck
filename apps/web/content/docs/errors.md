@@ -27,13 +27,13 @@
 | `llm_not_configured` | 400 | No model is configured. Add a provider key, or send `x-llm-key`. |
 | `llm_failed` | 424 | The model provider refused, ran out of credit, or timed out. The message says which. |
 
-Anything caused by a third party — the page you asked for, or the model provider — answers **424 Failed Dependency** rather than a gateway status, so the `code` and `message` survive any CDN sitting in front of the API.
+Anything caused by a third party (the page you asked for, or the model provider) answers **424 Failed Dependency** rather than a gateway status, so the `code` and `message` survive any CDN sitting in front of the API.
 
 Every response carries `x-request-id`. Include it when you ask us about a call.
 
 ## Retries
 
-The SDKs retry timeouts, 429s and 5xx responses twice with exponential backoff and jitter. Scrapes are idempotent, so retrying is safe. Crawls are not — reuse the crawl id rather than starting a second one.
+The SDKs retry timeouts, 429s and 5xx responses twice with exponential backoff and jitter. Scrapes are idempotent, so retrying is safe. Crawls are not: reuse the crawl id rather than starting a second one.
 
 ## Rate limits
 

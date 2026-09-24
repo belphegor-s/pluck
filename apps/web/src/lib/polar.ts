@@ -37,8 +37,8 @@ export interface Purchase {
 /**
  * The account's purchases, joined from our ledger to Polar.
  *
- * The ledger is the list of what we actually granted credits for, so it — not
- * Polar's customer record — decides what belongs to this workspace. Polar then fills
+ * The ledger is the list of what we actually granted credits for, so it, not
+ * Polar's customer record, decides what belongs to this workspace. Polar then fills
  * in what only it knows: tax, invoice number, refunds.
  */
 export async function purchasesForWorkspace(orgId: string): Promise<Purchase[]> {
@@ -89,7 +89,7 @@ export async function purchasesForWorkspace(orgId: string): Promise<Purchase[]> 
  * Finds the Polar customer behind an account.
  *
  * Not by `externalCustomerId`: Polar matches an existing customer by email at
- * checkout, and that customer may already carry someone else's external id —
+ * checkout, and that customer may already carry someone else's external id,
  * which is exactly why looking it up that way always failed. The customer on an
  * order we granted credits for is the one that belongs to this workspace.
  */

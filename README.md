@@ -1,6 +1,6 @@
 # Pluck
 
-**The web, ready for your model.** Pluck turns any URL into clean markdown, structured JSON, screenshots or brand data — the things you actually want to put in a prompt, instead of raw HTML.
+**The web, ready for your model.** Pluck turns any URL into clean markdown, structured JSON, screenshots or brand data: the things you actually want to put in a prompt, instead of raw HTML.
 
 It is the whole product, open source: the same code runs the hosted service at [pluck.procd.cc](https://pluck.procd.cc). Self-host it and you get every endpoint, no billing, no accounts, and nothing you scrape leaving your network.
 
@@ -19,7 +19,7 @@ curl -X POST https://pluck-api.procd.cc/v1/scrape \
 | **Parse** | PDF, DOCX, HTML, CSV and JSON into markdown. |
 | **Map** | Every URL on a site in about a second, from sitemaps and links. |
 | **Crawl** | A whole site or section, with depth and glob path rules, resumable, webhook on completion. |
-| **Search** | Web, news or image results — optionally with every result already scraped. |
+| **Search** | Web, news or image results, optionally with every result already scraped. |
 | **Extract** | JSON that matches your schema, validated before it is returned. Products come from the site's own structured data when it has any. |
 | **Styleguide** | Real design tokens from a rendered page: palette, fonts, type scale, radii, shadows, component styles. |
 | **Brand** | Domain, work email, company name or ticker into logos, colors, socials, address and NAICS/SIC codes. Free logo CDN. |
@@ -51,7 +51,7 @@ Full guide: [docs/self-hosting](https://pluck.procd.cc/docs/self-hosting).
 
 ## Bring your own model
 
-Extraction, product parsing and classification need a language model. Point Pluck at whichever one you already pay for — OpenRouter, OpenAI, Anthropic, Gemini, Groq, or anything OpenAI-compatible including Ollama and vLLM — per instance, per account, or per request:
+Extraction, product parsing and classification need a language model. Point Pluck at whichever one you already pay for (OpenRouter, OpenAI, Anthropic, Gemini, Groq, or anything OpenAI-compatible including Ollama and vLLM) per instance, per account, or per request:
 
 ```bash
 -H "x-llm-provider: anthropic" -H "x-llm-key: sk-ant-…" -H "x-llm-model: claude-haiku-4-5"
@@ -103,4 +103,4 @@ Found a vulnerability? Please email rather than opening a public issue: hello@pl
 
 ## License
 
-[AGPL-3.0](LICENSE). Run it, change it, host it for your own users — if you offer a modified version as a service, publish your changes.
+[AGPL-3.0](LICENSE). Run it, change it, host it for your own users. If you offer a modified version as a service, publish your changes.

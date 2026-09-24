@@ -75,7 +75,7 @@ export function errorResponse(
     );
   }
   if (isPluckError(err)) {
-    // 5xx means we broke, not the caller — those are worth a report.
+    // 5xx means we broke, not the caller, so those are worth a report.
     if (err.status >= 500) s.errors.capture(err, { requestId, ...context, code: err.code });
     return c.json(
       { error: { code: err.code, message: err.message, requestId, details: err.details } },

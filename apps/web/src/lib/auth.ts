@@ -23,7 +23,7 @@ const UNVERIFIED = new Set<string>();
  * Reads the GitHub profile ourselves.
  *
  * The stock implementation matches `/user`'s email against `/user/emails` with
- * `===`, then defaults to unverified — so a case difference, a hidden profile
+ * `===`, then defaults to unverified, so a case difference, a hidden profile
  * email, or a failed second request all look identical to "not verified" and
  * lock the account out. Here the primary verified address wins, comparison is
  * case-insensitive, and a failed lookup is treated as unknown rather than bad.
@@ -132,7 +132,7 @@ export const auth = betterAuth({
           // Identity is the GitHub account id (account linking is off), so an
           // unverified address cannot take over an existing account. The check
           // below only refuses an address GitHub positively reports as
-          // unverified — never one it simply did not tell us about.
+          // unverified, never one it simply did not tell us about.
           if (user.email && UNVERIFIED.has(user.email.toLowerCase())) {
             throw new APIError("FORBIDDEN", {
               message: `GitHub reports ${user.email} as unverified. Verify it on GitHub, or make a verified address your primary one, then sign in again.`,

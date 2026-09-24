@@ -40,7 +40,7 @@ API docs are at `http://localhost:8080/docs`, the dashboard at `http://localhost
 
 ## Scaling
 
-The API is stateless — run as many as you like behind a load balancer. Browser work is queued in Redis, so add worker containers to increase throughput; set `WORKER_ROLES` to split render, crawl, monitor and webhook duties onto different machines. Postgres holds jobs, usage and monitors.
+The API is stateless, so run as many as you like behind a load balancer. Browser work is queued in Redis, so add worker containers to increase throughput; set `WORKER_ROLES` to split render, crawl, monitor and webhook duties onto different machines. Postgres holds jobs, usage and monitors.
 
 ## Renaming it
 

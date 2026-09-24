@@ -10,7 +10,7 @@ Pluck separates cheap work from expensive work on purpose. Knowing which is whic
 | Extract, classify | Milliseconds locally; the model provider does the work | Provider rate limits |
 | Cached anything | One Redis round trip | Nothing |
 
-The API is stateless, so replicas scale linearly. Everything expensive runs through a Redis queue, so capacity is a matter of adding workers — anywhere, including a different cloud.
+The API is stateless, so replicas scale linearly. Everything expensive runs through a Redis queue, so capacity is a matter of adding workers anywhere, including a different cloud.
 
 ## What one small server does
 
@@ -52,7 +52,7 @@ A sensible split once one server is not enough: keep the API, dashboard, Postgre
 1. **Private network first.** Workers need Postgres and Redis. Join both sides with Tailscale or WireGuard, or peer the VPCs. Do not put a database on the public internet to make this work.
 2. **Run the worker image** (`--target worker`) on ECS Fargate, an EC2 spot group, or any container host. One task per 1 vCPU / 2 GB with `BROWSER_CONCURRENCY=2` is a good unit.
 3. **Scale on queue depth**, not CPU. The render queue length is the honest signal: a queue that is growing means users are waiting.
-4. **Stay in one region.** Put workers near the database — cross-region round trips cost more than the render.
+4. **Stay in one region.** Put workers near the database: cross-region round trips cost more than the render.
 
 The economics are comfortable: a browser render costs 3 credits, and a 1 vCPU container that manages roughly 1,400 renders an hour costs a few cents an hour. Egress and object storage, not compute, tend to dominate once volume is real.
 
@@ -60,9 +60,9 @@ The economics are comfortable: a browser render costs 3 credits, and a 1 vCPU co
 
 Add these in order, as they start to hurt:
 
-1. **Object storage off the box** (screenshots, logos) — done from the start if `S3_*` is set.
+1. **Object storage off the box** (screenshots, logos), done from the start if `S3_*` is set.
 2. **Managed Postgres** when write volume or backup requirements outgrow a single container. `usage_event` is the table that grows; it is already indexed on `(user_id, created_at)` and pruned after 400 days.
-3. **Separate cache Redis** from the queue Redis — the queue must never evict. The compose file ships both.
+3. **Separate cache Redis** from the queue Redis, because the queue must never evict. The compose file ships both.
 4. **Read replicas** for the dashboard's usage queries, if reporting starts competing with the API.
 
 ## Housekeeping

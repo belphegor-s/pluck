@@ -80,7 +80,7 @@ export async function createApiKey(_prev: ActionState, formData: FormData): Prom
       .insert(apiKeys)
       .values({ id: newId("key"), orgId: org.id, createdBy: user.id, name, prefix, hash });
     revalidatePath("/dashboard/keys");
-    return { ok: `Key "${name}" created. Copy it now — it is not shown again.`, secret: key };
+    return { ok: `Key "${name}" created. Copy it now: it is not shown again.`, secret: key };
   } catch (err) {
     return fail(err);
   }
@@ -223,7 +223,7 @@ export async function submitContact(_prev: ActionState, formData: FormData): Pro
       });
       if (!result.ok) console.error("contact email failed:", result.error);
     }
-    return { ok: "Thanks — we read every message and usually reply within a day." };
+    return { ok: "Thanks. We read every message and usually reply within a day." };
   } catch (err) {
     return fail(err);
   }
@@ -329,7 +329,7 @@ export async function testProxy(_prev: ActionState, formData: FormData): Promise
     proxyDirectory().invalidate(org.id);
     revalidatePath("/dashboard/proxies");
     return result.ok
-      ? { ok: `Working — exit IP ${result.ip}, ${Date.now() - started} ms.` }
+      ? { ok: `Working: exit IP ${result.ip}, ${Date.now() - started} ms.` }
       : { error: result.error };
   } catch (err) {
     return fail(err);
@@ -427,7 +427,7 @@ export async function sendTestWebhook(
     const result = await callApiAs(actor, "webhookTest", { url: field(formData, "url") });
     if (!result.ok) return { error: result.error };
     revalidatePath("/dashboard/webhooks");
-    return { ok: "Test event queued — it appears below within a few seconds." };
+    return { ok: "Test event queued. It appears below within a few seconds." };
   } catch (err) {
     return fail(err);
   }

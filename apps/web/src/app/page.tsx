@@ -12,7 +12,7 @@ const menuRows = [
     price: "1/page",
     note: "a whole site, depth and path rules, webhook when done",
   },
-  { ...endpoints.search, price: "2", note: "web, news or images — with the pages already read" },
+  { ...endpoints.search, price: "2", note: "web, news or images, with the pages already read" },
   { ...endpoints.extract, price: "9", note: "your JSON schema, filled from the page" },
   { ...endpoints.brand, price: "10", note: "logos, colors, fonts, socials, industry codes" },
   { ...endpoints.monitorCreate, price: "1/check", note: "tell me when this page changes" },
@@ -123,8 +123,8 @@ export default function HomePage() {
                 Give your model the page, not the HTML.
               </h1>
               <p className="prose-pluck mt-6 text-lg text-[var(--ink-soft)]">
-                Pluck reads any URL the way a person would — running the JavaScript, skipping the
-                cookie banner, keeping the tables — and hands back markdown, JSON, links or a
+                Pluck reads any URL the way a person would: running the JavaScript, skipping the
+                cookie banner, keeping the tables. It hands back markdown, JSON, links or a
                 screenshot. One call, one credit.
               </p>
               {/* Side by side once there is room; stacked and full width on a
@@ -208,7 +208,7 @@ export default function HomePage() {
             <h2 className="text-2xl">Describe the shape. Get the data.</h2>
             <p className="mt-3 max-w-[38ch] text-sm text-[var(--ink-soft)]">
               Send a JSON schema and Pluck fills it from the page, validating before it answers.
-              Product pages skip the model entirely when the site publishes structured data — same
+              Product pages skip the model entirely when the site publishes structured data: same
               result, a fraction of the cost.
             </p>
             <p className="mt-4 max-w-[38ch] text-sm text-[var(--ink-soft)]">

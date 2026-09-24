@@ -4,7 +4,7 @@
 #   ./scripts/backup.sh                     # uses .env
 #   PG_CONTAINER=… S3_BUCKET=… ./scripts/backup.sh
 #
-# Runs anywhere Docker and the AWS CLI are available — on the host by cron, or
+# Runs anywhere Docker and the AWS CLI are available: on the host by cron, or
 # from a workstation over SSH. Deliberately independent of the control panel:
 # a backup you cannot take by hand is a backup you cannot trust.
 set -euo pipefail

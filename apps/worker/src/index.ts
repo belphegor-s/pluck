@@ -150,7 +150,7 @@ if (roles.has("webhook")) {
 
 /**
  * A backlog means either a stuck worker or a traffic spike; both want a human.
- * Depth alone is not enough — a busy queue drains — so age of the oldest
+ * Depth alone is not enough (a busy queue drains), so age of the oldest
  * waiting job is what decides.
  */
 async function alertOnBacklog() {
@@ -206,7 +206,7 @@ async function warnLowBalances() {
           "",
           `Top up: ${config.PUBLIC_WEB_URL}/dashboard/billing`,
           "",
-          "Credits never expire and there is no subscription — you only pay for what you use.",
+          "Credits never expire and there is no subscription: you only pay for what you use.",
         ].join("\n"),
       });
       if (!sent.ok) log.warn({ orgId: org.id, err: sent.error }, "low balance email failed");

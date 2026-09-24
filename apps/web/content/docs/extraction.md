@@ -32,7 +32,7 @@ Send `schema`, `prompt`, or both. With no schema you get whatever object the pro
 
 ## Products
 
-`POST /v1/extract/product` and `/v1/extract/products` return normalised product data: name, price, currency, availability, images, rating, review count, attributes. They read the site's own structured data first and only fall back to a model when a page has none — which means most shops cost 3 credits rather than 11.
+`POST /v1/extract/product` and `/v1/extract/products` return normalised product data: name, price, currency, availability, images, rating, review count, attributes. They read the site's own structured data first and only fall back to a model when a page has none, which means most shops cost 3 credits rather than 11.
 
 ## Styleguides
 

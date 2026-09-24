@@ -1,6 +1,6 @@
 # @pluckai/sdk
 
-TypeScript client for [Pluck](https://pluck.procd.cc) — the web, as LLM-ready context. Scrape a page to markdown, crawl a site, search, pull structured JSON out of a page, or watch a URL for changes.
+TypeScript client for [Pluck](https://pluck.procd.cc): the web, as LLM-ready context. Scrape a page to markdown, crawl a site, search, pull structured JSON out of a page, or watch a URL for changes.
 
 ```bash
 npm install @pluckai/sdk
@@ -22,7 +22,7 @@ console.log(page.markdown); // ready for your prompt
 console.log(page.$meta.creditsUsed); // 1
 ```
 
-Get a key at [pluck.procd.cc](https://pluck.procd.cc) — new accounts start with 1,000 free credits, and credits do not expire.
+Get a key at [pluck.procd.cc](https://pluck.procd.cc). New workspaces start with 1,000 free credits, and credits do not expire.
 
 ## Extract structured data
 
@@ -49,7 +49,7 @@ const { models } = await pluck.extract({
 });
 ```
 
-Bring your own model key with `x-llm-key` and AI calls cost a fraction as much — you pay your provider directly.
+Bring your own model key with `x-llm-key` and AI calls cost a fraction as much: you pay your provider directly.
 
 ## Other endpoints
 

@@ -110,7 +110,7 @@ export const userAvatars = pgTable("user_avatar", {
 /* -------------------------------------------------------------- organizations */
 
 /**
- * A workspace: the account that owns everything — keys, credits, usage,
+ * A workspace: the account that owns everything: keys, credits, usage,
  * crawls, monitors, webhooks and credentials. People belong to workspaces
  * through `member`; every user names their first one when they sign up.
  */

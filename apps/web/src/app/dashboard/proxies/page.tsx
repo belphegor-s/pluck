@@ -28,7 +28,7 @@ export default async function ProxiesPage() {
           <code className="mono text-[var(--ink)]">proxy</code> on a request to{" "}
           <code className="mono text-[var(--ink)]">datacenter</code>,{" "}
           <code className="mono text-[var(--ink)]">residential</code> or{" "}
-          <code className="mono text-[var(--ink)]">auto</code> — auto tries direct first and only
+          <code className="mono text-[var(--ink)]">auto</code>: auto tries direct first and only
           escalates when a site blocks it.
         </p>
 
@@ -84,7 +84,7 @@ export default async function ProxiesPage() {
       <section>
         <h2 className="text-lg">Add a proxy</h2>
         <p className="mt-1 text-sm text-[var(--ink-soft)]">
-          The URL is encrypted before it is stored and never shown again — only the gateway host
+          The URL is encrypted before it is stored and never shown again; only the gateway host
           stays visible. A proxy that fails five checks in a row drops out of rotation until you
           enable it again.
         </p>

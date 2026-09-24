@@ -1,7 +1,7 @@
 import { SITE } from "@/lib/site";
 
 /**
- * The mark: a stem with one berry being lifted off it — a pluck.
+ * The mark: a stem with one berry being lifted off it: a pluck.
  * Stroke inherits text color so it works on paper and in the dark.
  */
 export function Logo({ size = 22, className = "" }: { size?: number; className?: string }) {

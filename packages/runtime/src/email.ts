@@ -3,7 +3,7 @@ import { request } from "undici";
 /**
  * Transactional email over Resend's HTTP API.
  *
- * One `fetch`-shaped call, no SDK: the same reasoning as the error reporter —
+ * One `fetch`-shaped call, no SDK: the same reasoning as the error reporter:
  * a self-hostable service should not carry a vendor's dependency tree for four
  * fields. With no API key the mailer is inert and says so, which is what a
  * self-hoster without email wants.

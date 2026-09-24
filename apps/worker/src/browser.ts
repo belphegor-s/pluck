@@ -112,7 +112,7 @@ export class BrowserPool implements Renderer {
   readonly background: Renderer = { render: (req) => this.render(req, "background") };
 
   /**
-   * Renders one page. `background` work — crawl pages, monitor checks — waits
+   * Renders one page. `background` work (crawl pages, monitor checks) waits
    * behind interactive requests for a browser slot, so a large crawl cannot
    * hold up someone waiting on a single scrape.
    */

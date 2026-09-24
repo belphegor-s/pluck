@@ -35,8 +35,8 @@ function ProviderIcon({ provider }: { provider: Provider }) {
 
 /**
  * A listbox rather than a styled `<select>`: native option lists cannot carry
- * icons or descriptions. Keyboard behaviour mirrors the native control —
- * arrows move, Home/End jump, typing seeks, Enter picks, Escape closes — and
+ * icons or descriptions. Keyboard behaviour mirrors the native control:
+ * arrows move, Home/End jump, typing seeks, Enter picks, Escape closes. And
  * the value still posts with the form through a hidden input.
  */
 export function ProviderSelect({

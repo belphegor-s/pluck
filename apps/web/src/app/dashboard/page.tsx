@@ -121,7 +121,7 @@ export default async function DashboardOverview() {
                     </td>
                     <td className="px-3 py-2">{row.endpoint}</td>
                     <td className="mono max-w-[22ch] truncate px-3 py-2 text-xs text-[var(--ink-soft)]">
-                      {row.target ?? "—"}
+                      {row.target ?? "None"}
                     </td>
                     <td
                       className={`mono px-3 py-2 text-xs ${row.status >= 400 ? "text-[var(--accent)]" : "text-[var(--leaf)]"}`}

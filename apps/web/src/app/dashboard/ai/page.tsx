@@ -27,7 +27,7 @@ export default async function AiPage() {
         <h2 className="text-lg">Bring your own model</h2>
         <p className="mt-1 text-sm text-[var(--ink-soft)]">
           Extraction, product parsing and industry classification need a language model. Add your
-          own provider key and those calls bill to your provider account — Pluck charges 1 credit
+          own provider key and those calls bill to your provider account, and Pluck charges 1 credit
           instead of 8. Keys are encrypted with AES-256-GCM and are never returned by the API.
         </p>
       </section>
