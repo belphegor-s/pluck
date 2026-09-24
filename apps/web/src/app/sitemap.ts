@@ -12,6 +12,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE.url}/playground`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE.url}/enterprise`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE.url}/trust`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    {
+      url: `${SITE.url}/legal/licenses`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.2,
+    },
     ...docs.map((slug) => ({
       url: slug ? `${SITE.url}/docs/${slug}` : `${SITE.url}/docs`,
       lastModified: now,

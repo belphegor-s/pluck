@@ -16,7 +16,8 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "db:generate": "pnpm --filter @pluck/db generate",
-    "db:migrate": "pnpm --filter @pluck/db migrate"
+    "db:migrate": "pnpm --filter @pluck/db migrate",
+    "licenses": "node scripts/licenses.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

@@ -28,6 +28,7 @@ const groups = [
       { href: "/legal/terms", label: "Terms" },
       { href: "/legal/privacy", label: "Privacy" },
       { href: "/trust", label: "Trust" },
+      { href: "/legal/licenses", label: "Licences" },
       { href: `mailto:${SITE.contactEmail}`, label: "Email us" },
     ],
   },
