@@ -148,7 +148,7 @@ export function Playground() {
             text={curl}
             label="Copy as cURL"
             copiedLabel="cURL copied"
-            className="justify-center border border-[var(--line)] px-4 py-2.5 text-sm transition-colors hover:border-[var(--ink)] sm:py-2"
+            className="btn-outline justify-center px-4 py-2.5 text-sm sm:py-2"
           />
         </div>
       </div>

@@ -103,7 +103,7 @@ export default function PricingPage() {
         </Link>
         <Link
           href="/enterprise"
-          className="border border-[var(--line)] px-5 py-3 text-center transition-colors hover:border-[var(--ink)] sm:py-2.5"
+          className="btn-outline px-5 py-3 text-center sm:py-2.5"
         >
           Volume and invoicing
         </Link>

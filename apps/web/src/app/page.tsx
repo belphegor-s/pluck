@@ -136,7 +136,7 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href={SITE.repo}
-                  className="border border-[var(--line)] px-5 py-3 text-center transition-colors hover:border-[var(--ink)] sm:py-2.5"
+                  className="btn-outline px-5 py-3 text-center sm:py-2.5"
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -266,7 +266,7 @@ curl localhost:8080/v1/scrape \\
             </Link>
             <Link
               href="/enterprise"
-              className="border border-[var(--line)] px-5 py-3 text-center transition-colors hover:border-[var(--ink)] sm:py-2.5"
+              className="btn-outline px-5 py-3 text-center sm:py-2.5"
             >
               Talk to us about volume
             </Link>

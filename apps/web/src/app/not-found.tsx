@@ -13,7 +13,7 @@ export default function NotFound() {
         </Link>
         <Link
           href="/"
-          className="border border-[var(--line)] px-5 py-2.5 transition-colors hover:border-[var(--ink)]"
+          className="btn-outline px-5 py-2.5"
         >
           Back home
         </Link>
