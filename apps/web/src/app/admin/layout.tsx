@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-/** The whole panel answers 404 until ADMIN_* and TELEGRAM_* are set. */
+/** The whole panel answers 404 until ADMIN_USERNAME, ADMIN_PASSWORD_HASH and PLUCK_ENCRYPTION_KEY are set. */
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   assertEnabled();
   return children;

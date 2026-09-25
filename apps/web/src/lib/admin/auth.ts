@@ -1,16 +1,12 @@
 import "server-only";
-import {
-  createHash,
-  createHmac,
-  randomBytes,
-  randomInt,
-  scryptSync,
-  timingSafeEqual,
-} from "node:crypto";
-import { adminAudit, adminChallenges, adminSessions, newId } from "@pluck/db";
-import { and, count, eq, gt, isNull, sql } from "drizzle-orm";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { SecretBox } from "@pluck/ai";
+import { adminAudit, adminChallenges, adminSessions, adminTotp, newId } from "@pluck/db";
+import { and, count, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { Secret, TOTP } from "otpauth";
+import QRCode from "qrcode";
 import { cache } from "react";
 import { escapeHtml, sendTelegram } from "@/lib/admin/telegram";
 import { db } from "@/lib/db";
@@ -20,13 +16,17 @@ import { db } from "@/lib/db";
  *
  *   1. username and password, compared against ADMIN_USERNAME and the scrypt
  *      hash in ADMIN_PASSWORD_HASH (`node scripts/admin-password.mjs`);
- *   2. a six-digit code sent to the operator's Telegram chat, valid for five
- *      minutes and five tries;
+ *   2. a six-digit TOTP code from an authenticator app. The first sign-in
+ *      shows a QR code to enrol one; after that the panel never shows the
+ *      secret again, and enrolling anew needs the admin_totp row deleted
+ *      directly in the database. Each code works once;
  *   3. a session cookie scoped to /admin: httpOnly, SameSite=Strict, twelve
  *      hours at most and one hour idle, stored only as a hash.
  *
  * Every step is rate limited per IP and in total, and written to admin_audit.
- * With either variable unset the whole panel answers 404.
+ * The TOTP secret is sealed with PLUCK_ENCRYPTION_KEY. With ADMIN_USERNAME,
+ * ADMIN_PASSWORD_HASH or that key unset, the whole panel answers 404.
+ * Telegram, when configured, only receives alerts.
  */
 
 export const SESSION_COOKIE = "pluck-admin";
@@ -34,15 +34,16 @@ export const CHALLENGE_COOKIE = "pluck-admin-challenge";
 const SESSION_HOURS = 12;
 const IDLE_MINUTES = 60;
 const CODE_MINUTES = 5;
+const ENROL_MINUTES = 15;
 const CODE_TRIES = 5;
+const TOTP_ID = "primary";
 const WINDOW = sql`now() - interval '15 minutes'`;
 
 export function adminEnabled() {
   return Boolean(
     process.env.ADMIN_USERNAME &&
       process.env.ADMIN_PASSWORD_HASH &&
-      process.env.TELEGRAM_BOT_TOKEN &&
-      process.env.TELEGRAM_CHAT_ID,
+      (process.env.PLUCK_ENCRYPTION_KEY?.length ?? 0) >= 32,
   );
 }
 
@@ -52,6 +53,7 @@ export function assertEnabled() {
 }
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const box = () => new SecretBox(process.env.PLUCK_ENCRYPTION_KEY ?? "");
 
 function sameText(a: string, b: string) {
   const x = createHash("sha256").update(a).digest();
@@ -74,10 +76,22 @@ function passwordMatches(password: string) {
   return timingSafeEqual(actual, expected);
 }
 
-const codeHash = (challengeId: string, code: string) =>
-  createHmac("sha256", process.env.BETTER_AUTH_SECRET ?? process.env.ADMIN_PASSWORD_HASH ?? "")
-    .update(`${challengeId}:${code}`)
-    .digest("hex");
+/** Standard authenticator settings (SHA-1, 6 digits, 30 s), so every app works. */
+const totpFor = (base32: string) =>
+  new TOTP({
+    issuer: "Pluck",
+    label: process.env.ADMIN_USERNAME ?? "admin",
+    algorithm: "SHA1",
+    digits: 6,
+    period: 30,
+    secret: Secret.fromBase32(base32),
+  });
+
+/** Security alerts to Telegram when it is configured; never blocks sign-in. */
+const alert = (text: string) => {
+  if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID)
+    void sendTelegram(text).catch(() => {});
+};
 
 export async function clientInfo() {
   const h = await headers();
@@ -112,6 +126,11 @@ async function recent(action: string, ip: string | null) {
   return row?.n ?? 0;
 }
 
+async function enrolled() {
+  const [row] = await db.select().from(adminTotp).where(eq(adminTotp.id, TOTP_ID));
+  return row ?? null;
+}
+
 const cookieBase = {
   httpOnly: true,
   sameSite: "strict" as const,
@@ -128,8 +147,8 @@ export async function startSignIn(username: string, password: string): Promise<L
 
   if ((await recent("login_failed", ip)) >= 5 || (await recent("login_failed", null)) >= 30)
     return { error: "Too many attempts. Try again in 15 minutes." };
-  if ((await recent("code_sent", ip)) >= 5)
-    return { error: "Too many codes requested. Try again in 15 minutes." };
+  if ((await recent("password_ok", ip)) >= 10)
+    return { error: "Too many sign-ins started. Try again in 15 minutes." };
 
   // Always run scrypt, so a wrong username takes as long as a wrong password.
   const passwordOk = passwordMatches(password);
@@ -137,46 +156,39 @@ export async function startSignIn(username: string, password: string): Promise<L
   if (!passwordOk || !userOk) {
     await audit("login_failed", { username: username.slice(0, 64) });
     if ((await recent("login_failed", ip)) === 5)
-      await sendTelegram(
+      alert(
         `⚠️ Pluck admin: 5 failed sign-ins from ${escapeHtml(ip ?? "an unknown IP")} in 15 minutes. That IP is locked out for now.`,
-      ).catch(() => {});
+      );
     return { error: "That username and password do not match." };
   }
 
+  // No authenticator yet: this sign-in enrols one, with a fresh secret.
+  const enrolling = !(await enrolled());
   const id = newId("adc");
-  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const minutes = enrolling ? ENROL_MINUTES : CODE_MINUTES;
   await db.insert(adminChallenges).values({
     id,
-    codeHash: codeHash(id, code),
+    enrollSecret: enrolling ? box().seal(new Secret({ size: 20 }).base32) : null,
     ip,
     userAgent,
-    expiresAt: sql`now() + interval '${sql.raw(String(CODE_MINUTES))} minutes'`,
+    expiresAt: sql`now() + interval '${sql.raw(String(minutes))} minutes'`,
   });
-  try {
-    await sendTelegram(
-      [
-        `🔐 Pluck admin sign-in code: <code>${code}</code>`,
-        `Expires in ${CODE_MINUTES} minutes.`,
-        `IP: ${escapeHtml(ip ?? "unknown")}`,
-        `Browser: ${escapeHtml((userAgent ?? "unknown").slice(0, 120))}`,
-        "If this was not you, change ADMIN_PASSWORD_HASH now.",
-      ].join("\n"),
-    );
-  } catch {
-    await audit("code_send_failed");
-    return { error: "The code could not be sent to Telegram. Check the bot settings." };
-  }
-  await audit("code_sent");
-
-  (await cookies()).set(CHALLENGE_COOKIE, id, { ...cookieBase, maxAge: CODE_MINUTES * 60 });
+  await audit("password_ok", { enrolling });
+  (await cookies()).set(CHALLENGE_COOKIE, id, { ...cookieBase, maxAge: minutes * 60 });
   return {};
 }
 
-export async function pendingChallenge() {
+export interface PendingChallenge {
+  id: string;
+  /** Present only on the first sign-in, to show once as a QR code. */
+  enrol: { qr: string; secret: string } | null;
+}
+
+export async function pendingChallenge(): Promise<PendingChallenge | null> {
   const id = (await cookies()).get(CHALLENGE_COOKIE)?.value;
   if (!id) return null;
   const [row] = await db
-    .select({ id: adminChallenges.id, expiresAt: adminChallenges.expiresAt })
+    .select({ id: adminChallenges.id, enrollSecret: adminChallenges.enrollSecret })
     .from(adminChallenges)
     .where(
       and(
@@ -185,10 +197,28 @@ export async function pendingChallenge() {
         gt(adminChallenges.expiresAt, sql`now()`),
       ),
     );
-  return row ?? null;
+  if (!row) return null;
+  if (!row.enrollSecret) return { id: row.id, enrol: null };
+  const secret = box().open(row.enrollSecret);
+  const qr = await QRCode.toDataURL(totpFor(secret).toString(), {
+    margin: 1,
+    width: 240,
+    errorCorrectionLevel: "M",
+  });
+  return { id: row.id, enrol: { qr, secret: secret.replace(/(.{4})/g, "$1 ").trim() } };
 }
 
-/** Step two: the code from Telegram. Success opens a session. */
+/**
+ * The time step a code belongs to, if it is valid now (one step either side
+ * allows for clock drift), or null.
+ */
+function stepFor(secret: string, code: string) {
+  const totp = totpFor(secret);
+  const delta = totp.validate({ token: code, window: 1 });
+  return delta === null ? null : totp.counter() + delta;
+}
+
+/** Step two: the authenticator code. Success opens a session. */
 export async function finishSignIn(code: string): Promise<LoginResult> {
   assertEnabled();
   const jar = await cookies();
@@ -210,26 +240,64 @@ export async function finishSignIn(code: string): Promise<LoginResult> {
   if (!challenge || challenge.attempts > CODE_TRIES) {
     jar.delete({ name: CHALLENGE_COOKIE, path: "/admin" });
     await audit("code_failed", { reason: challenge ? "too_many_tries" : "expired" });
-    return { error: "That code has expired. Start again." };
+    return { error: "This sign-in has expired. Start again." };
   }
+
   const clean = code.replace(/\D/g, "");
-  if (clean.length !== 6 || !sameText(codeHash(id, clean), challenge.codeHash)) {
+  const wrong = async () => {
     await audit("code_failed", { attempt: challenge.attempts });
     const left = CODE_TRIES - challenge.attempts;
     return {
       error:
         left > 0
-          ? `Wrong code. ${left} ${left === 1 ? "try" : "tries"} left.`
-          : "Wrong code. Start again.",
+          ? `That code is not right. ${left} ${left === 1 ? "try" : "tries"} left.`
+          : "That code is not right. Start again.",
     };
+  };
+  if (clean.length !== 6) return wrong();
+
+  if (challenge.enrollSecret) {
+    // First sign-in: the code proves the app scanned the QR code correctly.
+    const secret = box().open(challenge.enrollSecret);
+    const step = stepFor(secret, clean);
+    if (step === null) return wrong();
+    const saved = await db
+      .insert(adminTotp)
+      .values({ id: TOTP_ID, secret: challenge.enrollSecret, lastCounter: step })
+      .onConflictDoNothing()
+      .returning({ id: adminTotp.id });
+    if (saved.length === 0) {
+      jar.delete({ name: CHALLENGE_COOKIE, path: "/admin" });
+      return { error: "An authenticator was enrolled meanwhile. Start again and use that one." };
+    }
+    await audit("totp_enrolled");
+    alert("🔐 Pluck admin: an authenticator app was enrolled. If this was not you, act now.");
+  } else {
+    const row = await enrolled();
+    if (!row) {
+      jar.delete({ name: CHALLENGE_COOKIE, path: "/admin" });
+      return { error: "The authenticator was removed. Start again to enrol a new one." };
+    }
+    const step = stepFor(box().open(row.secret), clean);
+    if (step === null) return wrong();
+    // Each code once: only a step newer than the last accepted one counts.
+    const moved = await db
+      .update(adminTotp)
+      .set({ lastCounter: step })
+      .where(and(eq(adminTotp.id, TOTP_ID), lt(adminTotp.lastCounter, step)))
+      .returning({ id: adminTotp.id });
+    if (moved.length === 0) {
+      await audit("code_failed", { attempt: challenge.attempts, reason: "reused" });
+      return { error: "That code was already used. Wait for the next one." };
+    }
   }
 
   const consumed = await db
     .update(adminChallenges)
-    .set({ consumedAt: sql`now()` })
+    .set({ consumedAt: sql`now()`, enrollSecret: null })
     .where(and(eq(adminChallenges.id, id), isNull(adminChallenges.consumedAt)))
     .returning({ id: adminChallenges.id });
-  if (consumed.length === 0) return { error: "That code was already used. Start again." };
+  if (consumed.length === 0) return { error: "This sign-in was already used. Start again." };
 
   const { ip, userAgent } = await clientInfo();
   const token = randomBytes(32).toString("base64url");
@@ -244,9 +312,7 @@ export async function finishSignIn(code: string): Promise<LoginResult> {
   jar.delete({ name: CHALLENGE_COOKIE, path: "/admin" });
   jar.set(SESSION_COOKIE, token, { ...cookieBase, maxAge: SESSION_HOURS * 3600 });
   await audit("login", null, sessionId);
-  await sendTelegram(`✅ Pluck admin: signed in from ${escapeHtml(ip ?? "an unknown IP")}.`).catch(
-    () => {},
-  );
+  alert(`✅ Pluck admin: signed in from ${escapeHtml(ip ?? "an unknown IP")}.`);
   return {};
 }
 

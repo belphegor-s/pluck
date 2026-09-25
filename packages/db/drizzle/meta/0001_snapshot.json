@@ -1,5 +1,5 @@
 {
-  "id": "77cbd9c0-a419-495c-bfb4-8c3342381816",
+  "id": "3c38cae2-b3d2-4a1a-abbd-6514b876a3fe",
   "prevId": "994935dc-38bd-4623-bca5-618c6bdf4fff",
   "version": "7",
   "dialect": "postgresql",
@@ -251,11 +251,11 @@
           "primaryKey": true,
           "notNull": true
         },
-        "code_hash": {
-          "name": "code_hash",
+        "enroll_secret": {
+          "name": "enroll_secret",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "attempts": {
           "name": "attempts",
@@ -371,6 +371,45 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.admin_totp": {
+      "name": "admin_totp",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "secret": {
+          "name": "secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_counter": {
+          "name": "last_counter",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

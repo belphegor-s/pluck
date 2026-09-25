@@ -87,7 +87,7 @@ export function CredentialsForm() {
 }
 
 /** Six boxes that behave like one field: typing advances, paste fills, backspace goes back. */
-export function CodeForm() {
+export function CodeForm({ submitLabel }: { submitLabel: string }) {
   const [state, action, pending] = useActionState(verifyAction, empty);
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
   const boxes = useRef<(HTMLInputElement | null)[]>([]);
@@ -155,14 +155,14 @@ export function CodeForm() {
           </div>
         </fieldset>
         <Alert message={state.error} />
-        <Submit pending={pending}>{pending ? "Verifying…" : "Sign in"}</Submit>
+        <Submit pending={pending}>{pending ? "Verifying…" : submitLabel}</Submit>
       </form>
       <form action={restartSignInAction} className="mt-3 text-center">
         <button
           type="submit"
           className="cursor-pointer text-sm text-[var(--ink-soft)] underline decoration-dotted underline-offset-4 hover:text-[var(--ink)]"
         >
-          No code? Start again
+          Start again
         </button>
       </form>
     </>

@@ -477,15 +477,26 @@ export const contactRequests = pgTable("contact_request", {
 
 /**
  * The operator panel at /admin. It has its own sign-in (a username and
- * password from the environment, then a code sent to Telegram), separate from
- * GitHub accounts, so a compromised user account can never reach it.
+ * password from the environment, then a TOTP code from an authenticator
+ * app), separate from GitHub accounts, so a compromised user account can
+ * never reach it.
  */
 
-/** A sign-in in progress: the password was right, the Telegram code is pending. */
+/** The enrolled authenticator. One row at most; removing it re-opens enrolment. */
+export const adminTotp = pgTable("admin_totp", {
+  id: text("id").primaryKey(),
+  /** The base32 TOTP secret, sealed with PLUCK_ENCRYPTION_KEY. */
+  secret: text("secret").notNull(),
+  /** The last time step accepted, so no code can be used twice. */
+  lastCounter: bigint("last_counter", { mode: "number" }).notNull().default(0),
+  createdAt: createdAt(),
+});
+
+/** A sign-in in progress: the password was right, the TOTP code is pending. */
 export const adminChallenges = pgTable("admin_challenge", {
   id: text("id").primaryKey(),
-  /** HMAC of the six-digit code; the code itself is only ever in Telegram. */
-  codeHash: text("code_hash").notNull(),
+  /** First sign-in only: the sealed secret shown as a QR code, kept until confirmed. */
+  enrollSecret: text("enroll_secret"),
   attempts: smallint("attempts").notNull().default(0),
   ip: text("ip"),
   userAgent: text("user_agent"),

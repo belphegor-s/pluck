@@ -20,19 +20,51 @@ export default async function AdminLoginPage() {
           </span>
         </div>
         <div className="sheet p-6 sm:p-8">
-          {challenge ? (
+          {challenge?.enrol ? (
             <>
-              <h1 className="text-2xl">Check Telegram</h1>
-              <p className="mt-2 text-[var(--ink-soft)]">
-                We sent a six-digit code to the operator chat. It expires in five minutes.
+              <p className="mono text-xs uppercase tracking-wider text-[var(--accent)]">
+                First sign-in
               </p>
-              <CodeForm />
+              <h1 className="mt-2 text-2xl">Set up your authenticator</h1>
+              <ol className="mt-4 space-y-2 text-[var(--ink-soft)]">
+                <li>1. Scan this with Google Authenticator, 1Password, Authy or any TOTP app.</li>
+                <li>2. Type the six-digit code it shows.</li>
+              </ol>
+              <div className="mt-5 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                {/* A data URL made on the server: the secret never reaches a third party. */}
+                {/* biome-ignore lint/performance/noImgElement: an inline data URL. */}
+                <img
+                  src={challenge.enrol.qr}
+                  alt="QR code for your authenticator app"
+                  width={176}
+                  height={176}
+                  className="size-44 shrink-0 border border-[var(--line)] bg-white p-2"
+                />
+                <div className="min-w-0 text-sm">
+                  <p className="text-[var(--ink-soft)]">Cannot scan? Enter this key instead:</p>
+                  <p className="mono mt-2 break-all bg-[var(--paper)] px-2 py-1.5 text-[var(--ink)]">
+                    {challenge.enrol.secret}
+                  </p>
+                  <p className="mt-2 text-[var(--ink-faint)]">
+                    Shown only now. Time-based, 6 digits, every 30 seconds.
+                  </p>
+                </div>
+              </div>
+              <CodeForm submitLabel="Confirm and sign in" />
+            </>
+          ) : challenge ? (
+            <>
+              <h1 className="text-2xl">Enter your code</h1>
+              <p className="mt-2 text-[var(--ink-soft)]">
+                The six-digit code from your authenticator app.
+              </p>
+              <CodeForm submitLabel="Sign in" />
             </>
           ) : (
             <>
               <h1 className="text-2xl">Operator sign-in</h1>
               <p className="mt-2 text-[var(--ink-soft)]">
-                Your username and password, then a code on Telegram.
+                Your username and password, then a code from your authenticator app.
               </p>
               <CredentialsForm />
             </>

@@ -21,7 +21,7 @@ const TONE: Record<string, "good" | "bad" | "plain"> = {
   login: "good",
   login_failed: "bad",
   code_failed: "bad",
-  code_send_failed: "bad",
+  totp_enrolled: "bad",
   sql_commit: "bad",
   credits_adjusted: "plain",
 };
@@ -39,11 +39,11 @@ export default async function AdminSecurity({
 
   const where =
     filter === "sign-in"
-      ? sql`action in ('login', 'logout', 'login_failed', 'code_sent', 'code_failed', 'code_send_failed')`
+      ? sql`action in ('login', 'logout', 'login_failed', 'password_ok', 'code_failed', 'totp_enrolled')`
       : filter === "sql"
         ? sql`action like 'sql_%'`
         : filter === "changes"
-          ? sql`action not like 'sql_read' and action not in ('login', 'logout', 'login_failed', 'code_sent', 'code_failed', 'code_send_failed')`
+          ? sql`action not like 'sql_read' and action not in ('login', 'logout', 'login_failed', 'password_ok', 'code_failed', 'totp_enrolled')`
           : sql`true`;
 
   const [adminSessions, events] = await Promise.all([

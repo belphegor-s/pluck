@@ -9,7 +9,7 @@ CREATE TABLE "admin_audit" (
 --> statement-breakpoint
 CREATE TABLE "admin_challenge" (
 	"id" text PRIMARY KEY NOT NULL,
-	"code_hash" text NOT NULL,
+	"enroll_secret" text,
 	"attempts" smallint DEFAULT 0 NOT NULL,
 	"ip" text,
 	"user_agent" text,
@@ -30,15 +30,23 @@ CREATE TABLE "admin_session" (
 	CONSTRAINT "admin_session_token_hash_unique" UNIQUE("token_hash")
 );
 --> statement-breakpoint
+CREATE TABLE "admin_totp" (
+	"id" text PRIMARY KEY NOT NULL,
+	"secret" text NOT NULL,
+	"last_counter" bigint DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE INDEX "admin_audit_time_idx" ON "admin_audit" USING btree ("created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "admin_audit_action_ip_idx" ON "admin_audit" USING btree ("action","ip","created_at");--> statement-breakpoint
 /*
-  The admin SQL editor runs every statement as this role (SET LOCAL ROLE), so
-  Postgres itself, not a pattern list, keeps it to reading and writing rows:
-  no superuser powers, no files or programs, no DDL on tables it does not own,
-  no TRUNCATE, and no changes to the admin audit trail. Creating a role needs
-  CREATEROLE; where the migrating user lacks it, this is skipped and the editor
-  refuses to run (it fails closed).
+  The admin SQL editor logs in as this role (the web app sets its password
+  at runtime), so Postgres itself, not a pattern list, keeps it to reading and
+  writing rows: no superuser powers, no switching back to one, no files or
+  programs, no DDL on tables it does not own, no TRUNCATE, no changes to the
+  admin audit trail, and no access to the authenticator secret. Creating a
+  role needs CREATEROLE; where the migrating user lacks it, this is skipped
+  and the editor refuses to run (it fails closed).
 */
 DO $$
 BEGIN
@@ -52,6 +60,8 @@ BEGIN
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pluck_admin_sql;
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO pluck_admin_sql;
   REVOKE INSERT, UPDATE, DELETE ON admin_audit, admin_session, admin_challenge FROM pluck_admin_sql;
+  -- The authenticator secret is never readable from the editor, sealed or not.
+  REVOKE ALL ON admin_totp FROM pluck_admin_sql;
 EXCEPTION WHEN insufficient_privilege THEN
   RAISE NOTICE 'pluck_admin_sql not created: the migrating user cannot create roles. The admin SQL editor stays disabled.';
 END $$;
