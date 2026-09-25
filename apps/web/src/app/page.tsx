@@ -119,9 +119,7 @@ export default function HomePage() {
         <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-20">
           <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
             <div>
-              <h1 className="max-w-[17ch] text-4xl sm:text-[3.3rem]">
-                Give your model the page, not the HTML.
-              </h1>
+              <h1 className="text-4xl sm:text-[3.3rem]">Give your model the page, not the HTML.</h1>
               <p className="prose-pluck mt-6 text-lg text-[var(--ink-soft)]">
                 Pluck reads any URL the way a person would: running the JavaScript, skipping the
                 cookie banner, keeping the tables. It hands back markdown, JSON, links or a
@@ -159,7 +157,7 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-x-12 gap-y-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
             <h2 className="text-2xl">What you can pull</h2>
-            <p className="mt-3 max-w-[34ch] text-sm text-[var(--ink-soft)]">
+            <p className="mt-3 text-sm text-[var(--ink-soft)]">
               Nine endpoints, priced in credits. A credit is a tenth of a cent, and you only pay for
               what a call actually did.
             </p>
@@ -186,7 +184,7 @@ export default function HomePage() {
         <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr]">
           <div>
             <h2 className="text-2xl">Four lines, any language</h2>
-            <p className="mt-3 max-w-[38ch] text-sm text-[var(--ink-soft)]">
+            <p className="mt-3 text-sm text-[var(--ink-soft)]">
               REST with an OpenAPI spec, typed SDKs, and an MCP server so agents can call it
               directly. The same key works everywhere.
             </p>
@@ -206,12 +204,12 @@ export default function HomePage() {
           <CodeTabs samples={extractSample} />
           <div>
             <h2 className="text-2xl">Describe the shape. Get the data.</h2>
-            <p className="mt-3 max-w-[38ch] text-sm text-[var(--ink-soft)]">
+            <p className="mt-3 text-sm text-[var(--ink-soft)]">
               Send a JSON schema and Pluck fills it from the page, validating before it answers.
               Product pages skip the model entirely when the site publishes structured data: same
               result, a fraction of the cost.
             </p>
-            <p className="mt-4 max-w-[38ch] text-sm text-[var(--ink-soft)]">
+            <p className="mt-4 text-sm text-[var(--ink-soft)]">
               Use our model, or send <code className="mono text-[var(--ink)]">x-llm-key</code> and
               pay your provider directly. OpenRouter, OpenAI, Anthropic, Gemini, Groq, or anything
               OpenAI-compatible including Ollama on your own box.

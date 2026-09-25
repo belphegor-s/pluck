@@ -21,7 +21,6 @@ export function DiffView({ diff, className = "" }: { diff: string; className?: s
                 : "same";
         return (
           // Lines are positional and never reordered, so the index is stable.
-          // biome-ignore lint/suspicious/noArrayIndexKey: see above.
           <span key={i} className={`block px-3 ${STYLE[kind]}`}>
             {line || " "}
           </span>

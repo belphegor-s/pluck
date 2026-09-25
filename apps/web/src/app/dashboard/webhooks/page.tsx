@@ -79,7 +79,7 @@ export default async function WebhooksPage() {
                 {deliveries.map((d) => (
                   <tr key={d.id} className="border-b border-[var(--line)] align-top last:border-0">
                     <td className="mono px-3 py-2.5 text-xs">{d.event}</td>
-                    <td className="max-w-[16rem] px-3 py-2.5">
+                    <td className="max-w-[28rem] px-3 py-2.5">
                       <span className="mono block truncate text-xs text-[var(--ink-soft)]">
                         {d.url.replace(/^https?:\/\//, "")}
                       </span>
@@ -88,7 +88,7 @@ export default async function WebhooksPage() {
                       {timeAgo(d.createdAt)}
                     </td>
                     <td className="mono px-3 py-2.5 text-xs">{d.attempts}</td>
-                    <td className="max-w-[16rem] px-3 py-2.5 text-xs">
+                    <td className="max-w-[28rem] px-3 py-2.5 text-xs">
                       <span className={STATUS[d.status]}>
                         {d.status === "succeeded"
                           ? `${d.lastStatus} · ${d.lastDurationMs} ms`

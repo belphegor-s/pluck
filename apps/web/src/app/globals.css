@@ -20,12 +20,18 @@
   --font-sans: var(--font-sans-loaded), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-loaded), "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  --text-xs: 0.78rem;
-  --text-sm: 0.88rem;
-  --text-base: 1rem;
-  --text-lg: 1.16rem;
   /*
-    Display sizes are fluid: the same markup has to set a 44ch measure on a
+    House rule: copy fills the space it is given. No reading-width caps (no
+    character-count widths, no narrow text wrappers); scripts/no-text-measure.mjs fails
+    lint on them. Readability comes from these sizes instead, one step larger
+    than the browser defaults so full-width lines stay comfortable.
+  */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.25rem;
+  /*
+    Display sizes are fluid: the same markup has to read well on a
     desktop and stay readable on a 360px phone, so the scale interpolates on
     viewport width rather than snapping at a breakpoint. Body sizes are fixed:
     text people read line by line should not depend on how wide the window is.
@@ -100,7 +106,7 @@
     background: var(--paper);
     color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 1rem;
+    font-size: var(--text-base);
     line-height: 1.6;
     font-feature-settings: "ss01", "cv05";
     -webkit-font-smoothing: antialiased;
@@ -228,9 +234,6 @@
     border-top: 1px solid var(--line);
   }
 
-  .prose-pluck {
-    max-width: 68ch;
-  }
   .prose-pluck :where(p, ul, ol, pre, table, blockquote) {
     margin-block: 1.1em;
   }

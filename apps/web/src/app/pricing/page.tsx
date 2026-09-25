@@ -66,7 +66,7 @@ const rows = [
 export default function PricingPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-      <header className="max-w-[46ch]">
+      <header>
         <h1 className="text-4xl">Pay for pages, not seats</h1>
         <p className="mt-4 text-lg text-[var(--ink-soft)]">
           One credit is ${CREDIT_USD.toFixed(3)}. A plain scrape is one credit. Nothing renews,

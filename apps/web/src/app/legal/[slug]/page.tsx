@@ -92,7 +92,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
   if (!page) notFound();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
       <h1 className="text-4xl">{page.title}</h1>
       <p className="mt-2 text-sm text-[var(--ink-faint)]">Last updated {UPDATED}</p>
       <div className="prose-pluck mt-8">

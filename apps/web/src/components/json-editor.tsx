@@ -92,7 +92,7 @@ export function JsonEditor({
         className={`${shared} relative resize-y bg-transparent text-transparent caret-[var(--ink)] outline-none`}
       />
       {invalid && (
-        <p className="absolute bottom-1 right-2 text-[0.7rem] text-[var(--accent)]">
+        <p className="absolute bottom-1 right-2 text-[0.75rem] text-[var(--accent)]">
           not valid JSON yet
         </p>
       )}

@@ -40,7 +40,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.5fr_repeat(3,1fr)]">
         <div>
           <Logo size={26} />
-          <p className="mt-3 max-w-[28ch] text-sm text-[var(--ink-soft)]">
+          <p className="mt-3 text-sm text-[var(--ink-soft)]">
             Open-source web context for AI. Run ours, or run your own.
           </p>
         </div>

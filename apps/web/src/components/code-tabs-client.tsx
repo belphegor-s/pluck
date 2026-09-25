@@ -50,7 +50,7 @@ export function CodeTabsClient({
         </button>
       </div>
       <div
-        className="shiki-block overflow-x-auto p-4 text-[0.8rem] leading-relaxed"
+        className="shiki-block overflow-x-auto p-4 text-[0.875rem] leading-relaxed"
         // Highlighted on the server from source strings in this repo.
         dangerouslySetInnerHTML={{ __html: sample.html }}
       />

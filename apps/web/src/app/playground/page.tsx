@@ -15,7 +15,7 @@ export default async function PlaygroundPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <h1 className="text-3xl">Playground</h1>
-      <p className="mt-2 max-w-[62ch] text-sm text-[var(--ink-soft)]">
+      <p className="mt-2 text-sm text-[var(--ink-soft)]">
         Every endpoint, against real URLs, billed to your account at the same rates as the API. Edit
         the request on the left and copy it as code when it does what you want.
       </p>
@@ -24,7 +24,7 @@ export default async function PlaygroundPage() {
           <Playground />
         </div>
       ) : (
-        <div className="sheet mt-8 max-w-md p-6">
+        <div className="sheet mt-8 p-6">
           <p className="text-sm text-[var(--ink-soft)]">
             Sign in to run requests. The playground spends credits from your account.
           </p>

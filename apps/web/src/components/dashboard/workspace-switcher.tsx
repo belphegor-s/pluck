@@ -110,7 +110,7 @@ export function WorkspaceSwitcher({
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm">{current.name}</span>
-            <span className="block text-[11px] text-[var(--ink-faint)]">{ROLE[current.role]}</span>
+            <span className="block text-[12px] text-[var(--ink-faint)]">{ROLE[current.role]}</span>
           </span>
           <Icon name="chevrons" className="size-4 shrink-0 text-[var(--ink-faint)]" />
         </span>
@@ -120,7 +120,7 @@ export function WorkspaceSwitcher({
         <div
           className={`sheet absolute z-50 mt-1 w-64 p-1 shadow-lg ${collapsed ? "left-full top-0 ml-2" : "left-3 right-3 w-auto"}`}
         >
-          <p className="mono px-2 pb-1 pt-1.5 text-[10px] uppercase tracking-wider text-[var(--ink-faint)]">
+          <p className="mono px-2 pb-1 pt-1.5 text-[11px] uppercase tracking-wider text-[var(--ink-faint)]">
             Workspaces
           </p>
           <div
@@ -144,7 +144,7 @@ export function WorkspaceSwitcher({
                   <Badge ws={ws} size="size-6" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{ws.name}</span>
-                    <span className="block text-[11px] text-[var(--ink-faint)]">
+                    <span className="block text-[12px] text-[var(--ink-faint)]">
                       {ROLE[ws.role]}
                     </span>
                   </span>

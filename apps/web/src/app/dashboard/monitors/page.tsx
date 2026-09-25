@@ -70,7 +70,7 @@ export default async function MonitorsPage() {
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.id} className="border-b border-[var(--line)] last:border-0">
-                    <td className="max-w-[18rem] px-3 py-2.5">
+                    <td className="max-w-[28rem] px-3 py-2.5">
                       <Link
                         href={`/dashboard/monitors/${row.id}`}
                         className="block truncate font-medium hover:text-[var(--accent)]"

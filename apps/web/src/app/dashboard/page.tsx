@@ -120,7 +120,7 @@ export default async function DashboardOverview() {
                       {row.createdAt.toISOString().slice(5, 16).replace("T", " ")}
                     </td>
                     <td className="px-3 py-2">{row.endpoint}</td>
-                    <td className="mono max-w-[22ch] truncate px-3 py-2 text-xs text-[var(--ink-soft)]">
+                    <td className="mono max-w-[32rem] truncate px-3 py-2 text-xs text-[var(--ink-soft)]">
                       {row.target ?? "None"}
                     </td>
                     <td

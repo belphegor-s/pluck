@@ -167,10 +167,10 @@ export function HeroDemo() {
         {state === "idle" && <IdlePreview />}
         {state === "working" && <Skeleton />}
         {state === "done" && result && tab === "markdown" && (
-          <div className="text-[0.8rem] leading-relaxed">
+          <div className="text-[0.875rem] leading-relaxed">
             <MarkdownView
               value={title ? `# ${title}\n\n${typed}` : typed}
-              className="text-[0.8rem] leading-relaxed"
+              className="text-[0.875rem] leading-relaxed"
             />
             {typing && (
               <span className="mono animate-[caret_1s_steps(1)_infinite] text-[var(--accent)]">
@@ -180,7 +180,7 @@ export function HeroDemo() {
           </div>
         )}
         {state === "done" && result && tab === "links" && (
-          <ul className="mono space-y-1 text-[0.8rem]">
+          <ul className="mono space-y-1 text-[0.875rem]">
             {result.links.map((link) => (
               <li key={link} className="truncate text-[var(--ink-soft)]">
                 {link}
@@ -189,7 +189,7 @@ export function HeroDemo() {
           </ul>
         )}
         {state === "done" && result && tab === "metadata" && (
-          <JsonView value={JSON.stringify(result.metadata, null, 2)} className="text-[0.8rem]" />
+          <JsonView value={JSON.stringify(result.metadata, null, 2)} className="text-[0.875rem]" />
         )}
         {state === "error" && <IdlePreview />}
       </div>
@@ -199,14 +199,14 @@ export function HeroDemo() {
 
 function IdlePreview() {
   return (
-    <div className="space-y-2 text-[0.8rem]">
+    <div className="space-y-2 text-[0.875rem]">
       <p className="mono">
         <span className="text-[var(--accent)]">POST</span>{" "}
         <span className="text-[var(--ink)]">/v1/scrape</span>
       </p>
       <JsonView
         value={`{\n  "url": "https://example.com",\n  "formats": ["markdown"]\n}`}
-        className="text-[0.8rem]"
+        className="text-[0.875rem]"
       />
       <p className="mono pt-4 text-[var(--ink-faint)]">
         Paste a URL above to see what your model would receive.

@@ -29,7 +29,7 @@ const SECTIONS = [
 export default function TrustPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-      <header className="max-w-3xl">
+      <header>
         <p className="mono text-xs uppercase tracking-wider text-[var(--ink-faint)]">
           Trust centre
         </p>
@@ -128,7 +128,7 @@ export default function TrustPage() {
 
           <section id="subprocessors" className="scroll-mt-24">
             <h2 className="text-2xl">Subprocessors</h2>
-            <p className="mt-2 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+            <p className="mt-2 text-sm text-[var(--ink-soft)]">
               Every third party that can see customer data, and what it sees. Changes are listed
               here.
             </p>
@@ -165,7 +165,7 @@ export default function TrustPage() {
 
           <section id="retention" className="scroll-mt-24">
             <h2 className="text-2xl">Retention</h2>
-            <p className="mt-2 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+            <p className="mt-2 text-sm text-[var(--ink-soft)]">
               Deleted automatically, not by hand. Delete your account from the{" "}
               <Link href="/dashboard" className="text-[var(--accent)] underline underline-offset-4">
                 dashboard
@@ -184,7 +184,7 @@ export default function TrustPage() {
 
           <section id="disclosure" className="scroll-mt-24">
             <h2 className="text-2xl">Report a vulnerability</h2>
-            <p className="mt-2 max-w-[65ch] text-sm text-[var(--ink-soft)]">
+            <p className="mt-2 text-sm text-[var(--ink-soft)]">
               Email{" "}
               <a
                 href={`mailto:${SITE.contactEmail}?subject=Security`}

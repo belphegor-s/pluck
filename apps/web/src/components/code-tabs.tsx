@@ -39,7 +39,7 @@ export async function CodeBlock({
   return (
     <div className={`group relative ${className}`}>
       <div
-        className="sheet shiki-block overflow-x-auto p-4 text-[0.8rem] leading-relaxed"
+        className="sheet shiki-block overflow-x-auto p-4 text-[0.875rem] leading-relaxed"
         // Highlighted from our own source strings.
         dangerouslySetInnerHTML={{ __html: html }}
       />

@@ -350,7 +350,7 @@ function GroupLabel({ label, collapsed }: { label: string; collapsed: boolean })
     <div className="relative mb-1 h-5">
       <p
         aria-hidden={collapsed || undefined}
-        className={`mono overflow-hidden whitespace-nowrap px-2 text-[10px] uppercase leading-5 tracking-wider text-[var(--ink-faint)] ${fade(collapsed)}`}
+        className={`mono overflow-hidden whitespace-nowrap px-2 text-[11px] uppercase leading-5 tracking-wider text-[var(--ink-faint)] ${fade(collapsed)}`}
       >
         {label}
       </p>

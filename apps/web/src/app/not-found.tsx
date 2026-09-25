@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-24 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
       <h1 className="text-4xl">Nothing to pluck here</h1>
       <p className="mt-4 text-[var(--ink-soft)]">
         That page does not exist. The docs are the best place to start, or try the playground.
