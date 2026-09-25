@@ -105,76 +105,80 @@ export function Playground() {
     setRunning(false);
   }
 
+  // Two panels on one frame: the same header strip and the same height, so the
+  // request and the response line up edge to edge, and each editor fills its box.
+  const head = "flex min-h-11 flex-wrap items-center justify-between gap-2 pb-2";
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div className="space-y-5">
       <div>
-        <div className="text-sm">
-          <span className="block text-[var(--ink-soft)]" id="endpoint-label">
-            Endpoint
-          </span>
-          <div className="mt-1">
-            <EndpointSelect
-              value={id}
-              onChange={(next) => {
-                setId(next);
-                setBody(JSON.stringify(PRESETS[next] ?? {}, null, 2));
-                setResponse(null);
-                setMeta(null);
-              }}
-            />
-          </div>
-        </div>
-        <p className="mt-2 text-xs text-[var(--ink-faint)]">
-          {endpoint.description} · {endpoint.cost}
-        </p>
-
-        <div className="mt-4 text-sm">
-          <span className="block text-[var(--ink-soft)]">Request</span>
-          <div className="mt-1">
-            <JsonEditor value={body} onChange={setBody} label="Request body" />
-          </div>
-        </div>
-
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            onClick={() => void run()}
-            disabled={running}
-            className="bg-[var(--accent)] px-4 py-2.5 text-sm text-white disabled:opacity-60 sm:py-2"
-          >
-            {running ? "Running…" : "Send request"}
-          </button>
-          <CopyButton
-            text={curl}
-            label="Copy as cURL"
-            copiedLabel="cURL copied"
-            className="btn-outline justify-center px-4 py-2.5 text-sm sm:py-2"
+        <span className="block text-sm text-[var(--ink-soft)]" id="endpoint-label">
+          Endpoint
+        </span>
+        <div className="mt-1">
+          <EndpointSelect
+            value={id}
+            onChange={(next) => {
+              setId(next);
+              setBody(JSON.stringify(PRESETS[next] ?? {}, null, 2));
+              setResponse(null);
+              setMeta(null);
+            }}
           />
         </div>
+        <p className="mt-2 text-sm text-[var(--ink-faint)]">
+          {endpoint.description} · {endpoint.cost}
+        </p>
       </div>
 
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span className="text-sm text-[var(--ink-soft)]">
-            Response{" "}
-            <span className={`mono text-xs ${methodColor(endpoint.method)}`}>
-              {endpoint.method.toUpperCase()}
-            </span>{" "}
-            <span className="mono text-xs text-[var(--ink-faint)]">{endpoint.path}</span>
-          </span>
-          {meta && (
-            <span className="mono text-xs text-[var(--ink-faint)]">
-              {meta.status} · {meta.credits ?? 0} credits · {meta.ms ?? 0} ms
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="flex h-[26rem] min-w-0 flex-col lg:h-[max(28rem,calc(100dvh-25rem))]">
+          <div className={head}>
+            <span className="text-sm text-[var(--ink-soft)]">Request</span>
+            <div className="flex items-center gap-2">
+              <CopyButton
+                text={curl}
+                label="Copy as cURL"
+                copiedLabel="cURL copied"
+                className="btn-outline px-3 py-1.5 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => void run()}
+                disabled={running}
+                className="bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-60"
+              >
+                {running ? "Running…" : "Send request"}
+              </button>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1">
+            <JsonEditor value={body} onChange={setBody} label="Request body" fill />
+          </div>
+        </section>
+
+        <section className="flex h-[26rem] min-w-0 flex-col lg:h-[max(28rem,calc(100dvh-25rem))]">
+          <div className={head}>
+            <span className="text-sm text-[var(--ink-soft)]">
+              Response{" "}
+              <span className={`mono text-xs ${methodColor(endpoint.method)}`}>
+                {endpoint.method.toUpperCase()}
+              </span>{" "}
+              <span className="mono text-xs text-[var(--ink-faint)]">{endpoint.path}</span>
             </span>
-          )}
-        </div>
-        <div className="sheet mt-1 h-[28rem] overflow-auto p-3 text-xs">
-          {response ? (
-            <JsonView value={response} />
-          ) : (
-            <p className="mono text-[var(--ink-faint)]">Send a request to see the response.</p>
-          )}
-        </div>
+            {meta && (
+              <span className="mono text-xs text-[var(--ink-faint)]">
+                {meta.status} · {meta.credits ?? 0} credits · {meta.ms ?? 0} ms
+              </span>
+            )}
+          </div>
+          <div className="sheet min-h-0 flex-1 overflow-auto p-3 text-xs">
+            {response ? (
+              <JsonView value={response} />
+            ) : (
+              <p className="mono text-[var(--ink-faint)]">Send a request to see the response.</p>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -392,13 +392,15 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
         </p>
       )}
 
-      <div className="grid min-h-0 gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
-        <aside className="sheet hidden h-[calc(100dvh-13rem)] min-h-[28rem] overflow-hidden lg:block">
-          {sidePanel}
-        </aside>
+      {/* Desktop: one viewport-tall frame. The table list spans it; the editor
+          and the results share the right side 2:3 and fill their boxes. */}
+      <div className="grid min-h-0 gap-4 lg:h-[calc(100dvh-248px)] lg:min-h-[34rem] lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <aside className="sheet hidden h-full min-h-0 overflow-hidden lg:block">{sidePanel}</aside>
 
-        <div className="min-w-0 space-y-4">
-          <div className={`sheet overflow-hidden ${writes ? "border-[var(--accent)]" : ""}`}>
+        <div className="flex min-h-0 min-w-0 flex-col gap-4">
+          <div
+            className={`sheet flex flex-col overflow-hidden lg:min-h-0 lg:flex-[2] ${writes ? "border-[var(--accent)]" : ""}`}
+          >
             <div className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-2">
               <button
                 type="button"
@@ -457,8 +459,9 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
                 </button>
               )}
             </div>
-            <div className="h-64 sm:h-72">
+            <div className="h-64 sm:h-72 lg:h-auto lg:min-h-0 lg:flex-1">
               <CodeMirror
+                className="h-full"
                 ref={editor}
                 value={query}
                 onChange={setQuery}
@@ -476,7 +479,7 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
           </div>
 
           {isWrite && outcome.ok && (
-            <div className="sheet border-[var(--accent)] p-4">
+            <div className="sheet shrink-0 border-[var(--accent)] p-4">
               <div className="flex flex-wrap items-start gap-3">
                 <ShieldAlert className="mt-0.5 size-5 shrink-0 text-[var(--accent)]" />
                 <div className="min-w-0 flex-1">
@@ -532,13 +535,15 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
             </div>
           )}
 
-          <Results
-            outcome={outcome}
-            pending={pending}
-            copied={copied}
-            onCopy={copy}
-            onDownload={download}
-          />
+          <div className="flex min-h-0 flex-col lg:flex-[3]">
+            <Results
+              outcome={outcome}
+              pending={pending}
+              copied={copied}
+              onCopy={copy}
+              onDownload={download}
+            />
+          </div>
         </div>
       </div>
 
@@ -588,20 +593,20 @@ function Results({
 
   if (pending && !outcome)
     return (
-      <div className="sheet flex items-center gap-2 p-6 text-[var(--ink-soft)]">
+      <div className="sheet flex items-center justify-center gap-2 p-6 text-[var(--ink-soft)] lg:h-full">
         <Loader2 className="size-4 animate-spin" /> Running…
       </div>
     );
   if (!outcome)
     return (
-      <div className="sheet p-8 text-center text-[var(--ink-faint)]">
+      <div className="sheet flex items-center justify-center p-8 text-center text-[var(--ink-faint)] lg:h-full">
         Results appear here. Pick a table, or start from a useful query.
       </div>
     );
 
   if (!outcome.ok)
     return (
-      <div className="sheet border-[var(--accent)] p-4">
+      <div className="sheet overflow-auto border-[var(--accent)] p-4 lg:h-full">
         <p className="mono text-xs uppercase tracking-wider text-[var(--accent)]">Error</p>
         <p className="mono mt-2 whitespace-pre-wrap text-sm">{outcome.error}</p>
         {outcome.position !== undefined && (
@@ -617,7 +622,9 @@ function Results({
 
   const noRows = outcome.columns.length === 0;
   return (
-    <div className={`sheet min-w-0 overflow-hidden ${pending ? "opacity-60" : ""}`}>
+    <div
+      className={`sheet flex min-w-0 flex-col overflow-hidden lg:h-full ${pending ? "opacity-60" : ""}`}
+    >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--line)] px-4 py-2.5 text-sm">
         <span className="flex items-center gap-1.5">
           <span
@@ -669,7 +676,7 @@ function Results({
           {outcome.rowCount === 1 ? "row" : "rows"} affected.
         </p>
       ) : (
-        <div className="max-h-[32rem] overflow-auto">
+        <div className="max-h-[32rem] overflow-auto lg:max-h-none lg:min-h-0 lg:flex-1">
           <table className="w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--sheet)]">
               <tr>

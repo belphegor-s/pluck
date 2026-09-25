@@ -16,11 +16,14 @@ export function JsonEditor({
   onChange,
   rows = 14,
   label,
+  fill = false,
 }: {
   value: string;
   onChange: (next: string) => void;
   rows?: number;
   label: string;
+  /** Take the parent's full height instead of a row count, for panel layouts. */
+  fill?: boolean;
 }) {
   const input = useRef<HTMLTextAreaElement | null>(null);
   const backdrop = useRef<HTMLDivElement | null>(null);
@@ -65,7 +68,7 @@ export function JsonEditor({
 
   return (
     <div
-      className={`relative border bg-[var(--sheet)] transition-colors focus-within:border-[var(--accent)] ${
+      className={`relative border bg-[var(--sheet)] transition-colors focus-within:border-[var(--accent)] ${fill ? "h-full" : ""} ${
         invalid ? "border-[var(--accent)]" : "border-[var(--line)]"
       }`}
     >
@@ -89,7 +92,7 @@ export function JsonEditor({
         onChange={(e) => onChange(e.target.value)}
         onScroll={sync}
         onKeyDown={onKeyDown}
-        className={`${shared} relative resize-y bg-transparent text-transparent caret-[var(--ink)] outline-none`}
+        className={`${shared} relative bg-transparent text-transparent caret-[var(--ink)] outline-none ${fill ? "h-full resize-none" : "resize-y"}`}
       />
       {invalid && (
         <p className="absolute bottom-1 right-2 text-[0.75rem] text-[var(--accent)]">
