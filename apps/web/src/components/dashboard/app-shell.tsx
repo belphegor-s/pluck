@@ -438,7 +438,9 @@ function UserRow({ user, collapsed }: { user: ShellUser; collapsed: boolean }) {
       width={28}
       height={28}
       referrerPolicy="no-referrer"
-      className="size-7 shrink-0 rounded-full border border-[var(--line)]"
+      // Preflight caps images at max-width: 100%, so a squeezed row would shrink
+      // the avatar to a sliver; it keeps its 28px whatever the row does.
+      className="size-7 max-w-none shrink-0 rounded-full border border-[var(--line)]"
     />
   ) : (
     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent-wash)] text-xs text-[var(--accent)]">
