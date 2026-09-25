@@ -471,7 +471,7 @@ function UserRow({ user, collapsed }: { user: ShellUser; collapsed: boolean }) {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2 overflow-hidden">
+      <div className="flex items-center overflow-hidden">
         <Link
           href="/dashboard/profile"
           aria-label={collapsed ? "Your profile" : undefined}
@@ -490,9 +490,18 @@ function UserRow({ user, collapsed }: { user: ShellUser; collapsed: boolean }) {
             )}
           </span>
         </Link>
-        <div className={`flex shrink-0 items-center gap-2 ${fade(collapsed)}`} inert={collapsed}>
-          <ThemeToggle />
-          {signOutButton(true)}
+        {/* Fading alone leaves the width behind, which squeezes the avatar off the
+            rail; the width folds too. The gap lives inside so it folds with it. */}
+        <div
+          className={`shrink-0 overflow-hidden transition-[max-width] duration-300 motion-reduce:transition-none ${EASE} ${
+            collapsed ? "max-w-0" : "max-w-32"
+          }`}
+          inert={collapsed}
+        >
+          <div className={`flex shrink-0 items-center gap-2 pl-2 ${fade(collapsed)}`}>
+            <ThemeToggle />
+            {signOutButton(true)}
+          </div>
         </div>
       </div>
     </>
