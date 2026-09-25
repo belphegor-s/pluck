@@ -101,10 +101,7 @@ export default function PricingPage() {
         >
           Start with 1,000 free credits
         </Link>
-        <Link
-          href="/enterprise"
-          className="btn-outline px-5 py-3 text-center sm:py-2.5"
-        >
+        <Link href="/enterprise" className="btn-outline px-5 py-3 text-center sm:py-2.5">
           Volume and invoicing
         </Link>
       </section>

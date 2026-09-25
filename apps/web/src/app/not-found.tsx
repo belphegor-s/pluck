@@ -11,10 +11,7 @@ export default function NotFound() {
         <Link href="/docs" className="bg-[var(--ink)] px-5 py-2.5 text-[var(--paper)]">
           Read the docs
         </Link>
-        <Link
-          href="/"
-          className="btn-outline px-5 py-2.5"
-        >
+        <Link href="/" className="btn-outline px-5 py-2.5">
           Back home
         </Link>
       </div>

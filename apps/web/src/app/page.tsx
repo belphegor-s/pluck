@@ -264,10 +264,7 @@ curl localhost:8080/v1/scrape \\
             >
               Get an API key
             </Link>
-            <Link
-              href="/enterprise"
-              className="btn-outline px-5 py-3 text-center sm:py-2.5"
-            >
+            <Link href="/enterprise" className="btn-outline px-5 py-3 text-center sm:py-2.5">
               Talk to us about volume
             </Link>
           </div>
