@@ -1,5 +1,5 @@
 import "server-only";
-import { BRAND } from "@pluck/shared";
+import { BRAND, OWNER_ORG_ID, OWNER_USER_ID } from "@pluck/shared";
 import { db } from "@/lib/db";
 import { SITE } from "@/lib/site";
 
@@ -22,7 +22,15 @@ export interface DayPoint {
   p95: number;
 }
 
-/** Everything the overview needs, in parallel. Each query is bounded by the range. */
+/**
+ * Everything the overview needs, in parallel. Each query is bounded by the range.
+ *
+ * The API's built-in owner account (usr_owner / org_owner) is not a customer:
+ * the bootstrap key and the homepage demo run on it, and the API recreates it
+ * on boot. It stays out of user and workspace counts and lists, and its real
+ * traffic is labelled as the homepage demo.
+ */
+const DEMO_LABEL = "Homepage demo (system)";
 export async function overview(days: Range) {
   const q = sql();
   const since = q`now() - make_interval(days => ${days})`;
@@ -31,16 +39,16 @@ export async function overview(days: Range) {
     await Promise.all([
       q`
         select
-          (select count(*) from "user") as users,
-          (select count(*) from "user" where created_at > ${since}) as users_new,
-          (select count(*) from organization) as workspaces,
-          (select count(*) from organization where created_at > ${since}) as workspaces_new,
+          (select count(*) from "user" where id <> ${OWNER_USER_ID}) as users,
+          (select count(*) from "user" where id <> ${OWNER_USER_ID} and created_at > ${since}) as users_new,
+          (select count(*) from organization where id <> ${OWNER_ORG_ID}) as workspaces,
+          (select count(*) from organization where id <> ${OWNER_ORG_ID} and created_at > ${since}) as workspaces_new,
           (select coalesce(sum(amount_usd_cents), 0) from credit_ledger
              where reason = 'purchase' and created_at > ${since}) as revenue_cents,
           (select coalesce(sum(amount_usd_cents), 0) from credit_ledger
              where reason = 'purchase') as revenue_all_cents,
           (select count(*) from credit_ledger where reason = 'purchase' and created_at > ${since}) as purchases,
-          (select coalesce(sum(credits), 0) from organization) as credits_outstanding,
+          (select coalesce(sum(credits), 0) from organization where id <> ${OWNER_ORG_ID}) as credits_outstanding,
           (select count(*) from api_key where revoked_at is null) as keys_active,
           (select count(*) from monitor where active) as monitors_active,
           (select count(*) from crawl where status in ('queued', 'running')) as crawls_running,
@@ -74,7 +82,7 @@ export async function overview(days: Range) {
         ) u on u.day = d.day
         left join (
           select date_trunc('day', created_at) as day, count(*) as signups
-          from "user" where created_at > ${since} group by 1
+          from "user" where id <> ${OWNER_USER_ID} and created_at > ${since} group by 1
         ) s on s.day = d.day
         left join (
           select date_trunc('day', created_at) as day, sum(amount_usd_cents) / 100.0 as revenue
@@ -89,19 +97,21 @@ export async function overview(days: Range) {
         from usage_event where created_at > ${since}
         group by endpoint order by requests desc limit 12`,
       q`
-        select o.id, o.name, o.credits as balance, count(u.id) as requests,
+        select o.id, case when o.id = ${OWNER_ORG_ID} then ${DEMO_LABEL} else o.name end as name,
+               o.credits as balance, count(u.id) as requests,
                coalesce(sum(u.credits), 0) as used, max(u.created_at) as last_seen
         from organization o
         join usage_event u on u.org_id = o.id and u.created_at > ${since}
         group by o.id order by used desc, requests desc limit 8`,
-      q`select id, name, email, image, created_at from "user" order by created_at desc limit 8`,
+      q`select id, name, email, image, created_at from "user" where id <> ${OWNER_USER_ID} order by created_at desc limit 8`,
       q`
         select l.id, l.org_id, o.name as workspace, l.delta, l.amount_usd_cents, l.reason, l.created_at
         from credit_ledger l join organization o on o.id = l.org_id
-        where l.reason in ('purchase', 'refund', 'adjustment')
+        where l.reason in ('purchase', 'refund', 'adjustment') and l.org_id <> ${OWNER_ORG_ID}
         order by l.created_at desc limit 8`,
       q`
-        select u.created_at, u.endpoint, u.status, u.target, u.duration_ms, o.name as workspace
+        select u.created_at, u.endpoint, u.status, u.target, u.duration_ms,
+               case when o.id = ${OWNER_ORG_ID} then ${DEMO_LABEL} else o.name end as workspace
         from usage_event u join organization o on o.id = u.org_id
         where u.status >= 500 and u.created_at > ${since}
         order by u.created_at desc limit 8`,

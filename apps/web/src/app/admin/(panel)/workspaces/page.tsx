@@ -1,3 +1,4 @@
+import { OWNER_ORG_ID } from "@pluck/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Pager, SearchBox } from "@/components/admin/search-box";
@@ -33,7 +34,7 @@ export default async function AdminWorkspaces({
            (select u.email from member m join "user" u on u.id = m.user_id
               where m.org_id = o.id and m.role = 'owner' order by m.created_at limit 1) as owner
     from organization o
-    where ${q ? sql`(o.name ilike ${like} or o.id = ${q} or exists (select 1 from member m join "user" u on u.id = m.user_id where m.org_id = o.id and u.email ilike ${like}))` : sql`true`}
+    where o.id <> ${OWNER_ORG_ID} and ${q ? sql`(o.name ilike ${like} or o.id = ${q} or exists (select 1 from member m join "user" u on u.id = m.user_id where m.org_id = o.id and u.email ilike ${like}))` : sql`true`}
     order by o.created_at desc
     limit ${PER_PAGE + 1} offset ${(page - 1) * PER_PAGE}`;
 
@@ -41,7 +42,10 @@ export default async function AdminWorkspaces({
 
   return (
     <>
-      <PageTitle title="Workspaces" description="Every workspace, with its balance and activity.">
+      <PageTitle
+        title="Workspaces"
+        description="Every workspace, with its balance and activity. The system workspace behind the homepage demo is hidden."
+      >
         <SearchBox placeholder="Search by name, id or member email" value={q} />
       </PageTitle>
       <Card title={q ? `Matching "${q}"` : "All workspaces"} flush>

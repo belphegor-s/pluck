@@ -1,3 +1,4 @@
+import { OWNER_USER_ID } from "@pluck/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ConfirmButton } from "@/components/admin/confirm-button";
@@ -32,7 +33,7 @@ export default async function AdminUsers({
     from "user" u
     left join member m on m.user_id = u.id
     left join organization o on o.id = m.org_id
-    where ${q ? db.$client`(u.email ilike ${like} or u.name ilike ${like} or u.id = ${q})` : db.$client`true`}
+    where u.id <> ${OWNER_USER_ID} and ${q ? db.$client`(u.email ilike ${like} or u.name ilike ${like} or u.id = ${q})` : db.$client`true`}
     group by u.id
     order by u.created_at desc
     limit ${PER_PAGE + 1} offset ${(page - 1) * PER_PAGE}`;
@@ -41,7 +42,10 @@ export default async function AdminUsers({
 
   return (
     <>
-      <PageTitle title="Users" description="Everyone with an account, newest first.">
+      <PageTitle
+        title="Users"
+        description="Everyone with an account, newest first. The built-in system account behind the homepage demo is hidden."
+      >
         <SearchBox placeholder="Search by name, email or id" value={q} />
       </PageTitle>
       <Card title={q ? `Matching "${q}"` : "All users"} flush>
