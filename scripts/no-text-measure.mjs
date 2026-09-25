@@ -22,6 +22,7 @@ const ALLOW = {
   "apps/web/src/app/login/page.tsx": ["max-w-md"],
   "apps/web/src/app/invite/[token]/page.tsx": ["max-w-lg"],
   "apps/web/src/app/onboarding/page.tsx": ["max-w-lg"],
+  "apps/web/src/app/admin/login/page.tsx": ["max-w-md"],
 };
 
 const files = execFileSync("git", ["ls-files", "apps/web/src"], { encoding: "utf8" })

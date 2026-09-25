@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
+import { opsRouter } from "./ops.js";
 import { publicRouter } from "./public.js";
 import { type AppEnv, errorResponse, v1Router } from "./router.js";
 import { createServices } from "./services.js";
@@ -60,6 +61,7 @@ app.get("/", (c) =>
 );
 app.route("/", publicRouter(s));
 app.route("/v1", v1Router(s));
+app.route("/internal", opsRouter(s));
 
 app.notFound((c) =>
   c.json(

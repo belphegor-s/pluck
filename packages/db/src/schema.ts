@@ -472,3 +472,53 @@ export const contactRequests = pgTable("contact_request", {
   userId: text("user_id"),
   createdAt: createdAt(),
 });
+
+/* ---------------------------------------------------------------------- admin */
+
+/**
+ * The operator panel at /admin. It has its own sign-in (a username and
+ * password from the environment, then a code sent to Telegram), separate from
+ * GitHub accounts, so a compromised user account can never reach it.
+ */
+
+/** A sign-in in progress: the password was right, the Telegram code is pending. */
+export const adminChallenges = pgTable("admin_challenge", {
+  id: text("id").primaryKey(),
+  /** HMAC of the six-digit code; the code itself is only ever in Telegram. */
+  codeHash: text("code_hash").notNull(),
+  attempts: smallint("attempts").notNull().default(0),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+export const adminSessions = pgTable("admin_session", {
+  id: text("id").primaryKey(),
+  /** SHA-256 of the cookie's token; the token itself is never stored. */
+  tokenHash: text("token_hash").notNull().unique(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+/** Everything done in the panel, sign-in attempts included. Append-only. */
+export const adminAudit = pgTable(
+  "admin_audit",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    sessionId: text("session_id"),
+    action: text("action").notNull(),
+    detail: jsonb("detail"),
+    ip: text("ip"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("admin_audit_time_idx").on(t.createdAt.desc()),
+    index("admin_audit_action_ip_idx").on(t.action, t.ip, t.createdAt),
+  ],
+);

@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 
 /** Routes that bring their own app shell instead of the marketing header and footer. */
-const APP_ROUTES = ["/dashboard", "/onboarding"];
+const APP_ROUTES = ["/dashboard", "/onboarding", "/admin"];
 
 export function SiteChrome({
   header,
