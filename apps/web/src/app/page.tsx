@@ -116,18 +116,17 @@ export default function HomePage() {
       {/*
         The first screen, and nothing below it: headline, what it is, the two
         ways in, and the product itself running. On a wide screen the section
-        is exactly as tall as the window under the header, and the demo takes
-        whatever height the words leave. On a phone it stacks, with the demo
-        ahead of the buttons so it is what the thumb reaches first.
+        owns the window under the header, with room to breathe around it. On a
+        phone it stacks, with the demo ahead of the buttons so it is what the
+        thumb reaches first.
       */}
-      <section className="mx-auto grid max-w-6xl gap-x-10 gap-y-5 px-4 pb-8 pt-9 sm:px-6 lg:h-[calc(100svh-3.5rem-1px)] lg:max-h-[54rem] lg:min-h-[39rem] lg:grid-cols-12 lg:grid-rows-[auto_auto_minmax(0,1fr)] lg:pb-7 lg:pt-8">
+      <section className="mx-auto grid max-w-6xl content-center gap-x-10 gap-y-6 px-4 pb-10 pt-9 sm:px-6 lg:min-h-[calc(100svh-3.5rem-1px)] lg:grid-cols-12 lg:py-8">
         <h1 className="hero-title order-1 lg:col-span-12">
           Give your model the page, not the HTML.
         </h1>
-        <p className="order-2 text-[var(--ink-soft)] lg:col-span-6 xl:col-span-7">
-          Pluck reads any URL the way a person would: running the JavaScript, skipping the cookie
-          banner, keeping the tables. It hands back markdown, JSON, links or a screenshot. One call,
-          one credit.
+        <p className="order-2 text-lg text-[var(--ink-soft)] lg:col-span-6 xl:col-span-7">
+          Pluck reads any URL the way a person would and hands your model markdown, JSON or a
+          screenshot. One call, one credit.
         </p>
         <div className="order-4 lg:order-3 lg:col-span-6 xl:col-span-5">
           {/* Side by side once there is room; stacked and full width on a
@@ -149,10 +148,10 @@ export default function HomePage() {
             </Link>
           </div>
           <p className="mt-3 text-sm text-[var(--ink-faint)]">
-            No subscription. Credits do not expire. Self-host it and every endpoint is yours.
+            No subscription. Credits do not expire.
           </p>
         </div>
-        <div className="order-3 min-h-0 lg:order-4 lg:col-span-12">
+        <div className="order-3 lg:order-4 lg:col-span-12 lg:mt-3">
           <HeroDemo />
         </div>
       </section>

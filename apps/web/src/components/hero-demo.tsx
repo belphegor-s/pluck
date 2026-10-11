@@ -31,8 +31,6 @@ const kb = (bytes: number) =>
     ? `${(bytes / 1000).toFixed(1)} kB`
     : `${formatNumber(Math.round(bytes / 1000))} kB`;
 
-const seconds = (ms: number) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
-
 /**
  * The hero is the product doing its one job, side by side: on the left the
  * HTML a site actually sends, on the right the page a model gets. Between
@@ -114,7 +112,7 @@ export function HeroDemo() {
   const berry = working ? "lifting" : state === "error" ? "stem" : result ? "plucked" : "arrive";
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex flex-col">
       <form
         className="sheet flex flex-col gap-2 p-2 shadow-[var(--shadow-press)] sm:flex-row sm:items-center"
         onSubmit={(e) => {
@@ -170,34 +168,22 @@ export function HeroDemo() {
             ))}
           </>
         )}
-        {!working && (
-          <span className="mono ml-auto">
-            {shown.renderedWith === "browser" ? "browser render" : "http fetch"},{" "}
-            {seconds(shown.durationMs)}
-          </span>
-        )}
       </div>
 
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,0.8fr)_6.5rem_minmax(0,1.2fr)]">
-        {/* What the site sent. Decorative on purpose: nobody reads it, which is the point. */}
-        <figure
-          className="sheet hidden min-h-0 flex-col overflow-hidden lg:flex"
-          aria-hidden="true"
-        >
-          <figcaption className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--line)] px-4 text-sm">
-            <span className="text-[var(--ink-soft)]">The HTML</span>
-            <span className="mono text-xs text-[var(--ink-faint)]">{kb(shown.htmlBytes)}</span>
+      <div className="grid lg:h-[clamp(15rem,34svh,19rem)] lg:grid-cols-[minmax(0,0.6fr)_6.5rem_minmax(0,1.4fr)]">
+        {/*
+          What the site sent, as texture: no box, no heading, fading out. Nobody
+          reads it, which is the point. The stem grows out of it.
+        */}
+        <figure className="relative hidden lg:block" aria-hidden="true">
+          <pre
+            className={`mono absolute inset-0 overflow-hidden whitespace-pre-wrap break-all pr-2 text-[0.6875rem] leading-[1.55] text-[var(--ink-faint)] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom,#000_20%,transparent_82%)] ${working ? "opacity-30" : "opacity-70"}`}
+          >
+            {shown.html}
+          </pre>
+          <figcaption className="absolute bottom-0 left-0 text-sm text-[var(--ink-soft)]">
+            <span className="mono">{kb(shown.htmlBytes)}</span> of HTML
           </figcaption>
-          <div className="relative min-h-0 flex-1">
-            <pre
-              className={`mono absolute inset-0 overflow-hidden whitespace-pre-wrap break-all p-4 text-[0.6875rem] leading-[1.5] text-[var(--ink-faint)] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom,#000_55%,transparent_96%)] ${working ? "opacity-40" : ""}`}
-            >
-              {shown.html}
-            </pre>
-            <p className="mono absolute bottom-3 left-4 text-xs text-[var(--ink-soft)]">
-              and {kb(Math.max(0, shown.htmlBytes - shown.html.length))} more of this
-            </p>
-          </div>
         </figure>
 
         <Sprig />
@@ -208,7 +194,8 @@ export function HeroDemo() {
               <span className="hero-berry" data-at={berry} aria-hidden="true" />
               The page
             </h2>
-            <div className="flex gap-3 text-xs text-[var(--ink-faint)]">
+            {/* The other views appear once there is a page of your own to look at. */}
+            <div className={`gap-3 text-xs text-[var(--ink-faint)] ${result ? "flex" : "hidden"}`}>
               {(["markdown", "links", "metadata"] as Tab[]).map((t) => (
                 <button
                   key={t}
