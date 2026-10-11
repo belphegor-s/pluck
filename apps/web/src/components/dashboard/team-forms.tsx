@@ -176,13 +176,17 @@ export function MemberControls({
 export function CreateWorkspaceForm({
   defaultName = "",
   submitLabel = "Create workspace",
+  next,
 }: {
   defaultName?: string;
   submitLabel?: string;
+  /** Where to go afterwards instead of the dashboard; same-site paths only. */
+  next?: string;
 }) {
   const [state, action, pending] = useActionState(createWorkspace, empty);
   return (
     <form action={action} className="space-y-3">
+      {next && <input type="hidden" name="next" value={next} />}
       <label className="block text-sm">
         <span className="block text-[var(--ink-soft)]">Workspace name</span>
         <input

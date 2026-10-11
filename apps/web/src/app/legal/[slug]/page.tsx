@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SITE } from "@/lib/site";
 
-const UPDATED = "23 September 2026";
+const UPDATED = "11 October 2026";
 
 const pages = {
   terms: {
@@ -48,6 +48,10 @@ const pages = {
       [
         "Model providers",
         "AI endpoints send page content to a model provider. If you add your own provider key, that content goes to your account with them, under their terms. Provider keys you store are encrypted with AES-256-GCM and are never returned by the API.",
+      ],
+      [
+        "Browser extension",
+        `The ${SITE.name} extension does nothing until you ask it to. When you run a tool it sends the address of the tab you chose, or for the "this tab as I see it" option the visible content of that page, to the API under your key, where it is handled like any other call. It does not read pages in the background, keep a browsing history, or contain analytics. Your API key, settings and recent results are stored in the browser's local extension storage on your device, and signing out revokes the key.`,
       ],
       [
         "Retention",

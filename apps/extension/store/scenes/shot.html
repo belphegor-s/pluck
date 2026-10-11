@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Store screenshot</title>
+    <link rel="stylesheet" href="scene.css" />
+  </head>
+  <body>
+    <!--
+      One 1280x800 store screenshot: a caption beside a browser window with the
+      real panel running in it (the harness build, with canned API answers).
+      scripts/store.mjs sets the caption and drives the panel.
+    -->
+    <div class="stage">
+      <div class="copy">
+        <div class="wordmark">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 21c0-7.2 4.4-12.4 11-14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            <circle cx="17.4" cy="5.6" r="3.4" fill="var(--accent)" />
+          </svg>
+          pluck
+        </div>
+        <h1 id="headline">Caption</h1>
+        <p id="sub">Set from the query string by shot.js.</p>
+        <div class="note mono">Open source. No tracking. Works on the tab you choose.</div>
+      </div>
+
+      <div class="browser">
+        <div class="toolbar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="address mono">northwindroasters.example/journal/light-roast-field-guide</div>
+          <div class="pinned"><img src="../../dist/icons/icon-48.png" alt="" /></div>
+        </div>
+        <div class="split">
+          <div class="site">
+            <div class="site-nav"><b>Northwind</b><span>Coffee</span><span>Journal</span><span>Subscribe</span></div>
+            <div class="site-body">
+              <div class="site-kicker">Journal · Roasting</div>
+              <h2>A field guide to light roasts</h2>
+              <div class="site-hero"></div>
+              <p>
+                Light roasts keep more of what the farm put into the bean. They are also the least forgiving
+                roast to brew: a few degrees or a few seconds decide whether a cup tastes of apricot or of hay.
+              </p>
+              <h3>What “light” means</h3>
+              <p>
+                A roast is called light when it is dropped shortly after first crack. The bean has lost about
+                12% of its weight and no oil has reached the surface.
+              </p>
+              <table>
+                <tr><th>Roast</th><th>Drop temperature</th><th>Weight loss</th></tr>
+                <tr><td>Light</td><td>196 to 205 °C</td><td>11 to 13%</td></tr>
+                <tr><td>Medium</td><td>210 to 220 °C</td><td>14 to 16%</td></tr>
+                <tr><td>Dark</td><td>225 to 240 °C</td><td>17 to 20%</td></tr>
+              </table>
+              <h3>Brewing one well</h3>
+              <p>Grind finer than you would for a medium roast, and use water just off the boil.</p>
+            </div>
+          </div>
+          <iframe id="panel" title="Pluck panel"></iframe>
+        </div>
+      </div>
+    </div>
+    <script src="shot.js"></script>
+  </body>
+</html>

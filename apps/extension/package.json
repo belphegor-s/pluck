@@ -1,0 +1,31 @@
+{
+  "name": "@pluck/extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pluck for Chrome: the page you are on as clean markdown, structured JSON, brand data or a screenshot.",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "node scripts/build.mjs --dev --watch",
+    "build": "node scripts/build.mjs",
+    "build:dev": "node scripts/build.mjs --dev",
+    "package": "node scripts/build.mjs && node scripts/package.mjs",
+    "store": "node scripts/build.mjs && node scripts/store.mjs",
+    "e2e": "node scripts/e2e.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@pluck/shared": "workspace:*",
+    "@types/chrome": "^0.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "esbuild": "^0.25.12",
+    "playwright-core": "catalog:",
+    "sharp": "^0.35.4"
+  }
+}

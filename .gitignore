@@ -24,3 +24,11 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+# Browser extension: packaged uploads, rendered store images, and signing keys.
+# The store assigns the published id, so no private key belongs in the repo.
+apps/extension/release/
+apps/extension/store/out/
+apps/extension/.e2e/
+*.crx
+*.pem

@@ -20,6 +20,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/worker/package.json apps/worker/
 COPY apps/mcp/package.json apps/mcp/
 COPY apps/web/package.json apps/web/
+COPY apps/extension/package.json apps/extension/
 COPY packages/ai/package.json packages/ai/
 COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/

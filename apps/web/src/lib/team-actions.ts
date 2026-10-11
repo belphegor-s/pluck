@@ -12,7 +12,7 @@ import {
   users,
 } from "@pluck/db";
 import { createMailer } from "@pluck/runtime";
-import { SIGNUP_GRANT } from "@pluck/shared";
+import { SIGNUP_GRANT, safeRedirect } from "@pluck/shared";
 import { and, count, eq, gt, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -156,7 +156,7 @@ export async function createWorkspace(_prev: TeamState, formData: FormData): Pro
     return fail(err);
   }
   revalidatePath("/dashboard", "layout");
-  redirect("/dashboard");
+  redirect(safeRedirect(String(formData.get("next") ?? "")));
 }
 
 export async function renameWorkspace(_prev: TeamState, formData: FormData): Promise<TeamState> {

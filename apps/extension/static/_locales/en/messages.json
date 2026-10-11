@@ -1,0 +1,38 @@
+{
+  "extName": {
+    "message": "Pluck: any web page as markdown for AI",
+    "description": "Name shown in the Chrome Web Store and the extensions page. 75 characters at most."
+  },
+  "extShortName": {
+    "message": "Pluck",
+    "description": "Short name where space is tight. 12 characters at most."
+  },
+  "extDescription": {
+    "message": "Turn the page you are on into clean markdown, structured JSON, brand data or a screenshot, ready to paste into any AI model.",
+    "description": "Store summary. 132 characters at most."
+  },
+  "actionTitle": {
+    "message": "Open Pluck on this tab",
+    "description": "Tooltip of the toolbar button."
+  },
+  "commandOpen": {
+    "message": "Open Pluck on this tab",
+    "description": "Keyboard shortcut description."
+  },
+  "commandMarkdown": {
+    "message": "Pluck this page as markdown",
+    "description": "Keyboard shortcut description."
+  },
+  "menuPage": {
+    "message": "Pluck this page as markdown",
+    "description": "Right-click menu entry on a page."
+  },
+  "menuLink": {
+    "message": "Pluck this link as markdown",
+    "description": "Right-click menu entry on a link."
+  },
+  "menuSelection": {
+    "message": "Pluck the selection as markdown",
+    "description": "Right-click menu entry on selected text."
+  }
+}

@@ -1,0 +1,58 @@
+name: Extension
+
+# Builds the Chrome extension zip for a release. Tag `extension-v<version>`,
+# or run it by hand, then download the artifact and upload it to the Chrome
+# Web Store dashboard (apps/extension/store/listing.md has the steps).
+
+on:
+  push:
+    tags: ["extension-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.26.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Check the tag matches the version
+        if: startsWith(github.ref, 'refs/tags/extension-v')
+        run: |
+          version=$(node -p "require('./apps/extension/package.json').version")
+          if [ "extension-v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match apps/extension version $version" >&2
+            exit 1
+          fi
+
+      - name: Test
+        run: pnpm turbo run typecheck test --filter=@pluck/extension
+
+      - name: End-to-end
+        run: |
+          pnpm --filter @pluck/extension exec playwright-core install --with-deps chromium
+          pnpm --filter @pluck/extension e2e
+
+      - name: Package
+        run: pnpm turbo run build --filter=@pluck/extension && pnpm --filter @pluck/extension exec node scripts/package.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pluck-extension
+          path: apps/extension/release/*.zip
+          if-no-files-found: error

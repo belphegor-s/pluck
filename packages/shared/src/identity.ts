@@ -29,6 +29,13 @@ const config = {
   npmMcpPackage: "@pluckai/mcp",
   /** PyPI distribution; also the Python import name. */
   pythonPackage: "pluckai",
+  /**
+   * Chrome Web Store item id of the browser extension. Empty until the listing
+   * exists: the store assigns it on the first upload. Sign-in from the
+   * extension is refused for any id that is not this one (or listed in
+   * CHROME_EXTENSION_IDS), so set it before publishing.
+   */
+  chromeExtensionId: "",
 } as const;
 
 const env = (key: string): string | undefined => {
@@ -42,6 +49,8 @@ export const BRAND = {
   siteUrl: env("NEXT_PUBLIC_SITE_URL") ?? env("PUBLIC_WEB_URL") ?? config.siteUrl,
   apiUrl: env("NEXT_PUBLIC_API_URL") ?? env("PUBLIC_API_URL") ?? config.apiUrl,
   mcpUrl: env("NEXT_PUBLIC_MCP_URL") ?? config.mcpUrl,
+  // Widened from the literal, so code that branches on it type-checks either way.
+  chromeExtensionId: config.chromeExtensionId as string,
   apiKeyLive: `${config.apiKeyPrefix}_live_`,
   apiKeyFamily: `${config.apiKeyPrefix}_`,
   /** Crawler identity in robots.txt and the User-Agent header. */

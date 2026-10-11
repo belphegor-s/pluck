@@ -25,6 +25,7 @@ curl -X POST https://pluck-api.procd.cc/v1/scrape \
 | **Brand** | Domain, work email, company name or ticker into logos, colors, socials, address and NAICS/SIC codes. Free logo CDN. |
 | **Monitor** | Watch a page, a sitemap or an extraction and get a signed webhook when it changes. |
 | **MCP** | All of the above as tools for an agent, over HTTP or stdio. |
+| **Extension** | A Chrome side panel that does all of this to the page you are on, pages behind a sign-in included. |
 
 ## Run it yourself
 
@@ -80,6 +81,7 @@ apps/api        REST API (Hono): auth, credits, caching, OpenAPI
 apps/worker     Playwright browser fleet, crawler, monitors, webhooks
 apps/web        Next.js site: landing, docs, playground, dashboard
 apps/mcp        MCP server (streamable HTTP + stdio)
+apps/extension  Chrome extension: the API in a side panel
 packages/shared Endpoint registry, schemas, pricing, product naming
 packages/core   Scrape engine: SSRF-safe fetch, proxies, HTML → markdown, parsing
 packages/ai     Provider-agnostic LLM layer

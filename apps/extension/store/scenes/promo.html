@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Store promo tile</title>
+    <link rel="stylesheet" href="scene.css" />
+  </head>
+  <body>
+    <!-- ?size=small renders the 440x280 tile, ?size=marquee the 1400x560 one. -->
+    <div class="promo promo--small" id="small" hidden>
+      <div class="wordmark">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 21c0-7.2 4.4-12.4 11-14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          <circle cx="17.4" cy="5.6" r="3.4" fill="var(--accent)" />
+        </svg>
+        pluck
+      </div>
+      <h1>Any page, as <em>markdown</em> for AI.</h1>
+      <p>Markdown, JSON, brand data and screenshots from the tab you are on.</p>
+    </div>
+
+    <div class="promo promo--marquee" id="marquee" hidden>
+      <div class="text">
+        <div class="wordmark">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 21c0-7.2 4.4-12.4 11-14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            <circle cx="17.4" cy="5.6" r="3.4" fill="var(--accent)" />
+          </svg>
+          pluck
+        </div>
+        <h1>The web, <em>ready</em> for your model.</h1>
+        <p>Turn the page you are on into clean markdown, structured JSON, brand data or a screenshot.</p>
+      </div>
+      <div class="card"><iframe id="panel" title="Pluck panel"></iframe></div>
+    </div>
+    <script src="shot.js"></script>
+  </body>
+</html>

@@ -23,6 +23,7 @@ import { z } from "zod";
 import { type Actor, callApiAs } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { activeKeyCount, MAX_WORKSPACE_KEYS } from "@/lib/extension";
 import { proxyDirectory } from "@/lib/proxies";
 import { can, getWorkspace, type Role, type Workspace } from "@/lib/workspace";
 
@@ -68,12 +69,11 @@ export async function createApiKey(_prev: ActionState, formData: FormData): Prom
       .max(60)
       .catch("Default")
       .parse(formData.get("name") || "Default");
-    const existing = await db
-      .select({ id: apiKeys.id })
-      .from(apiKeys)
-      .where(eq(apiKeys.orgId, org.id));
-    if (existing.length >= 25)
-      return { error: "This workspace has reached the limit of 25 keys. Revoke one first." };
+    // Revoked keys stay listed as history, but only working ones count.
+    if ((await activeKeyCount(org.id)) >= MAX_WORKSPACE_KEYS)
+      return {
+        error: `This workspace has reached the limit of ${MAX_WORKSPACE_KEYS} keys. Revoke one first.`,
+      };
 
     const { key, prefix, hash } = generateApiKey();
     await db

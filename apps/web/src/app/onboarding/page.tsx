@@ -6,6 +6,7 @@ import { CreateWorkspaceForm } from "@/components/dashboard/team-forms";
 import { Wordmark } from "@/components/logo";
 import { formatNumber } from "@/lib/format";
 import { openInvitationsFor } from "@/lib/invitations";
+import { safeNext } from "@/lib/site";
 import { getSessionUser, listWorkspaces, roleLabel } from "@/lib/workspace";
 import { JoinInvitation } from "./join";
 import { OnboardingSignOut } from "./sign-out";
@@ -16,12 +17,21 @@ export const dynamic = "force-dynamic";
 /**
  * Where a new account lands after signing in: name the first workspace, or
  * join one they have been invited to. Anyone who already belongs to a
- * workspace goes straight to the dashboard.
+ * workspace goes straight to the dashboard, or to wherever sent them here
+ * (the extension's connect page, for someone who signed up from the browser).
  */
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
   const user = await getSessionUser();
-  if (!user) redirect("/login?next=/onboarding");
-  if ((await listWorkspaces(user.id)).length > 0) redirect("/dashboard");
+  if (!user)
+    redirect(
+      `/login?next=${encodeURIComponent(next ? `/onboarding?next=${encodeURIComponent(next)}` : "/onboarding")}`,
+    );
+  if ((await listWorkspaces(user.id)).length > 0) redirect(safeNext(next));
 
   const invites = user.emailVerified ? await openInvitationsFor(user.email) : [];
   const first = (user.name || user.email.split("@")[0] || "").trim().split(/\s+/)[0];
@@ -85,6 +95,7 @@ export default async function OnboardingPage() {
             <CreateWorkspaceForm
               defaultName={first ? `${first}'s workspace` : ""}
               submitLabel="Create workspace"
+              next={next}
             />
           </div>
         </div>

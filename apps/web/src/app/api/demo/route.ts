@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { extensionCors } from "@/lib/extension";
 import { SITE } from "@/lib/site";
 
 export const runtime = "nodejs";
@@ -17,7 +18,19 @@ function allowed(ip: string) {
   return recent.length <= PER_IP;
 }
 
+/** The browser extension offers the same preview before sign-in, from its own origin. */
+export function OPTIONS(request: Request) {
+  return new Response(null, { status: 204, headers: extensionCors(request) });
+}
+
 export async function POST(request: Request) {
+  const response = await demo(request);
+  for (const [name, value] of Object.entries(extensionCors(request)))
+    response.headers.set(name, value);
+  return response;
+}
+
+async function demo(request: Request) {
   const ip =
     request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
