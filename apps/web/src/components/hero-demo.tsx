@@ -10,20 +10,17 @@ type Tab = "markdown" | "links" | "metadata";
 
 interface DemoResult {
   url: string;
-  html: string;
   htmlBytes: number;
   markdown: string;
   markdownBytes: number;
   links: string[];
   metadata: Record<string, unknown>;
-  renderedWith: string;
-  durationMs: number;
 }
 
 const SAMPLES = [
-  "https://news.ycombinator.com",
-  "https://stripe.com/pricing",
-  "https://en.wikipedia.org/wiki/Web_scraping",
+  { label: "Hacker News", url: "https://news.ycombinator.com" },
+  { label: "Stripe pricing", url: "https://stripe.com/pricing" },
+  { label: "Wikipedia", url: "https://en.wikipedia.org/wiki/Web_scraping" },
 ];
 
 const kb = (bytes: number) =>
@@ -32,11 +29,12 @@ const kb = (bytes: number) =>
     : `${formatNumber(Math.round(bytes / 1000))} kB`;
 
 /**
- * The hero is the product doing its one job, side by side: on the left the
- * HTML a site actually sends, on the right the page a model gets. Between
- * them is the mark from the logo, a stem with one berry, and the berry is
- * what gets plucked: it sits on the stem, lifts while a page is being read,
- * and lands on the result.
+ * The product doing its one job: a URL goes in, the page a model would get
+ * comes out, with how much HTML was thrown away to get there.
+ *
+ * Tucked behind the result is the mark from the logo, a stem with one berry,
+ * and the berry is what gets plucked: it sits on the stem, lifts while a page
+ * is being read, and lands on the result.
  *
  * It opens on a real run (see hero-sample.ts) so there is something true to
  * look at before anyone types a URL.
@@ -106,13 +104,12 @@ export function HeroDemo() {
   // The last good run stays on screen through a new fetch or a failure.
   const shown: DemoResult = result ?? HERO_SAMPLE;
   const title = result ? ((result.metadata?.title as string | undefined) ?? null) : null;
-  const lighter = shown.markdownBytes > 0 ? Math.round(shown.htmlBytes / shown.markdownBytes) : 0;
   const working = state === "working";
   // Where the berry is: on the stem, lifting off it, or landed on the result.
   const berry = working ? "lifting" : state === "error" ? "stem" : result ? "plucked" : "arrive";
 
   return (
-    <div className="flex flex-col">
+    <div>
       <form
         className="sheet flex flex-col gap-2 p-2 shadow-[var(--shadow-press)] sm:flex-row sm:items-center"
         onSubmit={(e) => {
@@ -131,94 +128,76 @@ export function HeroDemo() {
           inputMode="url"
           autoComplete="url"
           spellCheck={false}
-          className="mono min-w-0 flex-1 bg-transparent px-3 py-2 text-base outline-none placeholder:text-[var(--ink-faint)]"
+          className="mono min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[var(--ink-faint)]"
         />
         <button
           type="submit"
           disabled={working}
-          className="shrink-0 bg-[var(--accent)] px-6 py-2.5 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="shrink-0 bg-[var(--accent)] px-5 py-2 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {working ? "Plucking…" : "Pluck it"}
         </button>
       </form>
 
+      {/* One quiet line under the bar: what to try, what is happening, or the
+          other views of a page once there is one. */}
       <div
-        className="flex min-h-[2.25rem] flex-wrap items-center gap-x-4 gap-y-1 px-1 py-2 text-xs text-[var(--ink-faint)]"
+        className="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1 px-1 py-2 text-xs text-[var(--ink-faint)]"
         aria-live="polite"
       >
-        {working ? (
-          <span>Fetching, rendering if needed, cleaning…</span>
-        ) : state === "error" ? (
-          <span className="text-[var(--accent)]">{message}</span>
-        ) : (
+        {working && <span>Fetching, rendering if needed, cleaning…</span>}
+        {state === "error" && <span className="text-[var(--accent)]">{message}</span>}
+        {state === "sample" && (
           <>
-            <span>Or try</span>
+            <span>Try</span>
             {SAMPLES.map((sample) => (
               <button
-                key={sample}
+                key={sample.url}
                 type="button"
                 onClick={() => {
-                  setUrl(sample);
-                  void run(sample);
+                  setUrl(sample.url);
+                  void run(sample.url);
                 }}
-                className="mono underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--ink)]"
+                className="underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--ink)]"
               >
-                {sample.replace(/^https?:\/\//, "")}
+                {sample.label}
               </button>
             ))}
           </>
         )}
+        {state === "done" &&
+          (["markdown", "links", "metadata"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              aria-pressed={tab === t}
+              className={
+                tab === t
+                  ? "text-[var(--ink)] underline underline-offset-4"
+                  : "transition-colors hover:text-[var(--ink)]"
+              }
+            >
+              {t}
+            </button>
+          ))}
       </div>
 
-      <div className="grid lg:h-[clamp(15rem,34svh,19rem)] lg:grid-cols-[minmax(0,0.6fr)_6.5rem_minmax(0,1.4fr)]">
-        {/*
-          What the site sent, as texture: no box, no heading, fading out. Nobody
-          reads it, which is the point. The stem grows out of it.
-        */}
-        <figure className="relative hidden lg:block" aria-hidden="true">
-          <pre
-            className={`mono absolute inset-0 overflow-hidden whitespace-pre-wrap break-all pr-2 text-[0.6875rem] leading-[1.55] text-[var(--ink-faint)] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom,#000_20%,transparent_82%)] ${working ? "opacity-30" : "opacity-70"}`}
-          >
-            {shown.html}
-          </pre>
-          <figcaption className="absolute bottom-0 left-0 text-sm text-[var(--ink-soft)]">
-            <span className="mono">{kb(shown.htmlBytes)}</span> of HTML
-          </figcaption>
-        </figure>
-
+      <div className="relative">
         <Sprig />
-
-        <section className="sheet flex min-h-0 flex-col shadow-[var(--shadow-press)]">
-          <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--line)] px-4 py-2 text-sm lg:h-10 lg:flex-nowrap lg:py-0">
-            <h2 className="flex items-center gap-2 font-[family-name:var(--font-sans)] text-sm font-normal tracking-normal text-[var(--ink-soft)]">
+        <section className="sheet flex flex-col shadow-[var(--shadow-press)]">
+          <div className="flex h-10 shrink-0 items-center justify-between gap-4 border-b border-[var(--line)] px-4 text-sm">
+            <h2 className="flex shrink-0 items-center gap-2 whitespace-nowrap font-[family-name:var(--font-sans)] text-sm font-normal tracking-normal text-[var(--ink-soft)]">
               <span className="hero-berry" data-at={berry} aria-hidden="true" />
               The page
             </h2>
-            {/* The other views appear once there is a page of your own to look at. */}
-            <div className={`gap-3 text-xs text-[var(--ink-faint)] ${result ? "flex" : "hidden"}`}>
-              {(["markdown", "links", "metadata"] as Tab[]).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTab(t)}
-                  aria-pressed={tab === t}
-                  className={
-                    tab === t
-                      ? "text-[var(--ink)] underline underline-offset-4"
-                      : "transition-colors hover:text-[var(--ink)]"
-                  }
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            <p className="mono ml-auto flex gap-3 text-xs text-[var(--ink-faint)]">
-              <span>{kb(shown.markdownBytes)}</span>
-              {lighter > 1 && <span className="text-[var(--leaf)]">{lighter}× lighter</span>}
+            <p className="mono truncate text-xs text-[var(--ink-faint)]">
+              {kb(shown.htmlBytes)}
+              <span className="hidden sm:inline"> of HTML</span> in, {kb(shown.markdownBytes)} out
             </p>
           </div>
 
-          <div ref={output} className="h-[13rem] overflow-auto p-4 lg:h-auto lg:min-h-0 lg:flex-1">
+          <div ref={output} className="h-[13rem] overflow-auto p-4 lg:h-[clamp(13rem,36svh,19rem)]">
             {working ? (
               <Skeleton />
             ) : tab === "markdown" ? (
@@ -256,37 +235,35 @@ export function HeroDemo() {
 
 /**
  * The stem the berry is plucked from: the logo's own drawing, grown a little,
- * rooted in the HTML and reaching toward the page. Wide screens only; on a
- * phone there is no HTML pane for it to grow out of.
+ * pressed under the result sheet with its tip beside "The page". Wide screens
+ * only: it lives in the gap between the two columns.
  */
 function Sprig() {
   return (
-    <div className="relative hidden lg:block">
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 104 232"
-        className="absolute left-0 top-0 h-[14.5rem] w-full overflow-visible"
-        fill="none"
-        stroke="var(--ink)"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M-1 222C22 219 38 196 47 162S60 78 84 25" />
-        <g fill="color-mix(in srgb, var(--leaf) 28%, transparent)" strokeWidth="1.4">
-          <path d="M42 180C24 180 10 168 6 150c18-2 32 10 36 30Z" />
-          <path d="M53 132c15 6 32 2 43-11-14-9-32-4-43 11Z" />
-          <path d="M60 92C46 88 36 76 35 60c15 3 25 15 25 32Z" />
-        </g>
-        <g strokeWidth="1">
-          <path d="M42 180C32 169 20 159 6 150" />
-          <path d="M53 132c13-6 28-10 43-11" />
-          <path d="M60 92C54 80 46 69 35 60" />
-        </g>
-        {/* The calyx left behind once the berry is gone. */}
-        <path d="M84 25l-8-3M84 25l3-9" strokeWidth="1.3" />
-      </svg>
-    </div>
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 104 232"
+      className="absolute -left-[6.5rem] top-0 hidden h-[14.5rem] w-[6.5rem] overflow-visible lg:block"
+      fill="none"
+      stroke="var(--ink)"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M104 214C70 212 36 190 32 150S62 62 84 25" />
+      <g fill="color-mix(in srgb, var(--leaf) 30%, transparent)" strokeWidth="1.4">
+        <path d="M40 184C22 186 8 176 2 160c17-5 32 4 38 24Z" />
+        <path d="M34 132C22 122 18 106 24 90c13 9 17 24 10 42Z" />
+        <path d="M54 82c14 7 31 4 42-8-13-10-31-6-42 8Z" />
+      </g>
+      <g strokeWidth="1">
+        <path d="M40 184C29 174 16 166 2 160" />
+        <path d="M34 132c-1-14-4-28-10-42" />
+        <path d="M54 82c13-5 27-8 42-8" />
+      </g>
+      {/* The calyx left behind once the berry is gone. */}
+      <path d="M84 25l-8-3M84 25l3-9" strokeWidth="1.3" />
+    </svg>
   );
 }
 

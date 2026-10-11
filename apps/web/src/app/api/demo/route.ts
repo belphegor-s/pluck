@@ -62,7 +62,7 @@ async function demo(request: Request) {
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify({
       url,
-      // rawHtml only to show what was thrown away: a few lines and its size.
+      // rawHtml only to say how much was thrown away: its size is all that is kept.
       formats: ["markdown", "links", "metadata", "rawHtml"],
       maxAge: 3600,
       timeout: 25_000,
@@ -93,10 +93,6 @@ async function demo(request: Request) {
     // Sizes are of the whole page, before either side is cut for the preview.
     markdownBytes: Buffer.byteLength(data.markdown ?? ""),
     htmlBytes: Buffer.byteLength(html),
-    html: html
-      .replace(/\n\s*\n+/g, "\n")
-      .trimStart()
-      .slice(0, 2_400),
     links: (data.links ?? []).slice(0, 40),
     metadata: data.metadata,
     renderedWith: data.renderedWith,

@@ -397,16 +397,16 @@
 }
 
 /*
-  The hero. Its headline is one line across the whole container on a wide
-  screen, sized from the container so it always fits; below that it wraps.
+  The hero headline: three short lines beside the demo on a wide screen, sized
+  from the window so the longest of them always fits its column.
 */
 .hero-title {
   font-size: var(--text-4xl);
 }
 @media (min-width: 1024px) {
   .hero-title {
-    font-size: clamp(2.6rem, 5.15vw, 3.72rem);
-    white-space: nowrap;
+    font-size: clamp(2.5rem, 4.3vw, 3.4rem);
+    line-height: 1.04;
   }
 }
 
