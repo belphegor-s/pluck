@@ -396,6 +396,88 @@
   }
 }
 
+/*
+  The hero. Its headline is one line across the whole container on a wide
+  screen, sized from the container so it always fits; below that it wraps.
+*/
+.hero-title {
+  font-size: var(--text-4xl);
+}
+@media (min-width: 1024px) {
+  .hero-title {
+    font-size: clamp(2.6rem, 5.15vw, 3.72rem);
+    white-space: nowrap;
+  }
+}
+
+/*
+  The berry from the logo. It belongs to the result ("The page") and is drawn
+  there; --dx/--dy carry it back to the tip of the stem beside it, which only
+  exists on wide screens. The numbers are the stem's tip in hero-demo.tsx.
+*/
+.hero-berry {
+  --dx: 0px;
+  --dy: 0px;
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: transform 0.7s var(--ease-press);
+}
+@media (min-width: 1024px) {
+  .hero-berry {
+    --dx: -43px;
+    --dy: 5px;
+  }
+}
+.hero-berry[data-at="stem"],
+.hero-berry[data-at="lifting"] {
+  transform: translate(var(--dx), var(--dy));
+}
+.hero-berry[data-at="lifting"] {
+  animation: berry-lift 0.9s ease-in-out infinite alternate;
+}
+/* On load: the sample is plucked once, then everything holds still. */
+.hero-berry[data-at="arrive"] {
+  animation: berry-arrive 1s 0.7s var(--ease-press) both;
+}
+.hero-reveal {
+  animation: ink-in 1.2s 1.2s var(--ease-press) both;
+}
+
+@keyframes berry-lift {
+  from {
+    transform: translate(var(--dx), var(--dy));
+  }
+  to {
+    transform: translate(calc(var(--dx) + 4px), calc(var(--dy) - 10px));
+  }
+}
+
+@keyframes berry-arrive {
+  0% {
+    transform: translate(var(--dx), var(--dy));
+  }
+  45% {
+    transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) - 24px)) scale(1.15);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes ink-in {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 -2px 0);
+  }
+}
+
 @keyframes caret {
   50% {
     opacity: 0;

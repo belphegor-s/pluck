@@ -2,7 +2,6 @@ import { endpoints } from "@pluck/shared";
 import Link from "next/link";
 import { CodeBlock, CodeTabs } from "@/components/code-tabs";
 import { HeroDemo } from "@/components/hero-demo";
-import { HeroField } from "@/components/hero-field";
 import { SITE } from "@/lib/site";
 
 const menuRows = [
@@ -114,44 +113,49 @@ const extractSample = [
 export default function HomePage() {
   return (
     <>
-      <div className="relative isolate overflow-hidden">
-        <HeroField />
-        <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-20">
-          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-            <div>
-              <h1 className="text-4xl sm:text-[3.3rem]">Give your model the page, not the HTML.</h1>
-              <p className="prose-pluck mt-6 text-lg text-[var(--ink-soft)]">
-                Pluck reads any URL the way a person would: running the JavaScript, skipping the
-                cookie banner, keeping the tables. It hands back markdown, JSON, links or a
-                screenshot. One call, one credit.
-              </p>
-              {/* Side by side once there is room; stacked and full width on a
-                phone, where a half-width button is a small target. */}
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                <Link
-                  href="/dashboard"
-                  className="bg-[var(--ink)] px-5 py-3 text-center text-[var(--paper)] transition-opacity hover:opacity-85 sm:py-2.5"
-                >
-                  Start with 1,000 free credits
-                </Link>
-                <Link
-                  href={SITE.repo}
-                  className="btn-outline px-5 py-3 text-center sm:py-2.5"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Read the source
-                </Link>
-              </div>
-              <p className="mt-5 text-sm text-[var(--ink-faint)]">
-                No subscription. Credits do not expire. Every endpoint works the same on your own
-                server.
-              </p>
-            </div>
-            <HeroDemo />
+      {/*
+        The first screen, and nothing below it: headline, what it is, the two
+        ways in, and the product itself running. On a wide screen the section
+        is exactly as tall as the window under the header, and the demo takes
+        whatever height the words leave. On a phone it stacks, with the demo
+        ahead of the buttons so it is what the thumb reaches first.
+      */}
+      <section className="mx-auto grid max-w-6xl gap-x-10 gap-y-5 px-4 pb-8 pt-9 sm:px-6 lg:h-[calc(100svh-3.5rem-1px)] lg:max-h-[54rem] lg:min-h-[39rem] lg:grid-cols-12 lg:grid-rows-[auto_auto_minmax(0,1fr)] lg:pb-7 lg:pt-8">
+        <h1 className="hero-title order-1 lg:col-span-12">
+          Give your model the page, not the HTML.
+        </h1>
+        <p className="order-2 text-[var(--ink-soft)] lg:col-span-6 xl:col-span-7">
+          Pluck reads any URL the way a person would: running the JavaScript, skipping the cookie
+          banner, keeping the tables. It hands back markdown, JSON, links or a screenshot. One call,
+          one credit.
+        </p>
+        <div className="order-4 lg:order-3 lg:col-span-6 xl:col-span-5">
+          {/* Side by side once there is room; stacked and full width on a
+              phone, where a half-width button is a small target. */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <Link
+              href="/dashboard"
+              className="bg-[var(--ink)] px-5 py-3 text-center text-[var(--paper)] transition-opacity hover:opacity-85 sm:py-2.5"
+            >
+              Start with 1,000 free credits
+            </Link>
+            <Link
+              href={SITE.repo}
+              className="btn-outline px-5 py-3 text-center sm:py-2.5"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Read the source
+            </Link>
           </div>
-        </section>
-      </div>
+          <p className="mt-3 text-sm text-[var(--ink-faint)]">
+            No subscription. Credits do not expire. Self-host it and every endpoint is yours.
+          </p>
+        </div>
+        <div className="order-3 min-h-0 lg:order-4 lg:col-span-12">
+          <HeroDemo />
+        </div>
+      </section>
 
       <section className="border-y border-[var(--line)] bg-[var(--sheet)]">
         <div className="mx-auto grid max-w-6xl gap-x-12 gap-y-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr]">
