@@ -35,7 +35,7 @@ const config = {
    * extension is refused for any id that is not this one (or listed in
    * CHROME_EXTENSION_IDS), so set it before publishing.
    */
-  chromeExtensionId: "",
+  chromeExtensionId: "cohmfnmgbeblffohokfhjifppdbcgllm",
 } as const;
 
 const env = (key: string): string | undefined => {
