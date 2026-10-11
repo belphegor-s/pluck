@@ -143,19 +143,18 @@ Pluck converts the web page the user is viewing into AI-ready data (markdown, st
 
 ## Test instructions for the reviewer
 
-Sign-in on the site is GitHub only, which a reviewer cannot use, so give them a key instead. Create a key named `Chrome Web Store review` in the dashboard of a workspace with a few hundred credits, and paste the text below into the dashboard's "Test instructions" field with the key filled in. Never commit the key. Revoke it once the review is done.
+Sign-in on the site is GitHub only, which a reviewer cannot use, so give them a key instead. Create a key named `Chrome Web Store review` in the dashboard of a workspace with a few hundred credits, and paste the text below into the dashboard's "Test instructions" field with `<KEY>` replaced. The field takes 500 characters at most; this is 485 with a real key, so trim something if you add to it. Never commit the key. Revoke it once the review is done.
 
 ```
-No account is needed to try the basic function: open any public article, click the Pluck toolbar button, and choose "Preview this page as markdown".
+No account needed: open a public article, click the Pluck icon, then "Preview this page as markdown".
 
-To test every tool, use this test key instead of signing in (sign-in is GitHub only):
-1. Right-click the Pluck toolbar button and choose Options.
-2. Under "Your own instance", enter API address: https://pluck-api.procd.cc
-3. Enter API key: <PASTE THE REVIEW KEY HERE>
-4. Click "Check and save".
-5. Open any public web page, click the Pluck toolbar button, and pick a tool from the side panel.
+All tools (sign-in is GitHub only, so use this key):
+1. Right-click the Pluck icon > Options.
+2. Under "Your own instance" enter API address https://pluck-api.procd.cc and API key <KEY>
+3. Click "Check and save".
+4. Open any public page, click the Pluck icon, pick a tool.
 
-"This tab as I see it" (under Markdown) is the only feature that reads page content from the tab; it runs only when the user clicks "Pluck as markdown" with that option selected.
+Page content is read only when Markdown runs with "This tab as I see it".
 ```
 
 ## Releasing

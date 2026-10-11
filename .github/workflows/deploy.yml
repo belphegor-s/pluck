@@ -1,0 +1,83 @@
+name: Deploy
+
+# Deploys to production once CI is green on main.
+#
+# Only the apps whose inputs changed since their last finished deployment are
+# rebuilt (scripts/coolify.mjs release works that out), one at a time, and the
+# job fails if a rollout does. Nothing from the dependency tree runs here: the
+# script uses Node's standard library only, so the credentials below are never
+# in the same process as installed packages.
+#
+# The four secrets live in the `production` environment, which only main can
+# use: COOLIFY_API_URL, COOLIFY_API_TOKEN (read and deploy are enough),
+# CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: "Deploy these whatever changed (worker api mcp web). Empty: only what changed."
+        required: false
+        default: ""
+
+# Deployments queue behind each other; one is never cancelled half way.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 120
+    env:
+      TESTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TESTED_SHA }}
+          # The release compares against whatever commit each app is running.
+          fetch-depth: 0
+
+      # Coolify builds the tip of main, so only deploy when that tip is the
+      # commit CI just passed. If main has moved on, its own run will deploy.
+      - name: Check main has not moved
+        id: tip
+        run: |
+          tip=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$tip" = "$TESTED_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "main is at $tip, not $TESTED_SHA; leaving this to the newer run"
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v5
+        if: steps.tip.outputs.current == 'true'
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Release
+        if: steps.tip.outputs.current == 'true'
+        env:
+          COOLIFY_API_URL: ${{ secrets.COOLIFY_API_URL }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          APPS: ${{ inputs.apps }}
+        # Unquoted on purpose: the input is a list, and the script keeps only
+        # the names it knows.
+        run: node scripts/coolify.mjs release $APPS

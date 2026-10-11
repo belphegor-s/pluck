@@ -5,13 +5,22 @@
  *   node scripts/coolify.mjs provision   # create project, databases and apps (idempotent)
  *   node scripts/coolify.mjs env         # push environment variables from .env
  *   node scripts/coolify.mjs deploy      # trigger a deployment of every app
+ *   node scripts/coolify.mjs release     # deploy only what changed, and wait for it
  *   node scripts/coolify.mjs status      # show resource status
+ *
+ * `release` is what CI runs after a green build on main (see
+ * .github/workflows/deploy.yml). It compares each app's last finished
+ * deployment with the checked-out commit, deploys the apps whose inputs
+ * changed, one at a time, and fails if a rollout does. `release --dry-run`
+ * only prints the plan; `release web api` deploys those whatever changed.
+ * It needs an API token that can read and deploy, nothing more.
  *
  * Reads COOLIFY_API_URL, COOLIFY_API_TOKEN and, when the instance sits behind
  * Cloudflare Access, CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET from .env.
  */
+import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -391,6 +400,157 @@ async function waitForIdleBuilds(timeoutMs = 25 * 60_000) {
   console.log("\n  build queue still busy; continuing anyway");
 }
 
+/** Files every image is built from: a change to one rebuilds them all. */
+const SHARED_INPUTS = [
+  "Dockerfile",
+  ".dockerignore",
+  ".node-version",
+  ".npmrc",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "tsconfig.base.json",
+  "turbo.json",
+];
+
+/**
+ * The worker goes first: it must be able to read a job shape before the API
+ * starts producing it, never the other way round.
+ */
+const RELEASE_ORDER = ["worker", "api", "mcp", "web"];
+
+const HEALTH = {
+  api: `${DOMAINS.api}/health`,
+  mcp: `${DOMAINS.mcp}/health`,
+  web: `${DOMAINS.web}/api/health`,
+};
+
+const git = (...args) => execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+
+/** Every workspace package: where it lives and which others it depends on. */
+function workspaceGraph() {
+  const graph = {};
+  for (const group of ["apps", "packages"]) {
+    for (const entry of readdirSync(join(ROOT, group), { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      try {
+        const pkg = JSON.parse(readFileSync(join(ROOT, group, entry.name, "package.json"), "utf8"));
+        graph[pkg.name] = {
+          dir: `${group}/${entry.name}/`,
+          deps: Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }),
+        };
+      } catch {
+        // Not a JavaScript package (the Python SDK).
+      }
+    }
+  }
+  return graph;
+}
+
+/** The directories an app's image is built from: its own, and its workspace dependencies'. */
+function inputDirs(key, graph) {
+  const seen = new Set();
+  const queue = [Object.values(graph).find((pkg) => pkg.dir === `apps/${key}/`)];
+  while (queue.length) {
+    const pkg = queue.pop();
+    if (!pkg || seen.has(pkg.dir)) continue;
+    seen.add(pkg.dir);
+    for (const dep of pkg.deps) if (graph[dep]) queue.push(graph[dep]);
+  }
+  return [...seen];
+}
+
+/**
+ * Why an app needs deploying, or null when what is running already matches.
+ *
+ * The comparison is against the commit of the app's last finished deployment,
+ * not against the previous push, so a run that was skipped, cancelled or
+ * failed is made up for by the next one.
+ */
+async function reasonToDeploy(uuid, key, graph, head) {
+  const { deployments = [] } = await api(`/deployments/applications/${uuid}?take=10`);
+  const deployed = deployments.find((d) => d.status === "finished")?.commit;
+  if (!deployed) return "never deployed";
+  if (deployed === head) return null;
+  let changed;
+  try {
+    changed = git("diff", "--name-only", deployed, head).split("\n").filter(Boolean);
+  } catch {
+    return `running ${deployed.slice(0, 7)}, which is not in this checkout`;
+  }
+  const dirs = inputDirs(key, graph);
+  const hits = changed.filter(
+    (file) => SHARED_INPUTS.includes(file) || dirs.some((dir) => file.startsWith(dir)),
+  );
+  if (hits.length === 0) return null;
+  const more = hits.length > 1 ? ` and ${hits.length - 1} more` : "";
+  return `${hits[0]}${more} changed since ${deployed.slice(0, 7)}`;
+}
+
+async function waitForDeployment(deploymentUuid, timeoutMs = 40 * 60_000) {
+  const deadline = Date.now() + timeoutMs;
+  let last = "";
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 15_000));
+    let status;
+    try {
+      ({ status } = await api(`/deployments/${deploymentUuid}`));
+    } catch {
+      // The API stalls while the host is busy building: ask again.
+      continue;
+    }
+    if (status !== last) console.log(`  ${status}`);
+    last = status;
+    if (status === "finished") return;
+    if (status !== "queued" && status !== "in_progress")
+      throw new Error(`deployment ${deploymentUuid} ended as "${status}"`);
+  }
+  throw new Error(`deployment ${deploymentUuid} did not finish in time`);
+}
+
+async function waitForHealth(url) {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const ok = await fetch(url, { signal: AbortSignal.timeout(10_000) })
+      .then((res) => res.ok)
+      .catch(() => false);
+    if (ok) return;
+    await new Promise((resolve) => setTimeout(resolve, 6_000));
+  }
+  throw new Error(`${url} is not answering after the deployment`);
+}
+
+async function release(only, dryRun) {
+  const all = await api("/applications");
+  const graph = workspaceGraph();
+  const head = git("rev-parse", "HEAD");
+  console.log(`release of ${head.slice(0, 7)}`);
+
+  const plan = [];
+  for (const key of RELEASE_ORDER) {
+    const spec = APPS.find((a) => a.key === key);
+    const app = all.find((a) => a.name === spec.name);
+    if (!app) throw new Error(`${spec.name} does not exist; run provision first`);
+    const reason = only.length
+      ? only.includes(key) && "asked for"
+      : await reasonToDeploy(app.uuid, key, graph, head);
+    console.log(`${spec.name.padEnd(14)} ${reason ? `deploy: ${reason}` : "up to date"}`);
+    if (reason) plan.push({ spec, uuid: app.uuid });
+  }
+  if (dryRun || plan.length === 0) return;
+
+  for (const { spec, uuid } of plan) {
+    // One build at a time, and never on top of one somebody started by hand.
+    await waitForIdleBuilds();
+    const res = await api(`/deploy?uuid=${uuid}&force=false`, { method: "POST" });
+    const id = res.deployments?.[0]?.deployment_uuid;
+    if (!id) throw new Error(`${spec.name} was not queued: ${JSON.stringify(res).slice(0, 300)}`);
+    console.log(`\ndeploying ${spec.name}: ${id}`);
+    await waitForDeployment(id);
+    if (HEALTH[spec.key]) await waitForHealth(HEALTH[spec.key]);
+    console.log(`${spec.name} is live`);
+  }
+}
+
 async function status() {
   const [apps, dbs] = await Promise.all([api("/applications"), api("/databases")]);
   const mine = new Set([...APPS.map((a) => a.name), ...DATABASES.map((d) => d.name)]);
@@ -403,7 +563,8 @@ async function status() {
 }
 
 const command = process.argv[2] ?? "provision";
-const ctx = command === "status" ? null : await ensureProject();
+// `status` and `release` only read and deploy; they never touch configuration.
+const ctx = command === "status" || command === "release" ? null : await ensureProject();
 
 if (command === "provision") {
   const dbs = await ensureDatabases(ctx);
@@ -419,6 +580,10 @@ if (command === "provision") {
   const only = process.argv.slice(3).filter((k) => APPS.some((a) => a.key === k));
   const apps = await ensureApps(ctx);
   await deploy(apps, only);
+} else if (command === "release") {
+  const args = process.argv.slice(3);
+  const only = args.filter((k) => APPS.some((a) => a.key === k));
+  await release(only, args.includes("--dry-run"));
 } else if (command === "status") {
   await status();
 } else {
