@@ -3,19 +3,23 @@
 import { useEffect, useRef } from "react";
 
 /**
- * The hero background: light through leaves. Two slow layers of warped noise
- * drift over the paper like the shade of a branch overhead, mostly in the
- * theme's leaf colour with a little of the berry where they overlap, and a
- * whisper of grain so the soft edges never band.
+ * The hero background: a contour map of a landscape that slowly breathes.
+ * Fine leaf-coloured isolines, every fifth one heavier like a surveyor's
+ * index line, rings that warm to berry near the summits, and a faint leaf
+ * light pooled behind the demo. Crisp lines on paper, in keeping with the
+ * pressed-specimen look, instead of soft blobs that read as smudges.
  *
- * It is meant to be noticed second: present in both themes, never competing
- * with the words on top of it. The strengths are set per theme in applyTheme.
+ * It is composed, not uniform: the terrain rises behind the demo, so the
+ * rings gather there, and the lines thin out under the headline so the words
+ * always sit on near-plain paper. The strengths are set per theme in
+ * applyTheme.
  *
  * It is decoration, so it must never cost the page anything:
  * - no WebGL, a failed compile or a lost context: the canvas stays hidden
  *   (a lost context paints white, so it must never stay on screen);
  * - reduced motion or Save-Data: one still frame, no loop;
  * - off screen or in a background tab: the loop stops;
+ * - the motion is slow, so it draws at 30 frames a second, not 60;
  * - slow frames: resolution drops, then the loop stops on the last frame;
  * - it never takes pointer events, so nothing under it stops being clickable.
  */
@@ -25,12 +29,15 @@ void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
 `;
 
 const FRAGMENT = `
+#extension GL_OES_standard_derivatives : enable
 precision highp float;
 uniform vec2 uRes;
 uniform float uTime;
-uniform vec3 uA;
-uniform vec3 uB;
-uniform float uStrength;
+uniform float uPx;
+uniform vec3 uLeaf;
+uniform vec3 uBerry;
+uniform float uLine;
+uniform float uGlow;
 
 float hash(vec2 p) {
   p = fract(p * vec2(233.34, 851.73));
@@ -46,44 +53,71 @@ float noise(vec2 p) {
              mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
-// Octaves rotate as they shrink, so no grid axis ever shows through.
+// Octaves rotate as they shrink, so no grid axis ever shows through. Only
+// three, and quickly fading: the fine ones turn contour lines into scribble.
 float fbm(vec2 p) {
   float v = 0.0;
-  float a = 0.5;
+  float a = 0.56;
   mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     v += a * noise(p);
     p = m * p;
-    a *= 0.45;
+    a *= 0.36;
   }
   return v;
+}
+
+// A crisp line of the given width in CSS pixels wherever f crosses a whole
+// number. fwidth keeps it the same width however steep the slope is.
+float isoline(float f, float width) {
+  float fw = max(fwidth(f), 1e-4);
+  float d = abs(fract(f - 0.5) - 0.5) / fw;
+  float hw = 0.5 * width * uPx;
+  // Where the rings crowd closer than a few pixels they would merge into a
+  // grey patch, so they fade out there instead.
+  float crowd = 1.0 - smoothstep(0.18, 0.45, fw);
+  return (1.0 - smoothstep(hw - 0.6, hw + 0.6, d)) * crowd;
 }
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uRes;
   float aspect = uRes.x / uRes.y;
-  vec2 p = vec2(uv.x * aspect, uv.y) * 1.1;
-  float t = uTime * 0.028;
+  vec2 p = vec2(uv.x * aspect, uv.y);
+  float t = uTime * 0.012;
 
-  // A slow drift that bends both layers, so nothing slides in a straight line.
-  vec2 q = vec2(fbm(p + vec2(0.0, t)), fbm(p + vec2(5.2, 1.3) - t * 0.8));
+  // The terrain: warped noise, so the rings meander like real ground.
+  vec2 q = vec2(fbm(p * 0.9 + vec2(0.0, t)), fbm(p * 0.9 + vec2(5.2, 1.3) - t));
+  float h = fbm(p * 1.05 + 1.2 * q + vec2(t * 0.5, -t * 0.3));
 
-  // Near leaves: larger, softer, moving a little faster than the far ones.
-  float near = fbm(p * 1.3 + 1.7 * q + vec2(t * 0.7, -t * 0.4));
-  float far = fbm(p * 2.1 - 1.3 * q + vec2(-t * 0.5, t * 0.3) + 7.0);
-  float shadeNear = smoothstep(0.44, 0.66, near);
-  float shadeFar = smoothstep(0.46, 0.62, far);
+  // A broad hill behind the demo, so the rings gather on that side. On a
+  // phone the layout stacks, so the hill moves up behind the demo there.
+  bool wide = aspect > 1.1;
+  vec2 hill = wide ? vec2(aspect * 0.74, 0.5) : vec2(aspect * 0.6, 0.62);
+  vec2 dh = p - hill;
+  float rise = exp(-dot(dh, dh) * (wide ? 1.4 : 2.2));
+  h += 0.38 * rise;
 
-  // Leaf where one layer falls, a touch of berry where both do.
-  float both = shadeNear * shadeFar;
-  vec3 color = mix(uB, uA, both * 0.55);
-  float alpha = uStrength * (0.62 * shadeNear + 0.38 * shadeFar + 0.25 * both);
+  float f = h * 30.0;
+  float minor = isoline(f, 1.0);
+  float major = isoline(f / 5.0, 1.8);
 
-  // Grain: tiny per-pixel noise that breaks up banding in the soft ramps.
-  float grain = (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) * 0.06;
-  alpha = clamp(alpha + grain * alpha, 0.0, 1.0);
+  // Near the summits the rings warm from leaf to berry.
+  float summit = smoothstep(0.6, 0.88, h);
+  vec3 lineColor = mix(uLeaf, uBerry, summit * 0.85);
 
-  gl_FragColor = vec4(color * alpha, alpha);
+  // Lines thin out toward the headline on a wide screen; on a phone the
+  // words cover the whole width, so the field stays light everywhere.
+  float side = wide ? mix(0.18, 1.0, smoothstep(0.08, 0.7, uv.x)) : 0.55;
+  float lineA = uLine * side * max(minor * 0.55, major);
+
+  // The light: a soft pool of leaf behind the demo, with a little grain so
+  // its faint ramp never bands.
+  float grain = (hash(gl_FragCoord.xy) - 0.5) * 0.08;
+  float glowA = uGlow * rise * (1.0 + grain);
+
+  float a = clamp(lineA + glowA, 0.0, 1.0);
+  vec3 color = (lineColor * lineA + uLeaf * glowA) / max(lineA + glowA, 1e-4);
+  gl_FragColor = vec4(color * a, a);
 }
 `;
 
@@ -133,6 +167,8 @@ export function HeroField() {
       gl = null;
     }
     if (!gl || gl.isContextLost()) return;
+    // The contour lines need fwidth; without it the canvas just stays hidden.
+    if (!gl.getExtension("OES_standard_derivatives")) return;
 
     const vs = compile(gl, gl.VERTEX_SHADER, VERTEX);
     const fs = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT);
@@ -155,9 +191,11 @@ export function HeroField() {
     const u = {
       res: gl.getUniformLocation(program, "uRes"),
       time: gl.getUniformLocation(program, "uTime"),
-      a: gl.getUniformLocation(program, "uA"),
-      b: gl.getUniformLocation(program, "uB"),
-      strength: gl.getUniformLocation(program, "uStrength"),
+      px: gl.getUniformLocation(program, "uPx"),
+      leaf: gl.getUniformLocation(program, "uLeaf"),
+      berry: gl.getUniformLocation(program, "uBerry"),
+      line: gl.getUniformLocation(program, "uLine"),
+      glow: gl.getUniformLocation(program, "uGlow"),
     };
 
     const probe = document.createElement("span");
@@ -165,19 +203,22 @@ export function HeroField() {
     canvas.parentElement?.appendChild(probe);
     const applyTheme = () => {
       if (!gl) return;
-      gl.uniform3fv(u.a, readColor(probe, "--accent"));
-      gl.uniform3fv(u.b, readColor(probe, "--leaf"));
+      gl.uniform3fv(u.leaf, readColor(probe, "--leaf"));
+      gl.uniform3fv(u.berry, readColor(probe, "--accent"));
       // Tuned by eye: clearly there on both grounds, never louder than the text.
+      // Light lines glow on the dark ground, so they need less.
       const dark = document.documentElement.classList.contains("dark");
-      gl.uniform1f(u.strength, dark ? 0.26 : 0.3);
+      gl.uniform1f(u.line, dark ? 0.34 : 0.42);
+      gl.uniform1f(u.glow, dark ? 0.1 : 0.08);
     };
     applyTheme();
 
     const started = performance.now();
     const now = () => (performance.now() - started) / 1000;
 
-    // Soft gradients need few pixels: a lower resolution costs nothing visible.
-    let scale = Math.min(window.devicePixelRatio || 1, 1) * 0.5;
+    // Hairlines need real pixels to stay crisp, but past 1.5 the extra
+    // resolution is invisible and the cost is not.
+    let scale = Math.min(window.devicePixelRatio || 1, 1.5);
     const resize = () => {
       if (!gl) return;
       const { width, height } = canvas.getBoundingClientRect();
@@ -185,6 +226,7 @@ export function HeroField() {
       canvas.height = Math.max(1, Math.round(height * scale));
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform2f(u.res, canvas.width, canvas.height);
+      gl.uniform1f(u.px, scale);
     };
     resize();
 
@@ -200,6 +242,7 @@ export function HeroField() {
     let visible = true;
     let slowFrames = 0;
     let previous = 0;
+    let drawn = 0;
 
     const loop = (stamp: number) => {
       frame = requestAnimationFrame(loop);
@@ -209,14 +252,17 @@ export function HeroField() {
       previous = stamp;
       if (slowFrames > 45) {
         slowFrames = 0;
-        if (scale > 0.3) {
-          scale = 0.3;
+        if (scale > 0.75) {
+          scale = 0.75;
           resize();
         } else {
           stop();
           return;
         }
       }
+      // The terrain moves slowly, so every other frame is plenty.
+      if (stamp - drawn < 30) return;
+      drawn = stamp;
       draw();
     };
     const start = () => {
