@@ -102,6 +102,27 @@ describe("html", () => {
     expect(md).not.toContain("Pricing");
   });
 
+  it("flattens layout tables and keeps data tables", () => {
+    const toMd = (body: string) =>
+      htmlToMarkdown(
+        cleanHtml(parseDocument(`<html><body>${body}</body></html>`), {
+          baseUrl: "https://acme.test/",
+          onlyMainContent: false,
+          blockAds: true,
+        }),
+      );
+    const layout = toMd(
+      '<table><tr><td><table><tr><td><span>1.</span></td><td><center><a href="/vote"><div class="votearrow"></div></a></center></td><td><a href="https://a.test">A story</a></td></tr><tr><td></td><td></td><td>12 points by bob</td></tr></table></td></tr></table>',
+    );
+    expect(layout).toContain("1. [A story](https://a.test/)");
+    expect(layout).toContain("12 points by bob");
+    expect(layout).not.toContain("|");
+    const data = toMd(
+      "<table><tr><th>Plan</th><th>Price</th></tr><tr><td>Pro</td><td>$9</td></tr></table>",
+    );
+    expect(data).toMatch(/\| Plan\s*\| Price \|/);
+  });
+
   it("extracts absolute links", () => {
     expect(extractLinks(doc, "https://acme.test/")).toContain("https://acme.test/pricing");
   });

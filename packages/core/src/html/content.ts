@@ -93,8 +93,62 @@ export function cleanHtml(doc: Doc, opts: ContentOptions): string {
     if (main) body = main;
   }
 
+  flattenLayoutTables(body);
   absolutise(body, opts.baseUrl);
   return body.innerHTML;
+}
+
+/**
+ * Old-school sites (Hacker News, forums, mail archives) lay the whole page out
+ * in tables. As markdown those become GFM tables padded to their widest cell:
+ * kilobytes of pipes and spaces around a few words. A table only stays a table
+ * when it looks like data: a header row, nothing nested, not marked as layout.
+ * Everything else becomes one line per row.
+ */
+function flattenLayoutTables(root: Element) {
+  const layout = [...root.querySelectorAll("table")].filter((table) => {
+    const role = table.getAttribute("role");
+    if (role === "presentation" || role === "none") return true;
+    if (table.querySelector("table")) return true;
+    return !table.querySelector("th, thead");
+  });
+  for (const table of layout) {
+    for (const row of ownRows(table)) {
+      for (const cell of [...row.children]) {
+        if (cell.tagName !== "TD" && cell.tagName !== "TH") continue;
+        // Empty blocks (HN's vote arrow) would break a row into lines for nothing.
+        let block = false;
+        for (const el of cell.querySelectorAll(LAYOUT_BLOCKS)) {
+          if ((el.textContent ?? "").trim()) block = true;
+          else if (!el.querySelector("img")) el.remove();
+        }
+        retag(cell, block ? "div" : "span").append(" ");
+      }
+      retag(row, "div");
+    }
+    for (const section of [...table.children])
+      if (/^(THEAD|TBODY|TFOOT)$/.test(section.tagName)) retag(section, "div");
+    retag(table, "div");
+  }
+}
+
+const LAYOUT_BLOCKS = "div, p, center, table, ul, ol, pre, blockquote, h1, h2, h3, h4, h5, h6";
+
+function ownRows(table: Element): Element[] {
+  const rows: Element[] = [];
+  for (const child of table.children) {
+    if (child.tagName === "TR") rows.push(child);
+    else if (/^(THEAD|TBODY|TFOOT)$/.test(child.tagName))
+      for (const row of child.children) if (row.tagName === "TR") rows.push(row);
+  }
+  return rows;
+}
+
+function retag(el: Element, tag: string): Element {
+  const next = el.ownerDocument.createElement(tag);
+  while (el.firstChild) next.appendChild(el.firstChild);
+  el.replaceWith(next);
+  return next;
 }
 
 function pickMain(root: Doc, body: Element): Element | null {
