@@ -51,7 +51,7 @@ export function CreateKeyForm() {
       </form>
       <Notice state={state} />
       {state.secret && (
-        <div className="sheet mt-3 flex flex-wrap items-center gap-3 p-3">
+        <div className="reveal sheet mt-3 flex flex-wrap items-center gap-3 p-3">
           <code className="mono flex-1 break-all text-sm">{state.secret}</code>
           <button
             type="button"

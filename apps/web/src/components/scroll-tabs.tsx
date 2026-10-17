@@ -72,7 +72,7 @@ export function ScrollTabs({
         ref={rail}
         // `overscroll-x-contain` stops a sideways flick from triggering the
         // browser's back gesture.
-        className="no-scrollbar flex snap-x gap-2 overflow-x-auto overscroll-x-contain scroll-smooth"
+        className="no-scrollbar relative isolate flex snap-x gap-2 overflow-x-auto overscroll-x-contain scroll-smooth"
       >
         {children}
       </div>

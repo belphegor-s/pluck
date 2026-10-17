@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { nav, SITE } from "@/lib/site";
+import { usePresence } from "@/lib/use-presence";
 
 const links = [
   ...nav,
@@ -20,6 +21,7 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const panelId = useId();
+  const presence = usePresence(open);
 
   // Any navigation closes the menu; the pathname is the signal, not a value the
   // effect reads.
@@ -53,33 +55,48 @@ export function MobileNav() {
         onClick={() => setOpen((o) => !o)}
         className="-mr-1 flex size-9 items-center justify-center border border-[var(--line)] text-[var(--ink)] transition-colors hover:border-[var(--ink)]"
       >
-        {open ? (
-          <X aria-hidden="true" className="size-[18px]" />
-        ) : (
-          <Menu aria-hidden="true" className="size-[18px]" />
-        )}
+        {/* The bars turn into the cross and back. */}
+        <span className="grid" aria-hidden="true">
+          <Menu
+            className={`col-start-1 row-start-1 size-[18px] transition duration-300 ${
+              open ? "rotate-90 scale-50 opacity-0" : ""
+            }`}
+          />
+          <X
+            className={`col-start-1 row-start-1 size-[18px] transition duration-300 ${
+              open ? "" : "-rotate-90 scale-50 opacity-0"
+            }`}
+          />
+        </span>
       </button>
 
-      {open && (
+      {presence.mounted && (
         <>
           <button
             type="button"
             tabIndex={-1}
             aria-hidden
             onClick={() => setOpen(false)}
-            className="fixed inset-x-0 bottom-0 top-14 z-40 cursor-default bg-[color-mix(in_srgb,var(--ink)_28%,transparent)]"
+            data-state={presence.state}
+            className="scrim fixed inset-x-0 bottom-0 top-14 z-40 cursor-default bg-[color-mix(in_srgb,var(--ink)_28%,transparent)]"
           />
           <div
             id={panelId}
-            className="fixed inset-x-0 top-14 z-50 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-[var(--line)] bg-[var(--paper)] px-4 pb-6 pt-2 shadow-lg"
+            data-state={presence.state}
+            inert={!open}
+            className="drop fixed inset-x-0 top-14 z-50 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-[var(--line)] bg-[var(--paper)] px-4 pb-6 pt-2 shadow-lg"
           >
             <nav aria-label="Main">
               <ul className="divide-y divide-[var(--line)]">
-                {links.map((item) => {
+                {links.map((item, i) => {
                   const external = "external" in item && item.external;
                   const active = !external && pathname.startsWith(item.href);
                   return (
-                    <li key={item.href}>
+                    <li
+                      key={item.href}
+                      className="drop-item"
+                      style={{ "--i": i } as React.CSSProperties}
+                    >
                       <Link
                         href={item.href}
                         onClick={() => setOpen(false)}
@@ -105,7 +122,8 @@ export function MobileNav() {
             <Link
               href="/dashboard"
               onClick={() => setOpen(false)}
-              className="mt-4 block bg-[var(--ink)] px-4 py-3 text-center text-sm text-[var(--paper)]"
+              className="drop-item mt-4 block bg-[var(--ink)] px-4 py-3 text-center text-sm text-[var(--paper)]"
+              style={{ "--i": links.length } as React.CSSProperties}
             >
               Get an API key
             </Link>

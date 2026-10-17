@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TabIndicator } from "@/components/tab-indicator";
 import { formatNumber } from "@/lib/format";
 
 /** Presentational pieces shared by the admin pages. Server-safe, no state. */
@@ -154,13 +155,14 @@ export function Badge({
 
 export function RangeTabs({ days, base }: { days: number; base: string }) {
   return (
-    <div className="flex border border-[var(--line)] bg-[var(--sheet)] p-0.5 text-sm">
+    <div className="relative isolate flex border border-[var(--line)] bg-[var(--sheet)] p-0.5 text-sm">
+      <TabIndicator className="bg-[var(--ink)]" />
       {[7, 30, 90].map((d) => (
         <Link
           key={d}
           href={`${base}?days=${d}`}
           aria-current={d === days ? "page" : undefined}
-          className={`px-3 py-1.5 transition-colors ${
+          className={`px-3 py-1.5 transition-colors duration-300 ${
             d === days
               ? "bg-[var(--ink)] text-[var(--paper)]"
               : "text-[var(--ink-soft)] hover:text-[var(--ink)]"

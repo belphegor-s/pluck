@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/dashboard/icons";
 import { switchWorkspace } from "@/lib/team-actions";
+import { usePresence } from "@/lib/use-presence";
 
 export interface ShellWorkspace {
   id: string;
@@ -52,6 +53,7 @@ export function WorkspaceSwitcher({
   collapsed: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const presence = usePresence(open);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
@@ -116,9 +118,12 @@ export function WorkspaceSwitcher({
         </span>
       </button>
 
-      {open && (
+      {presence.mounted && (
         <div
-          className={`sheet absolute z-50 mt-1 w-64 p-1 shadow-lg ${collapsed ? "left-full top-0 ml-2" : "left-3 right-3 w-auto"}`}
+          data-state={presence.state}
+          // On the rail the menu opens beside the badge, so it grows out sideways.
+          data-side={collapsed ? "right" : "down"}
+          className={`pop sheet absolute z-50 mt-1 w-64 p-1 shadow-lg ${collapsed ? "left-full top-0 ml-2" : "left-3 right-3 w-auto"}`}
         >
           <p className="mono px-2 pb-1 pt-1.5 text-[11px] uppercase tracking-wider text-[var(--ink-faint)]">
             Workspaces

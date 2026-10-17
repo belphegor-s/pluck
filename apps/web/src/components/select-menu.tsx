@@ -3,6 +3,7 @@
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePresence } from "@/lib/use-presence";
 
 export interface SelectOption<V extends string | number> {
   value: V;
@@ -39,6 +40,7 @@ export function SelectMenu<V extends string | number>({
 }) {
   const [value, setValue] = useState<V>(defaultValue);
   const [open, setOpen] = useState(false);
+  const presence = usePresence(open);
   const [activeIndex, setActiveIndex] = useState(() =>
     Math.max(
       0,
@@ -53,6 +55,7 @@ export function SelectMenu<V extends string | number>({
     left: number;
     width: number;
     maxHeight: number;
+    up: boolean;
   } | null>(null);
   const seek = useRef({ text: "", at: 0 });
   const listId = useId();
@@ -69,12 +72,10 @@ export function SelectMenu<V extends string | number>({
   }, [open]);
 
   // Measured before paint, and again whenever anything scrolls or resizes,
-  // so the list stays attached to its button.
+  // so the list stays attached to its button. Once closing, it keeps its last
+  // place while it fades out there.
   useLayoutEffect(() => {
-    if (!open) {
-      setPlace(null);
-      return;
-    }
+    if (!open) return;
     const GAP = 4;
     const EDGE = 8;
     const measure = () => {
@@ -104,6 +105,7 @@ export function SelectMenu<V extends string | number>({
         ),
         width,
         maxHeight,
+        up,
       });
     };
     measure();
@@ -207,13 +209,15 @@ export function SelectMenu<V extends string | number>({
         />
       </button>
 
-      {open &&
+      {presence.mounted &&
         createPortal(
           <div
             ref={listRef}
             id={listId}
             role="listbox"
             aria-label={label}
+            data-state={presence.state}
+            data-side={place?.up ? "up" : "down"}
             // Hidden until measured, so it never flashes at the wrong spot.
             style={{
               position: "fixed",
@@ -223,7 +227,7 @@ export function SelectMenu<V extends string | number>({
               maxHeight: place?.maxHeight,
               visibility: place ? "visible" : "hidden",
             }}
-            className="sheet z-[60] overflow-y-auto overflow-x-hidden p-1 shadow-lg"
+            className="pop sheet z-[60] overflow-y-auto overflow-x-hidden p-1 shadow-lg"
           >
             {options.map((option, index) => {
               const isSelected = option.value === value;

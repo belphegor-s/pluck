@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyCodeButtons } from "@/components/copy-code";
 import { ScrollTabs } from "@/components/scroll-tabs";
+import { TabIndicator } from "@/components/tab-indicator";
 import { docsNav, listDocSlugs, readDoc } from "@/lib/docs";
 import { SITE } from "@/lib/site";
 
@@ -50,6 +51,9 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
         {/* One scrolling line on small screens; a plain column once the
             sidebar has room. */}
         <ScrollTabs label="documentation" className="text-sm lg:hidden">
+          {/* Each docs page is its own render, so the chip outline remembers
+              where it was and glides over from the page you came from. */}
+          <TabIndicator remember="docs-chips" className="border border-[var(--accent)]" />
           {docsNav.map((item) => {
             const href = item.slug ? `/docs/${item.slug}` : "/docs";
             const active = item.slug === current;
@@ -58,7 +62,7 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
                 key={item.slug}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`shrink-0 snap-start whitespace-nowrap border px-3 py-1.5 transition-colors ${
+                className={`shrink-0 snap-start whitespace-nowrap border px-3 py-1.5 transition-colors duration-300 ${
                   active
                     ? "border-[var(--accent)] text-[var(--accent)]"
                     : "border-[var(--line)] text-[var(--ink-soft)] hover:text-[var(--ink)]"
@@ -69,7 +73,12 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
             );
           })}
         </ScrollTabs>
-        <ul className="mt-3 hidden flex-col gap-1.5 text-sm lg:flex">
+        <ul className="relative isolate mt-3 hidden flex-col gap-1.5 border-l border-[var(--line)] pl-3 text-sm lg:flex">
+          <TabIndicator
+            variant="rail"
+            remember="docs-rail"
+            className="-translate-x-px bg-[var(--accent)]"
+          />
           {docsNav.map((item) => {
             const href = item.slug ? `/docs/${item.slug}` : "/docs";
             const active = item.slug === current;
@@ -78,11 +87,11 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={
+                  className={`transition-colors duration-300 ${
                     active
                       ? "text-[var(--accent)]"
-                      : "text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
-                  }
+                      : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                  }`}
                 >
                   {item.title}
                 </Link>

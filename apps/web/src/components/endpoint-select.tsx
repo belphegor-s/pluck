@@ -3,6 +3,7 @@
 import { type EndpointId, endpoints } from "@pluck/shared";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { usePresence } from "@/lib/use-presence";
 
 const ids = Object.keys(endpoints) as EndpointId[];
 
@@ -29,6 +30,7 @@ export function EndpointSelect({
   onChange: (id: EndpointId) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const presence = usePresence(open);
   const [activeIndex, setActiveIndex] = useState(() => ids.indexOf(value));
   const rootRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -134,13 +136,14 @@ export function EndpointSelect({
         />
       </button>
 
-      {open && (
+      {presence.mounted && (
         <div
           ref={listRef}
           id={listId}
           role="listbox"
           aria-label="Endpoint"
-          className="sheet absolute z-30 mt-1 max-h-80 w-full overflow-y-auto overflow-x-hidden p-1 shadow-lg"
+          data-state={presence.state}
+          className="pop sheet absolute z-30 mt-1 max-h-80 w-full overflow-y-auto overflow-x-hidden p-1 shadow-lg"
         >
           {ids.map((id, index) => {
             const endpoint = endpoints[id];

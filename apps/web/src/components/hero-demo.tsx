@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { HERO_SAMPLE } from "@/components/hero-sample";
 import { JsonView } from "@/components/json-view";
 import { MarkdownView } from "@/components/markdown-view";
+import { TabIndicator } from "@/components/tab-indicator";
 import { formatNumber } from "@/lib/format";
 
 type Tab = "markdown" | "links" | "metadata";
@@ -16,6 +17,8 @@ interface DemoResult {
   links: string[];
   metadata: Record<string, unknown>;
 }
+
+const TABS: Tab[] = ["markdown", "links", "metadata"];
 
 const SAMPLES = [
   { label: "Hacker News", url: "https://news.ycombinator.com" },
@@ -42,6 +45,7 @@ const kb = (bytes: number) =>
 export function HeroDemo() {
   const [url, setUrl] = useState<string>(HERO_SAMPLE.url);
   const [tab, setTab] = useState<Tab>("markdown");
+  const [direction, setDirection] = useState<"left" | "right" | "none">("none");
   const [state, setState] = useState<"sample" | "working" | "done" | "error">("sample");
   const [result, setResult] = useState<DemoResult | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -99,6 +103,7 @@ export function HeroDemo() {
     setResult({ ...body, url: target });
     setState("done");
     setTab("markdown");
+    setDirection("none");
   }
 
   // The last good run stays on screen through a new fetch or a failure.
@@ -142,9 +147,10 @@ export function HeroDemo() {
       {/* One quiet line under the bar: what to try, what is happening, or the
           other views of a page once there is one. */}
       <div
-        className="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1 px-1 py-2 text-xs text-[var(--ink-faint)]"
+        className="relative isolate flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1 px-1 py-2 text-xs text-[var(--ink-faint)]"
         aria-live="polite"
       >
+        <TabIndicator variant="underline" thickness={1} className="bg-[var(--ink)]" />
         {working && <span>Fetching, rendering if needed, cleaning…</span>}
         {state === "error" && <span className="text-[var(--accent)]">{message}</span>}
         {state === "sample" && (
@@ -166,17 +172,20 @@ export function HeroDemo() {
           </>
         )}
         {state === "done" &&
-          (["markdown", "links", "metadata"] as Tab[]).map((t) => (
+          TABS.map((t) => (
             <button
               key={t}
               type="button"
-              onClick={() => setTab(t)}
+              onClick={() => {
+                if (t === tab) return;
+                setDirection(TABS.indexOf(t) > TABS.indexOf(tab) ? "right" : "left");
+                setTab(t);
+              }}
               aria-pressed={tab === t}
-              className={
-                tab === t
-                  ? "text-[var(--ink)] underline underline-offset-4"
-                  : "transition-colors hover:text-[var(--ink)]"
-              }
+              // The padding puts the sliding underline where a text underline would sit.
+              className={`pb-0.5 transition-colors duration-300 ${
+                tab === t ? "text-[var(--ink)]" : "hover:text-[var(--ink)]"
+              }`}
             >
               {t}
             </button>
@@ -201,7 +210,11 @@ export function HeroDemo() {
             {working ? (
               <Skeleton />
             ) : tab === "markdown" ? (
-              <div className={result ? undefined : "hero-reveal"}>
+              <div
+                key="markdown"
+                data-direction={direction}
+                className={result ? "tab-panel" : "hero-reveal"}
+              >
                 <MarkdownView
                   value={result ? (title ? `# ${title}\n\n${typed}` : typed) : HERO_SAMPLE.markdown}
                   className="text-[0.875rem] leading-relaxed"
@@ -213,7 +226,11 @@ export function HeroDemo() {
                 )}
               </div>
             ) : tab === "links" ? (
-              <ul className="mono space-y-1 text-[0.875rem]">
+              <ul
+                key="links"
+                data-direction={direction}
+                className="tab-panel mono space-y-1 text-[0.875rem]"
+              >
                 {shown.links.map((link) => (
                   <li key={link} className="truncate text-[var(--ink-soft)]">
                     {link}
@@ -221,10 +238,12 @@ export function HeroDemo() {
                 ))}
               </ul>
             ) : (
-              <JsonView
-                value={JSON.stringify(shown.metadata, null, 2)}
-                className="text-[0.875rem]"
-              />
+              <div key="metadata" data-direction={direction} className="tab-panel">
+                <JsonView
+                  value={JSON.stringify(shown.metadata, null, 2)}
+                  className="text-[0.875rem]"
+                />
+              </div>
             )}
           </div>
         </section>

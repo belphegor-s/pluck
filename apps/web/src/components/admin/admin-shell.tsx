@@ -4,6 +4,8 @@ import { Building2, Database, LayoutDashboard, LogOut, ShieldCheck, Users } from
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/logo";
+import { PageMain } from "@/components/page-main";
+import { TabIndicator } from "@/components/tab-indicator";
 import { ThemeToggle } from "@/components/theme";
 import { signOutAction } from "@/lib/admin/actions";
 
@@ -35,7 +37,11 @@ export function AdminShell({ children, ip }: { children: React.ReactNode; ip: st
               Admin
             </span>
           </Link>
-          <nav aria-label="Admin" className="ml-4 hidden items-center gap-1 md:flex">
+          <nav
+            aria-label="Admin"
+            className="relative isolate ml-4 hidden items-center gap-1 md:flex"
+          >
+            <TabIndicator className="bg-[var(--accent-wash)]" />
             {NAV.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
@@ -79,8 +85,9 @@ export function AdminShell({ children, ip }: { children: React.ReactNode; ip: st
         {/* Phones: the same tabs as a scrolling row under the bar. */}
         <nav
           aria-label="Admin"
-          className="flex gap-1 overflow-x-auto border-t border-[var(--line)] px-2 py-1.5 [scrollbar-width:none] md:hidden"
+          className="relative isolate flex gap-1 overflow-x-auto border-t border-[var(--line)] px-2 py-1.5 [scrollbar-width:none] md:hidden"
         >
+          <TabIndicator className="bg-[var(--accent-wash)]" />
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
@@ -98,7 +105,7 @@ export function AdminShell({ children, ip }: { children: React.ReactNode; ip: st
           ))}
         </nav>
       </header>
-      <main className="px-4 pb-16 pt-6 lg:px-8 lg:pt-8">{children}</main>
+      <PageMain className="px-4 pb-16 pt-6 lg:px-8 lg:pt-8">{children}</PageMain>
     </div>
   );
 }

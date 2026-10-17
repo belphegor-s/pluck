@@ -364,7 +364,8 @@ export function AvatarEditor({
           event.preventDefault();
           if (!uploading) close();
         }}
-        className="m-auto w-[min(26rem,calc(100vw-2rem))] border border-[var(--line)] bg-[var(--sheet)] p-0 text-[var(--ink)] shadow-2xl backdrop:bg-[color-mix(in_srgb,var(--ink)_45%,transparent)]"
+        // Scales in over a fading backdrop and back out again (globals.css).
+        className="dialog-pop m-auto w-[min(26rem,calc(100vw-2rem))] border border-[var(--line)] bg-[var(--sheet)] p-0 text-[var(--ink)] shadow-2xl"
       >
         <div className="border-b border-[var(--line)] px-5 py-3">
           <h2 id="avatar-editor-title" className="text-base">

@@ -274,7 +274,7 @@ export function DeleteWorkspace({ name, credits }: { name: string; credits: numb
     );
 
   return (
-    <form action={action} className="sheet space-y-4 border-[var(--accent)] p-4">
+    <form action={action} className="reveal sheet space-y-4 border-[var(--accent)] p-4">
       <p className="text-sm text-[var(--ink-soft)]">
         Deletes {name} for everyone: its keys stop working, monitors stop, and its usage history,
         crawls and webhook log are removed.

@@ -21,8 +21,10 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { TabIndicator } from "@/components/tab-indicator";
 import { runSqlAction } from "@/lib/admin/actions";
 import type { SqlError, SqlMode, SqlResult } from "@/lib/admin/sql";
+import { usePresence } from "@/lib/use-presence";
 
 interface TableInfo {
   name: string;
@@ -125,10 +127,13 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
   const [history, setHistory] = useState<string[]>([]);
   const [panel, setPanel] = useState<"schema" | "history">("schema");
   const [panelOpen, setPanelOpen] = useState(false);
+  // The first panel is simply there; only a switch slides one in.
+  const [panelSwitched, setPanelSwitched] = useState(false);
   const [filter, setFilter] = useState("");
   const [openTable, setOpenTable] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const editor = useRef<ReactCodeMirrorRef>(null);
+  const drawer = usePresence(panelOpen);
 
   useEffect(() => {
     setHistory(readJson<string[]>(HISTORY_KEY, []));
@@ -237,16 +242,22 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
 
   const sidePanel = (
     <div className="flex h-full flex-col">
-      <div className="flex border-b border-[var(--line)] text-sm">
+      <div className="relative isolate flex border-b border-[var(--line)] text-sm">
+        <TabIndicator variant="underline" className="bg-[var(--accent)]" />
         {(["schema", "history"] as const).map((p) => (
           <button
             key={p}
             type="button"
-            onClick={() => setPanel(p)}
-            className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2.5 ${
+            onClick={() => {
+              if (p === panel) return;
+              setPanel(p);
+              setPanelSwitched(true);
+            }}
+            aria-pressed={panel === p}
+            className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2.5 transition-colors duration-300 ${
               panel === p
-                ? "border-b-2 border-[var(--accent)] text-[var(--ink)]"
-                : "text-[var(--ink-soft)]"
+                ? "shadow-[inset_0_-2px_0_var(--accent)] text-[var(--ink)]"
+                : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
             }`}
           >
             {p === "schema" ? <Table2 className="size-4" /> : <History className="size-4" />}
@@ -255,7 +266,11 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
         ))}
       </div>
       {panel === "schema" ? (
-        <>
+        <div
+          key="schema"
+          data-direction={panelSwitched ? "left" : "none"}
+          className="tab-panel flex min-h-0 flex-1 flex-col"
+        >
           <div className="relative border-b border-[var(--line)]">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--ink-faint)]" />
             <input
@@ -295,7 +310,7 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
                   </button>
                 </div>
                 {openTable === t.name && (
-                  <ul className="mb-1 ml-8 border-l border-[var(--line)]">
+                  <ul className="reveal mb-1 ml-8 border-l border-[var(--line)]">
                     {t.columns.map((c) => (
                       <li key={c.name}>
                         <button
@@ -319,9 +334,13 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
               <li className="px-3 py-4 text-[var(--ink-faint)]">No tables match.</li>
             )}
           </ul>
-        </>
+        </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto text-sm">
+        <ul
+          key="history"
+          data-direction={panelSwitched ? "right" : "none"}
+          className="tab-panel flex-1 overflow-y-auto text-sm"
+        >
           {history.length === 0 && (
             <li className="px-3 py-4 text-[var(--ink-faint)]">
               Queries you run appear here, on this device only.
@@ -548,15 +567,19 @@ export function SqlConsole({ tables, problem }: { tables: TableInfo[]; problem: 
       </div>
 
       {/* Phones and tablets: tables and history in a drawer. */}
-      {panelOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+      {drawer.mounted && (
+        <div className={`fixed inset-0 z-50 lg:hidden ${panelOpen ? "" : "pointer-events-none"}`}>
           <button
             type="button"
             aria-label="Close"
             onClick={() => setPanelOpen(false)}
-            className="absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_35%,transparent)] backdrop-blur-[2px]"
+            data-state={drawer.state}
+            className="scrim absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_35%,transparent)] backdrop-blur-[2px]"
           />
-          <div className="absolute inset-y-0 left-0 flex w-[min(20rem,88vw)] flex-col border-r border-[var(--line)] bg-[var(--sheet)] shadow-xl">
+          <div
+            data-state={drawer.state}
+            className="drawer-left absolute inset-y-0 left-0 flex w-[min(20rem,88vw)] flex-col border-r border-[var(--line)] bg-[var(--sheet)] shadow-xl"
+          >
             <div className="flex items-center justify-between border-b border-[var(--line)] px-3 py-2">
               <span className="text-sm font-medium">Database</span>
               <button

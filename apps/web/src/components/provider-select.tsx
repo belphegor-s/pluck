@@ -3,6 +3,7 @@
 import { DEFAULT_MODELS, PROVIDER_LABELS, PROVIDERS } from "@pluck/ai";
 import { Check, ChevronDown, Shuffle, Sparkles, SquareTerminal, Zap } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { usePresence } from "@/lib/use-presence";
 
 type Provider = (typeof PROVIDERS)[number];
 
@@ -49,6 +50,7 @@ export function ProviderSelect({
   onChange: (provider: Provider) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const presence = usePresence(open);
   const [activeIndex, setActiveIndex] = useState(() => PROVIDERS.indexOf(value));
   const rootRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -153,13 +155,14 @@ export function ProviderSelect({
         />
       </button>
 
-      {open && (
+      {presence.mounted && (
         <div
           ref={listRef}
           id={listId}
           role="listbox"
           aria-label="Model provider"
-          className="sheet absolute z-30 mt-1 max-h-72 w-full overflow-auto p-1 shadow-lg"
+          data-state={presence.state}
+          className="pop sheet absolute z-30 mt-1 max-h-72 w-full overflow-auto p-1 shadow-lg"
         >
           {PROVIDERS.map((provider, index) => {
             const selected = provider === value;

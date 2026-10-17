@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { PageMain } from "@/components/page-main";
 
 /** Routes that bring their own app shell instead of the marketing header and footer. */
 const APP_ROUTES = ["/dashboard", "/onboarding", "/admin"];
@@ -20,9 +21,9 @@ export function SiteChrome({
   return (
     <>
       {header}
-      <main id="main" className="flex-1">
+      <PageMain id="main" className="flex-1">
         {children}
-      </main>
+      </PageMain>
       {footer}
     </>
   );

@@ -45,6 +45,8 @@
 
   --radius-press: 3px;
   --ease-press: cubic-bezier(0.2, 0.9, 0.25, 1);
+  /* For things that travel (indicators, drawers): quick off the mark, long settle. */
+  --ease-glide: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @layer base {
@@ -588,4 +590,310 @@
   .range:focus-visible::-moz-range-thumb {
     box-shadow: 0 0 0 3px var(--accent-wash), 0 1px 3px rgb(0 0 0 / 0.35);
   }
+}
+
+/*
+  Motion. Everything here is short and travels a few pixels at most: it should
+  tell you what changed and where it went, then get out of the way. The
+  reduced-motion rule in the base layer collapses all of it to an instant.
+*/
+
+/* The mark under the current tab (components/tab-indicator.tsx). */
+.tab-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: var(--tw, 0);
+  height: var(--th, 0);
+  transform: translate(var(--tx, 0), var(--ty, 0));
+  pointer-events: none;
+  transition:
+    transform 0.38s var(--ease-glide),
+    width 0.38s var(--ease-glide),
+    height 0.38s var(--ease-glide),
+    opacity 0.2s ease;
+}
+.tab-indicator[data-snap] {
+  transition: none;
+}
+.tab-indicator[data-hidden] {
+  opacity: 0;
+}
+/* Once the indicator is drawing the current item, the item stops drawing itself. */
+[data-indicator="ready"] [data-indicator-active] {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  text-decoration-color: transparent !important;
+}
+[data-indicator="ready"] [data-indicator-active] .tab-mark {
+  visibility: hidden;
+}
+
+/*
+  A tab panel arriving. It leans in from the side of the tab that was picked,
+  so moving right through the tabs feels like moving right.
+*/
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--panel-from, 0)) translateY(var(--panel-lift, 3px));
+    filter: blur(2px);
+  }
+}
+.tab-panel {
+  animation: panel-in 0.32s var(--ease-glide) backwards;
+}
+.tab-panel[data-direction="right"] {
+  --panel-from: 10px;
+  --panel-lift: 0px;
+}
+.tab-panel[data-direction="left"] {
+  --panel-from: -10px;
+  --panel-lift: 0px;
+}
+/* The first panel on the page is just there. */
+.tab-panel[data-direction="none"] {
+  animation: none;
+}
+
+/* A box whose height follows its content smoothly (code tabs of different lengths). */
+.auto-height {
+  overflow: hidden;
+  transition: height 0.34s var(--ease-glide);
+}
+
+/* A label that swaps (Copy → Copied) rolls up into place. */
+@keyframes swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(40%);
+  }
+}
+.swap-in {
+  display: inline-block;
+  animation: swap-in 0.24s var(--ease-press) backwards;
+}
+
+/*
+  Popovers: menus and listboxes grow out of the control they belong to.
+  --pop-x/--pop-y say which way that is; down is the default.
+*/
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--pop-x, 0), var(--pop-y, -6px)) scale(0.97);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: translate(var(--pop-x, 0), var(--pop-y, -4px)) scale(0.98);
+  }
+}
+.pop {
+  transform-origin: var(--pop-origin, top center);
+}
+.pop[data-state="open"] {
+  animation: pop-in 0.18s var(--ease-press) both;
+}
+.pop[data-state="closed"] {
+  animation: pop-out 0.16s ease-in both;
+  pointer-events: none;
+}
+.pop[data-side="up"] {
+  --pop-y: 6px;
+  --pop-origin: bottom center;
+}
+.pop[data-side="right"] {
+  --pop-x: -6px;
+  --pop-y: 0px;
+  --pop-origin: left top;
+}
+
+/* Scrims behind drawers and menus. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+.scrim[data-state="open"] {
+  animation: fade-in 0.24s ease both;
+}
+.scrim[data-state="closed"] {
+  animation: fade-out 0.16s ease-in both;
+  pointer-events: none;
+}
+
+/* A panel that drops from under the header (the phone menu). */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+@keyframes drop-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+.drop[data-state="open"] {
+  animation: drop-in 0.28s var(--ease-glide) both;
+}
+.drop[data-state="closed"] {
+  animation: drop-out 0.16s ease-in both;
+  pointer-events: none;
+}
+/* Its rows follow the panel down, one after another. */
+.drop[data-state="open"] .drop-item {
+  animation: drop-in 0.34s var(--ease-glide) backwards;
+  animation-delay: calc(var(--i, 0) * 28ms + 40ms);
+}
+
+/* A drawer from the left edge. */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes slide-out-left {
+  to {
+    transform: translateX(-100%);
+  }
+}
+.drawer-left[data-state="open"] {
+  animation: slide-in-left 0.32s var(--ease-glide) both;
+}
+.drawer-left[data-state="closed"] {
+  animation: slide-out-left 0.2s ease-in both;
+}
+
+/*
+  Modal dialogs scale up from slightly below and settle; closing reverses it.
+  `allow-discrete` keeps the dialog in the top layer until it has faded, where
+  supported; elsewhere it simply closes.
+*/
+.dialog-pop {
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  transition:
+    opacity 0.2s ease,
+    transform 0.26s var(--ease-glide),
+    overlay 0.26s allow-discrete,
+    display 0.26s allow-discrete;
+}
+.dialog-pop[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  .dialog-pop[open] {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+.dialog-pop::backdrop {
+  background-color: transparent;
+  transition:
+    background-color 0.26s ease,
+    overlay 0.26s allow-discrete,
+    display 0.26s allow-discrete;
+}
+.dialog-pop[open]::backdrop {
+  background-color: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+@starting-style {
+  .dialog-pop[open]::backdrop {
+    background-color: transparent;
+  }
+}
+
+/* Disclosures open to their height instead of jumping, where the browser can. */
+@supports selector(::details-content) {
+  details {
+    interpolate-size: allow-keywords;
+  }
+  details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 0.3s var(--ease-glide),
+      content-visibility 0.3s allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+  }
+}
+
+/* A route reached by navigating settles in (components/page-main.tsx). */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+/*
+  `backwards`, not `both`: a transform held after the animation ends would make
+  <main> the containing block for every fixed-position element inside it.
+*/
+.page-enter {
+  animation: page-enter 0.36s var(--ease-glide) backwards;
+}
+
+/* Messages that appear after an action rise into place rather than pop. */
+[role="status"]:not(:empty),
+[role="alert"]:not(:empty) {
+  animation: pluck-in 0.28s var(--ease-press) backwards;
+}
+
+/* Something revealed in place, like a table's columns in the SQL sidebar. */
+.reveal {
+  animation: pluck-in 0.26s var(--ease-press) backwards;
+}
+
+/*
+  Theme switch (components/theme.tsx): the new theme is revealed by an animated
+  clip-path on its snapshot, so the default crossfade is turned off for it.
+*/
+:root.theme-wave::view-transition-old(root),
+:root.theme-wave::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:root.theme-wave::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* The toggle shows the theme you would switch to, and turns it over as it lands. */
+.theme-icon {
+  grid-area: 1 / 1;
+}
+.theme-icon-sun,
+.dark .theme-icon-moon {
+  opacity: 0;
+  scale: 0.5;
+  rotate: 90deg;
+}
+.dark .theme-icon-sun {
+  opacity: 1;
+  scale: 1;
+  rotate: 0deg;
+}
+@keyframes icon-turn-in {
+  from {
+    opacity: 0;
+    scale: 0.4;
+    rotate: -120deg;
+  }
+}
+:root.theme-switching.dark .theme-icon-sun,
+:root.theme-switching:not(.dark) .theme-icon-moon {
+  animation: icon-turn-in 0.6s var(--ease-glide) both;
 }

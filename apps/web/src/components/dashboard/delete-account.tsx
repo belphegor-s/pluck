@@ -28,7 +28,7 @@ export function DeleteAccount({ email }: { email: string }) {
     );
 
   return (
-    <form action={action} className="sheet space-y-4 border-[var(--accent)] p-4">
+    <form action={action} className="reveal sheet space-y-4 border-[var(--accent)] p-4">
       <p className="text-sm text-[var(--ink-soft)]">
         This removes your account and every workspace you are the only member of, with their keys,
         usage history, monitors, crawls, webhook log and remaining credits. It cannot be undone.

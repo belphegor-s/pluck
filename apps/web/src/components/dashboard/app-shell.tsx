@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/dashboard/icons";
 import { type ShellWorkspace, WorkspaceSwitcher } from "@/components/dashboard/workspace-switcher";
 import { Wordmark } from "@/components/logo";
+import { PageMain } from "@/components/page-main";
+import { TabIndicator } from "@/components/tab-indicator";
 import { ThemeToggle } from "@/components/theme";
 import { signOut } from "@/lib/auth-client";
 import { formatNumber } from "@/lib/format";
@@ -265,10 +267,10 @@ export function AppShell({
       </div>
 
       <div className="min-w-0">
-        <main id="main" className="px-4 pb-24 pt-6 sm:px-6 lg:px-10 lg:py-8">
+        <PageMain id="main" className="px-4 pb-24 pt-6 sm:px-6 lg:px-10 lg:py-8">
           <h1 className="sr-only">{titleFor(pathname)}</h1>
           {children}
-        </main>
+        </PageMain>
       </div>
     </div>
   );
@@ -294,10 +296,12 @@ function SidebarBody({
         aria-label="Dashboard"
         // Scrolls in both states so the footer below never leaves the screen. On
         // the rail the scrollbar is hidden: it would push the icons off centre.
-        className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3 ${
+        className={`relative isolate min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3 ${
           collapsed ? "[scrollbar-width:none]" : "[scrollbar-width:thin]"
         }`}
       >
+        {/* One highlight for the whole list, gliding to whichever page is open. */}
+        <TabIndicator className="bg-[var(--accent-wash)] before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:bg-[var(--accent)]" />
         {GROUPS.map((group) => (
           <div key={group.label || "home"} className="px-3 pb-3">
             {group.label && <GroupLabel label={group.label} collapsed={collapsed} />}
@@ -398,7 +402,10 @@ function NavLink({
       }`}
     >
       {active && (
-        <span className="absolute inset-y-1 left-0 w-0.5 bg-[var(--accent)]" aria-hidden="true" />
+        <span
+          className="tab-mark absolute inset-y-1 left-0 w-0.5 bg-[var(--accent)]"
+          aria-hidden="true"
+        />
       )}
       <Icon
         name={item.icon}

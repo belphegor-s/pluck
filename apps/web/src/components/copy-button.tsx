@@ -15,6 +15,8 @@ export function CopyButton({
   copiedLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  // The label only rolls once it has something to roll from.
+  const [touched, setTouched] = useState(false);
 
   return (
     <button
@@ -23,12 +25,18 @@ export function CopyButton({
       onClick={() => {
         void navigator.clipboard.writeText(text).then(() => {
           setCopied(true);
+          setTouched(true);
           setTimeout(() => setCopied(false), 1600);
         });
       }}
-      className={`border border-[var(--line)] bg-[var(--paper)] px-2 py-1 text-xs text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)] ${className}`}
+      className={`overflow-hidden border border-[var(--line)] bg-[var(--paper)] px-2 py-1 text-xs text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)] ${className}`}
     >
-      {copied ? copiedLabel : label}
+      <span
+        key={String(copied)}
+        className={`${touched ? "swap-in" : ""} ${copied ? "text-[var(--leaf)]" : ""}`}
+      >
+        {copied ? copiedLabel : label}
+      </span>
     </button>
   );
 }

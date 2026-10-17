@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { TabIndicator } from "@/components/tab-indicator";
 import { type ActionState, addProxy, deleteProxy, setProxyActive, testProxy } from "@/lib/actions";
 
 const empty: ActionState = {};
@@ -48,11 +49,15 @@ export function AddProxyForm() {
 
       <fieldset>
         <legend className="text-sm text-[var(--ink-soft)]">Tier</legend>
-        <div className="mt-1 grid gap-2 sm:grid-cols-2">
+        <div className="relative isolate mt-1 grid gap-2 sm:grid-cols-2">
+          <TabIndicator
+            selector="label:has(input:checked)"
+            className="rounded-[var(--radius-press)] border border-[var(--accent)] bg-[var(--sheet)]"
+          />
           {TIERS.map((option) => (
             <label
               key={option.id}
-              className={`sheet cursor-pointer p-3 text-sm transition-colors ${
+              className={`sheet cursor-pointer p-3 text-sm transition-colors duration-300 ${
                 tier === option.id ? "border-[var(--accent)]" : "hover:border-[var(--ink-faint)]"
               }`}
             >
