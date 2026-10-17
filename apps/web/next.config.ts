@@ -20,7 +20,10 @@ const config: NextConfig = {
           { key: "x-content-type-options", value: "nosniff" },
           { key: "referrer-policy", value: "strict-origin-when-cross-origin" },
           // Framable only by the portfolio, which shows the site live in its project cards.
-          { key: "content-security-policy", value: "frame-ancestors 'self' https://ayushsharma.me https://www.ayushsharma.me" },
+          {
+            key: "content-security-policy",
+            value: "frame-ancestors 'self' https://ayushsharma.me https://www.ayushsharma.me",
+          },
           { key: "strict-transport-security", value: "max-age=31536000; includeSubDomains" },
           {
             key: "permissions-policy",
